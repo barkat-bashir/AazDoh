@@ -1,0 +1,97 @@
+package com.aazdoh.review.service;
+
+import com.aazdoh.commitment.entity.Commitment;
+import com.aazdoh.commitment.entity.CommitmentStatus;
+import com.aazdoh.commitment.repository.CommitmentRepository;
+import com.aazdoh.commitment.service.CommitmentService;
+import com.aazdoh.common.exception.BadRequestException;
+import com.aazdoh.common.exception.ResourceNotFoundException;
+import com.aazdoh.review.dto.ReviewCommitmentRequest;
+import com.aazdoh.review.dto.ReviewResponse;
+import com.aazdoh.review.entity.CommitmentReview;
+import com.aazdoh.review.entity.NextAction;
+import com.aazdoh.review.repository.ReviewRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.UUID;
+
+@Service
+public class ReviewService {
+
+    private final ReviewRepository reviewRepository;
+    private final CommitmentRepository commitmentRepository;
+    private final CommitmentService commitmentService;
+
+    public ReviewService(
+            ReviewRepository reviewRepository,
+            CommitmentRepository commitmentRepository,
+            CommitmentService commitmentService
+    ) {
+        this.reviewRepository = reviewRepository;
+        this.commitmentRepository = commitmentRepository;
+        this.commitmentService = commitmentService;
+    }
+
+    @Transactional
+    public ReviewResponse reviewCommitment(UUID userId, UUID commitmentId, ReviewCommitmentRequest request) {
+        Commitment commitment = commitmentService.findActiveCommitment(commitmentId, userId);
+
+        // Update commitment status
+        commitment.setStatus(request.getStatus());
+        if (request.getStatus() == CommitmentStatus.COMPLETED) {
+            commitment.setCompletedAt(OffsetDateTime.now());
+        }
+
+        // Find or create review
+        CommitmentReview review = reviewRepository.findByCommitmentId(commitmentId)
+                .orElse(new CommitmentReview());
+
+        review.setCommitment(commitment);
+        review.setStatus(request.getStatus());
+        review.setFailureReason(request.getFailureReason());
+        review.setReflection(request.getReflection());
+        review.setNextAction(request.getNextAction());
+        review.setReviewedAt(OffsetDateTime.now());
+
+        commitmentRepository.save(commitment);
+        CommitmentReview savedReview = reviewRepository.save(review);
+
+        // Handle next action (e.g. Move to tomorrow / reschedule)
+        if (request.getNextAction() != null) {
+            LocalDate targetDate = null;
+            if (request.getNextAction() == NextAction.MOVE_TO_TOMORROW) {
+                targetDate = commitment.getCommitmentDate().plusDays(1);
+            } else if (request.getNextAction() == NextAction.RESCHEDULE && request.getRescheduleDate() != null) {
+                targetDate = request.getRescheduleDate();
+            }
+
+            if (targetDate != null) {
+                Commitment nextCommitment = new Commitment();
+                nextCommitment.setUser(commitment.getUser());
+                nextCommitment.setTitle(commitment.getTitle());
+                nextCommitment.setDescription(commitment.getDescription());
+                nextCommitment.setExpectedOutcome(commitment.getExpectedOutcome());
+                nextCommitment.setEstimatedMinutes(commitment.getEstimatedMinutes());
+                nextCommitment.setPriority(commitment.getPriority());
+                nextCommitment.setCommitmentDate(targetDate);
+                nextCommitment.setVisibility(commitment.getVisibility());
+                nextCommitment.setStatus(CommitmentStatus.PENDING);
+                nextCommitment.setPostponedFromId(commitment.getId());
+
+                commitmentRepository.save(nextCommitment);
+            }
+        }
+
+        return ReviewResponse.fromEntity(savedReview);
+    }
+
+    public ReviewResponse getReviewByCommitmentId(UUID userId, UUID commitmentId) {
+        commitmentService.findActiveCommitment(commitmentId, userId);
+        CommitmentReview review = reviewRepository.findByCommitmentId(commitmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("No review found for commitment: " + commitmentId));
+        return ReviewResponse.fromEntity(review);
+    }
+}
