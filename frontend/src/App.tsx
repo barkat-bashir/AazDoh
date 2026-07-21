@@ -4,16 +4,22 @@ import { ToastProvider } from './context/ToastContext';
 import { Header } from './components/common/Header';
 import { Navigation, TabType } from './components/common/Navigation';
 import { ChinarLeavesCanvas } from './components/common/ChinarLeavesCanvas';
+import { LandingPage } from './pages/LandingPage';
 import { AuthPage } from './pages/AuthPage';
+import { TermsPage } from './pages/TermsPage';
+import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { TodayPage } from './pages/TodayPage';
 import { PartnersPage } from './pages/PartnersPage';
 import { AiAgentPage } from './pages/AiAgentPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { SettingsPage } from './pages/SettingsPage';
 
+type PublicView = 'landing' | 'auth' | 'terms' | 'privacy';
+
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('today');
+  const [publicView, setPublicView] = useState<PublicView>('landing');
 
   if (loading) {
     return (
@@ -46,15 +52,47 @@ const AppContent: React.FC = () => {
     );
   }
 
+  // Unauthenticated Views: Landing, Auth, Terms, Privacy
   if (!user) {
     return (
-      <>
+      <div style={{ position: 'relative', minHeight: '100vh', background: 'var(--bg-walnut-deep)' }}>
         <ChinarLeavesCanvas />
-        <AuthPage />
-      </>
+        <div style={{ position: 'relative', zIndex: 10 }}>
+          {publicView === 'landing' && (
+            <LandingPage
+              onGetStarted={() => setPublicView('auth')}
+              onSignIn={() => setPublicView('auth')}
+              onOpenTerms={() => setPublicView('terms')}
+              onOpenPrivacy={() => setPublicView('privacy')}
+            />
+          )}
+
+          {publicView === 'auth' && (
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => setPublicView('landing')}
+                className="btn-secondary"
+                style={{ position: 'absolute', top: '24px', left: '24px', zIndex: 20 }}
+              >
+                ← Back to Home
+              </button>
+              <AuthPage />
+            </div>
+          )}
+
+          {publicView === 'terms' && (
+            <TermsPage onBack={() => setPublicView('landing')} />
+          )}
+
+          {publicView === 'privacy' && (
+            <PrivacyPolicyPage onBack={() => setPublicView('landing')} />
+          )}
+        </div>
+      </div>
     );
   }
 
+  // Authenticated Application Dashboard
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-walnut-deep)', position: 'relative' }}>
       <ChinarLeavesCanvas />
@@ -68,6 +106,34 @@ const AppContent: React.FC = () => {
         {activeTab === 'analytics' && <AnalyticsPage />}
         {activeTab === 'settings' && <SettingsPage />}
       </main>
+
+      {/* Authenticated Footer */}
+      <footer style={{
+        borderTop: '1px solid var(--border-walnut-faint)',
+        background: 'var(--bg-walnut-deep)',
+        padding: '20px 28px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        fontSize: '0.8rem',
+        color: 'var(--text-tweed-dim)',
+        position: 'relative',
+        zIndex: 10,
+        flexWrap: 'wrap',
+        gap: '10px',
+      }}>
+        <span>AazDoh • Commit • Do • Report • Reflect</span>
+        <div style={{ display: 'flex', gap: '16px' }}>
+          <a
+            href="https://github.com/bb-code1/AazDoh"
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: 'var(--text-parchment-muted)', textDecoration: 'none' }}
+          >
+            GitHub
+          </a>
+        </div>
+      </footer>
     </div>
   );
 };

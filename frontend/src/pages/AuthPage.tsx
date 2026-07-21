@@ -63,31 +63,6 @@ export const AuthPage: React.FC = () => {
     }
   };
 
-  const handleDemoLogin = async () => {
-    setEmail('barkat@aazdoh.com');
-    setPassword('password123');
-    try {
-      setLoading(true);
-      const res = await authApi.login({
-        email: 'barkat@aazdoh.com',
-        password: 'password123',
-      });
-      login(res.accessToken, {
-        id: res.userId,
-        email: res.email,
-        fullName: res.fullName,
-        timezone: 'Asia/Kolkata',
-        aiPersona: 'BALANCED',
-        role: res.role as any,
-      });
-      showToast('Logged in as Barkat (Demo Account)', 'success');
-    } catch (err: any) {
-      showToast(err.message || 'Demo login failed', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div style={{
       minHeight: '100vh',
@@ -228,19 +203,6 @@ export const AuthPage: React.FC = () => {
               </button>
             </span>
           )}
-        </div>
-
-        {/* Quick Demo Login Option */}
-        <div style={{ marginTop: '24px', paddingTop: '18px', borderTop: '1px solid var(--border-walnut-faint)' }}>
-          <button
-            type="button"
-            onClick={handleDemoLogin}
-            className="btn-secondary"
-            style={{ width: '100%', justifyContent: 'center', fontSize: '0.82rem', borderColor: 'var(--border-copper-subtle)' }}
-          >
-            <Sparkles size={14} color="var(--saffron-ember)" />
-            <span>Quick Sign In with Demo Account (Barkat)</span>
-          </button>
         </div>
       </div>
     </div>
