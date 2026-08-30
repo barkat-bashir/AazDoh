@@ -34,7 +34,7 @@ spring:
       base-url: ${AI_BASE_URL:https://generativelanguage.googleapis.com/v1beta/openai/}
       chat:
         options:
-          model: ${AI_MODEL:gemini-1.5-flash}
+          model: ${AI_MODEL:gemini-3.6-flash}
 
 aazdoh:
   jwt:
