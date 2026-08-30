@@ -123,6 +123,9 @@ public class CommitmentService {
         }
 
         original.setStatus(CommitmentStatus.POSTPONED);
+        if (request.getReason() != null && !request.getReason().isBlank()) {
+            original.setPostponeReason(request.getReason());
+        }
         commitmentRepository.save(original);
 
         Commitment next = new Commitment();
@@ -136,6 +139,11 @@ public class CommitmentService {
         next.setVisibility(original.getVisibility());
         next.setStatus(CommitmentStatus.PENDING);
         next.setPostponedFromId(original.getId());
+        
+        // O(1) lineage tracking: persist permanent origin parent reference
+        UUID rootOriginId = original.getOriginCommitmentId() != null ? original.getOriginCommitmentId() : original.getId();
+        next.setOriginCommitmentId(rootOriginId);
+        next.setPostponementCount(original.getPostponementCount() + 1);
 
         Commitment savedNew = commitmentRepository.save(next);
         return CommitmentResponse.fromEntity(savedNew);
@@ -151,5 +159,9 @@ public class CommitmentService {
     public Commitment findActiveCommitment(UUID commitmentId, UUID userId) {
         return commitmentRepository.findActiveByIdAndUserId(commitmentId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Commitment not found with id: " + commitmentId));
+    }
+
+    public List<Commitment> getRecentPostponedCommitments(UUID userId) {
+        return commitmentRepository.findRecentPostponedCommitmentsWithReasons(userId);
     }
 }

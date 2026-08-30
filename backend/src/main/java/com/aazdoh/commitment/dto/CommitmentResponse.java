@@ -24,6 +24,8 @@ public class CommitmentResponse {
     private CommitmentStatus status;
     private CommitmentVisibility visibility;
     private UUID postponedFromId;
+    private UUID originCommitmentId;
+    private int postponementCount;
     private OffsetDateTime completedAt;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
@@ -46,6 +48,8 @@ public class CommitmentResponse {
         response.setStatus(commitment.getStatus());
         response.setVisibility(commitment.getVisibility());
         response.setPostponedFromId(commitment.getPostponedFromId());
+        response.setOriginCommitmentId(commitment.getOriginCommitmentId());
+        response.setPostponementCount(commitment.getPostponementCount());
         response.setCompletedAt(commitment.getCompletedAt());
         response.setCreatedAt(commitment.getCreatedAt());
         response.setUpdatedAt(commitment.getUpdatedAt());
@@ -154,6 +158,22 @@ public class CommitmentResponse {
 
     public void setPostponedFromId(UUID postponedFromId) {
         this.postponedFromId = postponedFromId;
+    }
+
+    public UUID getOriginCommitmentId() {
+        return originCommitmentId;
+    }
+
+    public void setOriginCommitmentId(UUID originCommitmentId) {
+        this.originCommitmentId = originCommitmentId;
+    }
+
+    public int getPostponementCount() {
+        return postponementCount;
+    }
+
+    public void setPostponementCount(int postponementCount) {
+        this.postponementCount = postponementCount;
     }
 
     public OffsetDateTime getCompletedAt() {

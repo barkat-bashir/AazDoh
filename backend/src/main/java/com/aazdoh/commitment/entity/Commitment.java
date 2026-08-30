@@ -56,6 +56,15 @@ public class Commitment extends BaseEntity {
     @Column(name = "postponed_from_id")
     private UUID postponedFromId;
 
+    @Column(name = "origin_commitment_id")
+    private UUID originCommitmentId;
+
+    @Column(name = "postponement_count", nullable = false)
+    private int postponementCount = 0;
+
+    @Column(name = "postpone_reason", columnDefinition = "TEXT")
+    private String postponeReason;
+
     @Column(name = "completed_at")
     private OffsetDateTime completedAt;
 
@@ -151,6 +160,30 @@ public class Commitment extends BaseEntity {
 
     public void setPostponedFromId(UUID postponedFromId) {
         this.postponedFromId = postponedFromId;
+    }
+
+    public UUID getOriginCommitmentId() {
+        return originCommitmentId;
+    }
+
+    public void setOriginCommitmentId(UUID originCommitmentId) {
+        this.originCommitmentId = originCommitmentId;
+    }
+
+    public int getPostponementCount() {
+        return postponementCount;
+    }
+
+    public void setPostponementCount(int postponementCount) {
+        this.postponementCount = postponementCount;
+    }
+
+    public String getPostponeReason() {
+        return postponeReason;
+    }
+
+    public void setPostponeReason(String postponeReason) {
+        this.postponeReason = postponeReason;
     }
 
     public OffsetDateTime getCompletedAt() {

@@ -18,6 +18,8 @@ export interface Commitment {
   status: CommitmentStatus;
   visibility: CommitmentVisibility;
   postponedFromId?: string;
+  originCommitmentId?: string;
+  postponementCount?: number;
   completedAt?: string;
   createdAt: string;
   updatedAt?: string;

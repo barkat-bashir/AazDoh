@@ -198,10 +198,10 @@ export const CommitmentCard: React.FC<CommitmentCardProps> = ({
                 )}
               </span>
 
-              {commitment.postponedFromId && (
-                <span style={{ color: 'var(--saffron-ember)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              {(commitment.postponedFromId || (commitment.postponementCount != null && commitment.postponementCount > 0)) && (
+                <span style={{ color: 'var(--saffron-ember)', display: 'flex', alignItems: 'center', gap: '4px' }} title={`Rescheduled ${commitment.postponementCount || 1} time(s)`}>
                   <AlertTriangle size={13} />
-                  <span>Rescheduled</span>
+                  <span>Rescheduled {commitment.postponementCount && commitment.postponementCount > 1 ? `(${commitment.postponementCount}x)` : ''}</span>
                 </span>
               )}
             </div>

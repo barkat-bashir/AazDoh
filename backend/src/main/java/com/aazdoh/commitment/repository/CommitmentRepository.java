@@ -50,4 +50,10 @@ public interface CommitmentRepository extends JpaRepository<Commitment, UUID> {
 
     @Query("SELECT COUNT(c) FROM Commitment c WHERE c.user.id = :userId AND c.status = 'MISSED' AND c.commitmentDate BETWEEN :startDate AND :endDate AND c.deletedAt IS NULL")
     long countMissedCommitmentsInRange(@Param("userId") UUID userId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    @Query("SELECT c FROM Commitment c JOIN FETCH c.user u WHERE c.status = 'PENDING' AND c.commitmentDate < :date AND c.deletedAt IS NULL")
+    List<Commitment> findOverduePendingCommitments(@Param("date") LocalDate date);
+
+    @Query("SELECT c FROM Commitment c WHERE c.user.id = :userId AND c.postponeReason IS NOT NULL AND c.deletedAt IS NULL ORDER BY c.commitmentDate DESC")
+    List<Commitment> findRecentPostponedCommitmentsWithReasons(@Param("userId") UUID userId);
 }
