@@ -8,6 +8,7 @@ import com.aazdoh.review.repository.ReviewRepository;
 import com.aazdoh.user.entity.User;
 import com.aazdoh.user.service.UserService;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -17,6 +18,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
+@Transactional(readOnly = true)
 public class AccountabilityContextBuilder {
 
     private final UserService userService;

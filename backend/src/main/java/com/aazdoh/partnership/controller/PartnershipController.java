@@ -114,8 +114,7 @@ public class PartnershipController {
             @PathVariable("partnerUserId") UUID partnerUserId,
             @RequestParam(name = "date", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
-        LocalDate targetDate = date != null ? date : LocalDate.now();
-        PartnerDailyOverviewDto overview = partnershipService.getPartnerDailyOverview(userDetails.getId(), partnerUserId, targetDate);
+        PartnerDailyOverviewDto overview = partnershipService.getPartnerDailyOverview(userDetails.getId(), partnerUserId, date);
         return ResponseEntity.ok(ApiResponse.ok(overview));
     }
 }

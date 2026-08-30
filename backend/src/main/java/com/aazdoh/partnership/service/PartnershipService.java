@@ -136,10 +136,24 @@ public class PartnershipService {
         }
 
         User partner = userService.findUserById(partnerUserId);
+        
+        // Timezone-aware resolution: if date not provided, evaluate today in partner's local timezone
+        LocalDate targetDate = date;
+        if (targetDate == null) {
+            try {
+                java.time.ZoneId partnerZone = (partner.getTimezone() != null && !partner.getTimezone().isBlank())
+                        ? java.time.ZoneId.of(partner.getTimezone())
+                        : java.time.ZoneId.systemDefault();
+                targetDate = LocalDate.now(partnerZone);
+            } catch (Exception e) {
+                targetDate = LocalDate.now();
+            }
+        }
+
         List<Commitment> sharedCommitments = commitmentRepository.findByUserIdAndVisibilityAndCommitmentDate(
                 partnerUserId,
                 CommitmentVisibility.SHARED_WITH_PARTNER,
-                date
+                targetDate
         );
 
         List<CommitmentResponse> dtoList = sharedCommitments.stream()
