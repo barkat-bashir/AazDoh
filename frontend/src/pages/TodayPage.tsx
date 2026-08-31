@@ -6,8 +6,10 @@ import { AddCommitmentModal } from '../components/commitment/AddCommitmentModal'
 import { PostponeCommitmentModal } from '../components/commitment/PostponeCommitmentModal';
 import { DailyReviewModal } from '../components/review/DailyReviewModal';
 import { CommitmentDiscussionModal } from '../components/partnership/CommitmentDiscussionModal';
+import { PlanStressTestModal } from '../components/ai/PlanStressTestModal';
+import { aiApi, PlanStressTestResponse } from '../api/aiApi';
 import { useToast } from '../context/ToastContext';
-import { CalendarCheck, Plus, Sparkles } from 'lucide-react';
+import { CalendarCheck, Plus } from 'lucide-react';
 
 interface TodayPageProps {
   onOpenAi: () => void;
@@ -27,6 +29,11 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
   const [postponingCommitment, setPostponingCommitment] = useState<Commitment | null>(null);
   const [discussionCommitment, setDiscussionCommitment] = useState<Commitment | null>(null);
 
+  // 60-Second AI Plan Stress-Test Modal
+  const [isStressTestOpen, setIsStressTestOpen] = useState(false);
+  const [stressTestData, setStressTestData] = useState<PlanStressTestResponse | null>(null);
+  const [isStressTestLoading, setIsStressTestLoading] = useState(false);
+
   useEffect(() => {
     loadCommitments(selectedDate);
   }, [selectedDate]);
@@ -43,6 +50,23 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
     }
   };
 
+  const handleOpenStressTest = async (defenseText?: string, overrideSprint?: boolean) => {
+    setIsStressTestOpen(true);
+    try {
+      setIsStressTestLoading(true);
+      const response = await aiApi.stressTestPlan({
+        date: selectedDate,
+        quickDefense: defenseText,
+        overrideSprint: overrideSprint,
+      });
+      setStressTestData(response);
+    } catch (err: any) {
+      showToast('Could not run plan stress-test', 'error');
+    } finally {
+      setIsStressTestLoading(false);
+    }
+  };
+
   return (
     <div style={{ maxWidth: '920px', margin: '0 auto', padding: '24px 20px' }}>
       {/* Progress and Action Header */}
@@ -52,7 +76,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
         onDateChange={setSelectedDate}
         onOpenAddModal={() => setIsAddModalOpen(true)}
         onOpenReviewModal={() => setIsReviewModalOpen(true)}
-        onOpenAiReview={onOpenAi}
+        onOpenAiReview={() => handleOpenStressTest()}
       />
 
       {/* Commitment List */}
@@ -95,7 +119,16 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
         onClose={() => setIsAddModalOpen(false)}
         onSuccess={() => loadCommitments(selectedDate)}
         selectedDate={selectedDate}
-        onTriggerAiPlanReview={onOpenAi}
+        onTriggerAiPlanReview={() => handleOpenStressTest()}
+      />
+
+      <PlanStressTestModal
+        isOpen={isStressTestOpen}
+        onClose={() => setIsStressTestOpen(false)}
+        stressTestData={stressTestData}
+        isLoading={isStressTestLoading}
+        onPlanApplied={() => loadCommitments(selectedDate)}
+        onReStressTest={(defenseText, override) => handleOpenStressTest(defenseText, override)}
       />
 
       <DailyReviewModal

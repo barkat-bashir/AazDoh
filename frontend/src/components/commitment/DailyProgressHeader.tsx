@@ -74,11 +74,11 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
           <button
             onClick={onOpenAiReview}
             className="btn-secondary"
-            style={{ borderColor: 'var(--border-copper-subtle)', background: 'rgba(226, 149, 59, 0.08)' }}
-            title="Ask AI Agent to check plan feasibility vs historical capacity"
+            style={{ borderColor: 'var(--border-copper-subtle)', background: 'rgba(226, 149, 59, 0.12)', color: 'var(--saffron-ember)', fontWeight: '700' }}
+            title="Chief of Staff 60-second plan stress-test with risk index and de-risking actions"
           >
             <Sparkles size={15} color="var(--saffron-ember)" />
-            <span>AI Plan Check</span>
+            <span>⚡ Plan Stress-Test</span>
           </button>
 
           <button
