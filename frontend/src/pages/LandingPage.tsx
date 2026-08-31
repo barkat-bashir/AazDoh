@@ -97,22 +97,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         flexDirection: 'column',
         alignItems: 'center',
       }}>
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '6px 14px',
-          borderRadius: '999px',
-          background: 'rgba(226, 149, 59, 0.1)',
-          border: '1px solid rgba(226, 149, 59, 0.3)',
-          marginBottom: '20px',
-          fontSize: '0.82rem',
-          color: 'var(--saffron-ember)',
-          fontWeight: 700,
-        }}>
-          <Sparkles size={14} />
-          <span>Powered by Chief-of-Staff AI & 1:1 Peer Accountability</span>
-        </div>
 
         <h1 style={{
           fontSize: 'clamp(2.4rem, 5.5vw, 3.8rem)',
