@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.concurrent.CompletableFuture;
+
 @RestController
 @RequestMapping("/api/v1/ai")
 @Tag(name = "AI Accountability", description = "AI Agent endpoints for plan feasibility, failure deconstruction, and behavioral patterns")
@@ -31,37 +33,65 @@ public class AiAccountabilityController {
     }
 
     @PostMapping("/review-plan")
-    @Operation(summary = "Ask the AI agent to review today's commitment plan feasibility against 7-day velocity")
-    public ResponseEntity<ApiResponse<AiFeedbackResponse>> reviewPlan(
+    @Operation(summary = "Ask the AI agent to review today's commitment plan feasibility against 7-day velocity (Async non-blocking)")
+    public CompletableFuture<ResponseEntity<ApiResponse<AiFeedbackResponse>>> reviewPlan(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody(required = false) AiPlanReviewRequest request
     ) {
-        AiFeedbackResponse response = aiAccountabilityService.reviewDailyPlan(
+        return aiAccountabilityService.reviewDailyPlanAsync(
                 userDetails.getId(),
                 request != null ? request.getDate() : null
-        );
-        return ResponseEntity.ok(ApiResponse.ok(response));
+        ).thenApply(response -> ResponseEntity.ok(ApiResponse.ok(response)));
     }
 
     @PostMapping("/review-missed")
-    @Operation(summary = "Ask the AI agent to analyze a missed commitment and suggest tomorrow's adjustment")
-    public ResponseEntity<ApiResponse<AiFeedbackResponse>> reviewMissed(
+    @Operation(summary = "Ask the AI agent to analyze a missed commitment and suggest tomorrow's adjustment (Async non-blocking)")
+    public CompletableFuture<ResponseEntity<ApiResponse<AiFeedbackResponse>>> reviewMissed(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody AiMissedReviewRequest request
     ) {
-        AiFeedbackResponse response = aiAccountabilityService.reviewMissedCommitment(
+        return aiAccountabilityService.reviewMissedCommitmentAsync(
                 userDetails.getId(),
                 request.getCommitmentId()
-        );
-        return ResponseEntity.ok(ApiResponse.ok(response));
+        ).thenApply(response -> ResponseEntity.ok(ApiResponse.ok(response)));
     }
 
     @GetMapping("/insights")
-    @Operation(summary = "Get synthesized AI behavioral patterns and recommendations")
-    public ResponseEntity<ApiResponse<AiFeedbackResponse>> getInsights(
+    @Operation(summary = "Get synthesized AI behavioral patterns and recommendations (Cached async)")
+    public CompletableFuture<ResponseEntity<ApiResponse<AiFeedbackResponse>>> getInsights(
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        AiFeedbackResponse response = aiAccountabilityService.getBehavioralInsights(userDetails.getId());
-        return ResponseEntity.ok(ApiResponse.ok(response));
+        return aiAccountabilityService.getBehavioralInsightsAsync(userDetails.getId())
+                .thenApply(response -> ResponseEntity.ok(ApiResponse.ok(response)));
+    }
+
+    @PostMapping("/stress-test")
+    @Operation(summary = "AI Chief of Staff 60-Second Plan Stress-Test with Risk Index & De-risked Proposals")
+    public CompletableFuture<ResponseEntity<ApiResponse<com.aazdoh.ai.dto.PlanStressTestResponse>>> stressTestPlan(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody(required = false) com.aazdoh.ai.dto.PlanStressTestRequest request
+    ) {
+        return aiAccountabilityService.stressTestPlanAsync(userDetails.getId(), request)
+                .thenApply(response -> ResponseEntity.ok(ApiResponse.ok(response)));
+    }
+
+    @PostMapping("/apply-optimized-plan")
+    @Operation(summary = "Apply 1-click AI optimized plan rebalancing adjustments to today's commitments")
+    public ResponseEntity<ApiResponse<java.util.List<com.aazdoh.commitment.dto.CommitmentResponse>>> applyOptimizedPlan(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody com.aazdoh.ai.dto.ApplyOptimizedPlanRequest request
+    ) {
+        java.util.List<com.aazdoh.commitment.dto.CommitmentResponse> updated = aiAccountabilityService.applyOptimizedPlan(userDetails.getId(), request);
+        return ResponseEntity.ok(ApiResponse.ok("Optimized plan applied successfully", updated));
+    }
+
+    @PostMapping("/detect-excuse")
+    @Operation(summary = "AI Anti-Self-Deception Mirror: Cross-reference excuses against historical receipts")
+    public CompletableFuture<ResponseEntity<ApiResponse<com.aazdoh.ai.dto.ExcuseAnalysisResponse>>> detectExcuse(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody com.aazdoh.ai.dto.ExcuseAnalysisRequest request
+    ) {
+        return aiAccountabilityService.detectExcusePatternAsync(userDetails.getId(), request)
+                .thenApply(response -> ResponseEntity.ok(ApiResponse.ok(response)));
     }
 }
