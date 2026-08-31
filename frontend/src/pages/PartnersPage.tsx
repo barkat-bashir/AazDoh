@@ -9,7 +9,7 @@ export const PartnersPage: React.FC = () => {
   const [discussionCommitment, setDiscussionCommitment] = useState<Commitment | null>(null);
 
   return (
-    <div style={{ maxWidth: '1080px', margin: '0 auto', padding: '24px 20px' }}>
+    <div className="page-container" style={{ maxWidth: '1080px' }}>
       <PartnerDashboard
         onOpenInviteModal={() => setIsInviteOpen(true)}
         onOpenDiscussion={(c) => setDiscussionCommitment(c)}

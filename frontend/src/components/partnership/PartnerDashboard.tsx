@@ -124,7 +124,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px', alignItems: 'flex-start' }}>
+    <div className="partner-layout">
       {/* Sidebar: Partners & Invitations */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {/* Active Partners Box */}

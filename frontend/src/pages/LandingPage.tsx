@@ -33,18 +33,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', color: 'var(--text-kehwa-cream)' }}>
       {/* Navigation Header */}
-      <nav style={{
-        padding: '18px 32px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        background: 'rgba(20, 14, 10, 0.85)',
-        backdropFilter: 'blur(16px)',
-        borderBottom: '1px solid var(--border-walnut-faint)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-      }}>
+      <nav className="landing-nav">
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
             width: '36px',
@@ -67,63 +56,36 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             AazDoh
           </span>
         </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <button
-            onClick={onSignIn}
-            className="btn-secondary"
-            style={{ padding: '8px 16px', fontSize: '0.88rem' }}
-          >
-            Sign In
-          </button>
-          <button
-            onClick={onGetStarted}
-            className="btn-primary"
-            style={{ padding: '8px 18px', fontSize: '0.88rem' }}
-          >
-            <span>Get Started Free</span>
-            <ArrowRight size={15} />
-          </button>
-        </div>
       </nav>
 
       {/* Hero Section */}
-      <section style={{
-        maxWidth: '1100px',
-        margin: '0 auto',
-        padding: '70px 24px 40px',
-        textAlign: 'center',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-      }}>
-
+      <section className="landing-hero">
         <h1 style={{
-          fontSize: 'clamp(2.4rem, 5.5vw, 3.8rem)',
+          fontSize: 'clamp(1.85rem, 5vw, 3.8rem)',
           fontWeight: 800,
           lineHeight: 1.15,
           letterSpacing: '-0.03em',
           maxWidth: '850px',
-          marginBottom: '20px',
+          marginBottom: '18px',
         }}>
           Keep the promises you make to yourself.
         </h1>
 
         <p style={{
-          fontSize: 'clamp(1rem, 2vw, 1.2rem)',
+          fontSize: 'clamp(0.95rem, 1.8vw, 1.15rem)',
           color: 'var(--text-parchment-muted)',
           maxWidth: '740px',
           lineHeight: 1.6,
-          marginBottom: '36px',
+          marginBottom: '32px',
         }}>
           Standard to-do apps reward dopamine checkmarks. <strong>AazDoh</strong> replaces wishful thinking with operational integrity: <strong>60-Second AI Plan Stress-Testing</strong>, an <strong>Anti-Self-Deception AI Mirror</strong> that detects chronic excuses, and true 1-on-1 peer transparency.
         </p>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap', justifyContent: 'center' }}>
           <button
             onClick={onGetStarted}
             className="btn-primary"
-            style={{ padding: '14px 30px', fontSize: '1.05rem', borderRadius: 'var(--radius-md)' }}
+            style={{ padding: '12px 26px', fontSize: '1rem', borderRadius: 'var(--radius-md)' }}
           >
             <span>Start Committing Today</span>
             <ArrowRight size={18} />
@@ -132,24 +94,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <button
             onClick={onSignIn}
             className="btn-secondary"
-            style={{ padding: '14px 24px', fontSize: '1.05rem', borderRadius: 'var(--radius-md)' }}
+            style={{ padding: '12px 22px', fontSize: '1rem', borderRadius: 'var(--radius-md)' }}
           >
             <span>Sign In</span>
           </button>
         </div>
 
         {/* Live Interactive Product Card Mockup */}
-        <div style={{
-          width: '100%',
-          maxWidth: '880px',
-          marginTop: '60px',
-          background: 'var(--bg-walnut-surface)',
-          border: '1px solid var(--border-copper-subtle)',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow-warm-md), 0 0 45px var(--chinar-glow)',
-          padding: '28px',
-          textAlign: 'left',
-        }}>
+        <div className="landing-mockup-card">
           {/* Card Mock Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
             <div>
@@ -157,11 +109,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <Activity size={13} />
                 <span>60-Second Plan Feasibility Radar</span>
               </div>
-              <h3 style={{ fontSize: '1.25rem', color: 'var(--text-kehwa-cream)', marginTop: '2px' }}>
+              <h3 style={{ fontSize: '1.2rem', color: 'var(--text-kehwa-cream)', marginTop: '2px' }}>
                 Today's Workload: 3.5h Planned • 15% Failure Risk
               </h3>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <span className="badge badge-completed" style={{ background: 'rgba(74, 222, 128, 0.15)', color: '#4ADE80', border: '1px solid rgba(74, 222, 128, 0.3)' }}>
                 Feasible Plan
               </span>
@@ -184,19 +136,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            gap: '12px',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <CheckCircle2 size={20} color="#4ADE80" />
+              <CheckCircle2 size={20} color="#4ADE80" style={{ flexShrink: 0 }} />
               <div>
-                <div style={{ fontSize: '0.94rem', fontWeight: 600, color: 'var(--text-kehwa-cream)' }}>
+                <div style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-kehwa-cream)' }}>
                   Deploy Zero-Downtime Database Migration
                 </div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-tweed-dim)' }}>
-                  ~60 mins • High Priority • Shared with Partner
+                <div style={{ fontSize: '0.76rem', color: 'var(--text-tweed-dim)' }}>
+                  ~60 mins • High Priority • Shared
                 </div>
               </div>
             </div>
-            <span className="badge badge-completed">Kept</span>
+            <span className="badge badge-completed" style={{ flexShrink: 0 }}>Kept</span>
           </div>
 
           {/* Mock AI Chief of Staff Box */}
@@ -221,30 +174,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       {/* Flagship AI Features Grid */}
-      <section style={{
-        maxWidth: '1100px',
-        margin: '20px auto 70px',
-        padding: '0 24px',
-      }}>
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+      <section className="landing-features-section">
+        <div style={{ textAlign: 'center', marginBottom: '36px' }}>
           <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--saffron-ember)', textTransform: 'uppercase' }}>
             Behavioral Engineering
           </span>
-          <h2 style={{ fontSize: '2.2rem', fontWeight: 800, marginTop: '6px' }}>
+          <h2 style={{ fontSize: 'clamp(1.7rem, 4vw, 2.2rem)', fontWeight: 800, marginTop: '6px' }}>
             Built to Eliminate Human Rationalization
           </h2>
-          <p style={{ color: 'var(--text-parchment-muted)', fontSize: '0.96rem', maxWidth: '650px', margin: '10px auto 0' }}>
+          <p style={{ color: 'var(--text-parchment-muted)', fontSize: '0.94rem', maxWidth: '650px', margin: '10px auto 0' }}>
             Most tools are passive logs. AazDoh actively intervenes when you are about to overcommit or make excuses.
           </p>
         </div>
 
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '24px',
-        }}>
+        <div className="landing-features-grid">
           {/* Feature 1: 60-Second Stress Tester */}
-          <div className="harud-card" style={{ padding: '32px', display: 'flex', flexDirection: 'column' }}>
+          <div className="harud-card landing-feature-card">
             <div style={{
               width: '44px',
               height: '44px',
@@ -257,7 +202,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             }}>
               <Activity size={22} color="#F5EFEB" />
             </div>
-            <h3 style={{ fontSize: '1.35rem', marginBottom: '10px', color: 'var(--text-kehwa-cream)' }}>
+            <h3 style={{ fontSize: '1.3rem', marginBottom: '10px', color: 'var(--text-kehwa-cream)' }}>
               60-Second Plan Stress-Tester
             </h3>
             <p style={{ color: 'var(--text-parchment-muted)', fontSize: '0.92rem', lineHeight: 1.6, marginBottom: '18px' }}>
@@ -270,7 +215,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           {/* Feature 2: Anti-Self-Deception Mirror */}
-          <div className="harud-card" style={{ padding: '32px', display: 'flex', flexDirection: 'column' }}>
+          <div className="harud-card landing-feature-card">
             <div style={{
               width: '44px',
               height: '44px',
@@ -283,7 +228,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             }}>
               <History size={22} color="#140E0A" />
             </div>
-            <h3 style={{ fontSize: '1.35rem', marginBottom: '10px', color: 'var(--text-kehwa-cream)' }}>
+            <h3 style={{ fontSize: '1.3rem', marginBottom: '10px', color: 'var(--text-kehwa-cream)' }}>
               Anti-Self-Deception AI Mirror
             </h3>
             <p style={{ color: 'var(--text-parchment-muted)', fontSize: '0.92rem', lineHeight: 1.6, marginBottom: '18px' }}>
@@ -296,7 +241,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           {/* Feature 3: 1:1 Peer Accountability */}
-          <div className="harud-card" style={{ padding: '32px', display: 'flex', flexDirection: 'column' }}>
+          <div className="harud-card landing-feature-card">
             <div style={{
               width: '44px',
               height: '44px',
@@ -309,7 +254,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             }}>
               <Users size={22} color="#F5EFEB" />
             </div>
-            <h3 style={{ fontSize: '1.35rem', marginBottom: '10px', color: 'var(--text-kehwa-cream)' }}>
+            <h3 style={{ fontSize: '1.3rem', marginBottom: '10px', color: 'var(--text-kehwa-cream)' }}>
               1-to-1 Peer Transparency
             </h3>
             <p style={{ color: 'var(--text-parchment-muted)', fontSize: '0.92rem', lineHeight: 1.6, marginBottom: '18px' }}>
@@ -324,22 +269,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       {/* The 4-Step Daily Cycle */}
-      <section style={{
-        background: 'var(--bg-walnut-surface)',
-        borderTop: '1px solid var(--border-walnut-faint)',
-        borderBottom: '1px solid var(--border-walnut-faint)',
-        padding: '70px 24px',
-      }}>
+      <section className="landing-cycle-section">
         <div style={{ maxWidth: '1100px', margin: '0 auto', textAlign: 'center' }}>
           <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--saffron-ember)', textTransform: 'uppercase' }}>
             The Core Habit Operating System
           </span>
-          <h2 style={{ fontSize: '2.2rem', fontWeight: 800, marginTop: '6px', marginBottom: '40px' }}>
+          <h2 style={{ fontSize: 'clamp(1.7rem, 4vw, 2.2rem)', fontWeight: 800, marginTop: '6px', marginBottom: '36px' }}>
             The 4-Step Daily Accountability Cycle
           </h2>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', textAlign: 'left' }}>
-            <div className="harud-card" style={{ padding: '24px' }}>
+          <div className="landing-cycle-grid">
+            <div className="harud-card" style={{ padding: '22px' }}>
               <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--chinar-rust)' }}>01</span>
               <h4 style={{ fontSize: '1.1rem', margin: '8px 0 6px' }}>Commit & Stress-Test</h4>
               <p style={{ fontSize: '0.86rem', color: 'var(--text-parchment-muted)', lineHeight: 1.5 }}>
@@ -347,7 +287,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </p>
             </div>
 
-            <div className="harud-card" style={{ padding: '24px' }}>
+            <div className="harud-card" style={{ padding: '22px' }}>
               <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--saffron-ember)' }}>02</span>
               <h4 style={{ fontSize: '1.1rem', margin: '8px 0 6px' }}>Do</h4>
               <p style={{ fontSize: '0.86rem', color: 'var(--text-parchment-muted)', lineHeight: 1.5 }}>
@@ -355,7 +295,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </p>
             </div>
 
-            <div className="harud-card" style={{ padding: '24px' }}>
+            <div className="harud-card" style={{ padding: '22px' }}>
               <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#4ADE80' }}>03</span>
               <h4 style={{ fontSize: '1.1rem', margin: '8px 0 6px' }}>Report</h4>
               <p style={{ fontSize: '0.86rem', color: 'var(--text-parchment-muted)', lineHeight: 1.5 }}>
@@ -363,7 +303,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </p>
             </div>
 
-            <div className="harud-card" style={{ padding: '24px' }}>
+            <div className="harud-card" style={{ padding: '22px' }}>
               <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#F87171' }}>04</span>
               <h4 style={{ fontSize: '1.1rem', margin: '8px 0 6px' }}>Reflect & Unblock</h4>
               <p style={{ fontSize: '0.86rem', color: 'var(--text-parchment-muted)', lineHeight: 1.5 }}>
@@ -375,21 +315,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       {/* Footer */}
-      <footer style={{
-        marginTop: 'auto',
-        borderTop: '1px solid var(--border-walnut-faint)',
-        background: 'var(--bg-walnut-deep)',
-        padding: '40px 24px 30px',
-      }}>
-        <div style={{
-          maxWidth: '1100px',
-          margin: '0 auto',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '20px',
-        }}>
+      <footer className="landing-footer">
+        <div className="landing-footer-inner">
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Flame size={18} color="var(--chinar-rust)" />
@@ -402,7 +329,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', fontSize: '0.86rem' }}>
+          <div className="landing-footer-links">
             <button
               onClick={onOpenTerms}
               style={{ background: 'none', border: 'none', color: 'var(--text-parchment-muted)', cursor: 'pointer' }}
@@ -416,7 +343,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               Privacy Policy
             </button>
             <a
-              href="https://github.com/barkat-bashir/AazDoh"
+              href="https://github.com/bb-code1/AazDoh"
               target="_blank"
               rel="noreferrer"
               style={{ color: 'var(--text-parchment-muted)', display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}

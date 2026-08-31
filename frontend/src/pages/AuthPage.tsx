@@ -69,7 +69,7 @@ export const AuthPage: React.FC = () => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '24px',
+      padding: 'clamp(16px, 4vw, 24px)',
     }}>
       <div style={{
         width: '100%',
@@ -78,7 +78,7 @@ export const AuthPage: React.FC = () => {
         border: '1px solid var(--border-copper-subtle)',
         borderRadius: 'var(--radius-lg)',
         boxShadow: 'var(--shadow-warm-md), 0 0 35px var(--chinar-glow)',
-        padding: '36px 32px',
+        padding: 'clamp(24px, 6vw, 36px) clamp(18px, 5vw, 32px)',
       }}>
         {/* Logo & Kashmir Harud Header */}
         <div style={{ textAlign: 'center', marginBottom: '28px' }}>

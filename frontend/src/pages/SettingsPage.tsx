@@ -40,7 +40,7 @@ export const SettingsPage: React.FC = () => {
   };
 
   return (
-    <div style={{ maxWidth: '680px', margin: '0 auto', padding: '24px 20px' }}>
+    <div className="page-container" style={{ maxWidth: '680px' }}>
       <div className="harud-card" style={{ padding: '28px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
           <Settings size={20} color="var(--chinar-rust)" />

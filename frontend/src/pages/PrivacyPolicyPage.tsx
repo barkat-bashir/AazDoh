@@ -7,18 +7,18 @@ interface PrivacyPolicyPageProps {
 
 export const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) => {
   return (
-    <div style={{ maxWidth: '840px', margin: '0 auto', padding: '40px 24px 80px', color: 'var(--text-kehwa-cream)' }}>
+    <div style={{ maxWidth: '840px', margin: '0 auto', padding: 'clamp(20px, 4vw, 40px) clamp(16px, 3vw, 24px) 60px', color: 'var(--text-kehwa-cream)' }}>
       {/* Back Button */}
       <button
         onClick={onBack}
         className="btn-secondary"
-        style={{ marginBottom: '28px', padding: '8px 14px', fontSize: '0.84rem' }}
+        style={{ marginBottom: '24px', padding: '8px 14px', fontSize: '0.84rem' }}
       >
         <ArrowLeft size={16} />
         <span>Back to AazDoh</span>
       </button>
 
-      <div className="harud-card" style={{ padding: '36px 32px' }}>
+      <div className="harud-card" style={{ padding: 'clamp(20px, 4vw, 36px) clamp(16px, 4vw, 32px)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
           <div style={{
             width: '36px',
