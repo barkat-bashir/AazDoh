@@ -12,7 +12,13 @@ import {
   Clock, 
   CheckCircle, 
   Circle, 
-  AlertCircle 
+  AlertCircle,
+  Sparkles,
+  Activity,
+  Zap,
+  Coffee,
+  ThumbsUp,
+  History
 } from 'lucide-react';
 
 interface PartnerDashboardProps {
@@ -99,6 +105,21 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
       loadPartnerships();
     } catch (err: any) {
       showToast(err.message || 'Failed to reject partnership', 'error');
+    }
+  };
+
+  const getRiskColor = (riskLevel?: string) => {
+    switch (riskLevel) {
+      case 'LOW':
+        return '#4ADE80';
+      case 'MODERATE':
+        return 'var(--saffron-ember)';
+      case 'HIGH':
+        return 'var(--chinar-rust)';
+      case 'CRITICAL':
+        return '#F87171';
+      default:
+        return 'var(--saffron-ember)';
     }
   };
 
@@ -230,95 +251,231 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
       {/* Main View: Partner's Commitments & Progress */}
       <div>
         {selectedPartner && partnerOverview ? (
-          <div className="harud-card" style={{ padding: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
-              <div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--saffron-ember)', textTransform: 'uppercase' }}>
-                  Accountability Partner Overview
-                </span>
-                <h3 style={{ fontSize: '1.4rem', color: 'var(--text-kehwa-cream)', marginTop: '2px' }}>
-                  {partnerOverview.partnerName}'s Commitments
-                </h3>
-              </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            {/* 🤖 Partner AI Accountability Brief Card */}
+            {partnerOverview.aiDiagnosticSummary && (
+              <div 
+                className="harud-card"
+                style={{
+                  padding: '20px 24px',
+                  background: 'rgba(30, 23, 18, 0.95)',
+                  border: '1px solid var(--border-copper-subtle)',
+                  borderRadius: 'var(--radius-md)',
+                  boxShadow: 'var(--shadow-warm-sm)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '8px',
+                      background: 'rgba(226, 149, 59, 0.15)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--saffron-ember)'
+                    }}>
+                      <Sparkles size={16} />
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--saffron-ember)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Partner AI Brief (Mentor View)
+                      </span>
+                      <div style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-kehwa-cream)' }}>
+                        {partnerOverview.partnerName}'s Feasibility Diagnostic
+                      </div>
+                    </div>
+                  </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-tweed-dim)' }}>Today's Kept Rate</div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: partnerOverview.completionRate === 100 ? '#4ADE80' : 'var(--saffron-ember)' }}>
-                    {Math.round(partnerOverview.completionRate)}%
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span 
+                      style={{ 
+                        fontSize: '11px', 
+                        padding: '4px 8px', 
+                        borderRadius: '6px', 
+                        background: 'rgba(255,255,255,0.06)', 
+                        color: getRiskColor(partnerOverview.aiRiskLevel),
+                        border: `1px solid ${getRiskColor(partnerOverview.aiRiskLevel)}40`,
+                        fontWeight: '700' 
+                      }}
+                    >
+                      {partnerOverview.aiRiskScore !== undefined ? `${partnerOverview.aiRiskScore}% Risk (${partnerOverview.aiRiskLevel})` : 'Feasible'}
+                    </span>
+                    {partnerOverview.plannedHours !== undefined && (
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        Planned: {partnerOverview.plannedHours}h / Capacity: {partnerOverview.capacityHours}h
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <p style={{ fontSize: '0.88rem', color: 'var(--warm-cream)', lineHeight: '1.55', margin: '0 0 14px 0' }}>
+                  "{partnerOverview.aiDiagnosticSummary}"
+                </p>
+
+                {/* Quick Mentor Nudges */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', paddingTop: '10px', borderTop: '1px solid var(--border-walnut-faint)' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: '4px' }}>
+                    Quick Mentor Actions:
+                  </span>
+                  <button
+                    onClick={() => showToast(`Sent kudos to ${partnerOverview.partnerName}! 👏`, 'success')}
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: '11.5px',
+                      borderRadius: '6px',
+                      background: 'rgba(74, 222, 128, 0.1)',
+                      border: '1px solid rgba(74, 222, 128, 0.25)',
+                      color: '#4ADE80',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <ThumbsUp size={12} />
+                    <span>👏 Looking Solid</span>
+                  </button>
+                  <button
+                    onClick={() => showToast(`Invited ${partnerOverview.partnerName} to a 10-min pair unblock! ☕`, 'info')}
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: '11.5px',
+                      borderRadius: '6px',
+                      background: 'rgba(226, 149, 59, 0.1)',
+                      border: '1px solid rgba(226, 149, 59, 0.25)',
+                      color: 'var(--saffron-ember)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Coffee size={12} />
+                    <span>☕ Offer 10-Min Unblock</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Commitments Card */}
+            <div className="harud-card" style={{ padding: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
+                <div>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--saffron-ember)', textTransform: 'uppercase' }}>
+                    Shared Commitments
+                  </span>
+                  <h3 style={{ fontSize: '1.3rem', color: 'var(--text-kehwa-cream)', marginTop: '2px' }}>
+                    {partnerOverview.partnerName}'s Task List
+                  </h3>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-tweed-dim)' }}>Today's Kept Rate</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: partnerOverview.completionRate === 100 ? '#4ADE80' : 'var(--saffron-ember)' }}>
+                      {Math.round(partnerOverview.completionRate)}%
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Commitment List */}
-            {loadingOverview ? (
-              <p style={{ color: 'var(--text-tweed-dim)', padding: '20px 0' }}>Loading shared commitments...</p>
-            ) : partnerOverview.sharedCommitments.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-tweed-dim)' }}>
-                <Users size={36} color="var(--border-copper-subtle)" style={{ marginBottom: '8px' }} />
-                <p style={{ fontSize: '0.95rem' }}>No shared commitments for today yet.</p>
-                <p style={{ fontSize: '0.82rem', marginTop: '4px' }}>
-                  Your partner hasn't posted shared commitments for today.
-                </p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {partnerOverview.sharedCommitments.map((c) => {
-                  const isDone = c.status === 'COMPLETED';
-                  const isMissed = c.status === 'MISSED';
-                  return (
-                    <div
-                      key={c.id}
-                      style={{
-                        padding: '16px',
-                        background: 'var(--bg-walnut-surface)',
-                        border: `1px solid ${isDone ? 'var(--pine-emerald)' : isMissed ? 'rgba(184, 58, 58, 0.4)' : 'var(--border-walnut-faint)'}`,
-                        borderRadius: 'var(--radius-sm)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '12px',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        {isDone ? (
-                          <CheckCircle size={20} color="#4ADE80" />
-                        ) : isMissed ? (
-                          <AlertCircle size={20} color="#F87171" />
-                        ) : (
-                          <Circle size={20} color="var(--text-tweed-dim)" />
-                        )}
-                        <div>
-                          <div style={{
-                            fontSize: '0.98rem',
-                            fontWeight: 600,
-                            color: isDone ? 'var(--text-parchment-muted)' : 'var(--text-kehwa-cream)',
-                            textDecoration: isDone ? 'line-through' : 'none',
-                          }}>
-                            {c.title}
-                          </div>
-                          <div style={{ fontSize: '0.78rem', color: 'var(--text-tweed-dim)', marginTop: '2px', display: 'flex', gap: '10px' }}>
-                            <span>~{c.estimatedMinutes} mins</span>
-                            <span>•</span>
-                            <span style={{ color: 'var(--saffron-ember)' }}>{c.priority} Priority</span>
+              {/* Commitment List */}
+              {loadingOverview ? (
+                <p style={{ color: 'var(--text-tweed-dim)', padding: '20px 0' }}>Loading shared commitments...</p>
+              ) : partnerOverview.sharedCommitments.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-tweed-dim)' }}>
+                  <Users size={36} color="var(--border-copper-subtle)" style={{ marginBottom: '8px' }} />
+                  <p style={{ fontSize: '0.95rem' }}>No shared commitments for today yet.</p>
+                  <p style={{ fontSize: '0.82rem', marginTop: '4px' }}>
+                    Your partner hasn't posted shared commitments for today.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {partnerOverview.sharedCommitments.map((c) => {
+                    const isDone = c.status === 'COMPLETED';
+                    const isMissed = c.status === 'MISSED';
+                    const isPostponed = c.status === 'POSTPONED';
+                    return (
+                      <div
+                        key={c.id}
+                        style={{
+                          padding: '16px',
+                          background: 'var(--bg-walnut-surface)',
+                          border: `1px solid ${isDone ? 'var(--pine-emerald)' : isMissed ? 'rgba(184, 58, 58, 0.4)' : isPostponed ? 'rgba(226, 149, 59, 0.3)' : 'var(--border-walnut-faint)'}`,
+                          borderRadius: 'var(--radius-sm)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '12px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          {isDone ? (
+                            <CheckCircle size={20} color="#4ADE80" />
+                          ) : isMissed ? (
+                            <AlertCircle size={20} color="#F87171" />
+                          ) : (
+                            <Circle size={20} color="var(--text-tweed-dim)" />
+                          )}
+                          <div>
+                            <div style={{
+                              fontSize: '0.98rem',
+                              fontWeight: 600,
+                              color: isDone ? 'var(--text-parchment-muted)' : 'var(--text-kehwa-cream)',
+                              textDecoration: isDone ? 'line-through' : 'none',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              flexWrap: 'wrap',
+                            }}>
+                              <span>{c.title}</span>
+                              {c.postponementCount && c.postponementCount > 0 ? (
+                                <span style={{
+                                  fontSize: '10.5px',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  background: 'rgba(226, 149, 59, 0.15)',
+                                  color: 'var(--saffron-ember)',
+                                  border: '1px solid rgba(226, 149, 59, 0.3)',
+                                  fontWeight: 600,
+                                }}>
+                                  Rescheduled ({c.postponementCount}x)
+                                </span>
+                              ) : null}
+                            </div>
+                            <div style={{ fontSize: '0.78rem', color: 'var(--text-tweed-dim)', marginTop: '2px', display: 'flex', gap: '10px' }}>
+                              <span>~{c.estimatedMinutes} mins</span>
+                              <span>•</span>
+                              <span style={{ color: 'var(--saffron-ember)' }}>{c.priority} Priority</span>
+                              {c.status && (
+                                <>
+                                  <span>•</span>
+                                  <span style={{ fontWeight: 600, color: isDone ? '#4ADE80' : isMissed ? '#F87171' : 'var(--text-muted)' }}>
+                                    {c.status}
+                                  </span>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <button
-                        onClick={() => onOpenDiscussion(c)}
-                        className="btn-outline"
-                        style={{ borderColor: 'var(--border-copper-subtle)' }}
-                      >
-                        <MessageSquare size={14} />
-                        <span>Discuss</span>
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                        <button
+                          onClick={() => onOpenDiscussion(c)}
+                          className="btn-outline"
+                          style={{ borderColor: 'var(--border-copper-subtle)' }}
+                        >
+                          <MessageSquare size={14} />
+                          <span>Discuss</span>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <div className="harud-card" style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-tweed-dim)' }}>

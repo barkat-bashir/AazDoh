@@ -21,6 +21,12 @@ export interface PartnerDailyOverview {
   totalCommitments: number;
   completedCommitments: number;
   completionRate: number;
+  // Partner AI Accountability Brief
+  aiRiskScore?: number;
+  aiRiskLevel?: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL';
+  aiDiagnosticSummary?: string;
+  plannedHours?: number;
+  capacityHours?: number;
 }
 
 export const partnershipApi = {

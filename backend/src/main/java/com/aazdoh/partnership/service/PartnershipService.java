@@ -32,17 +32,23 @@ public class PartnershipService {
     private final UserRepository userRepository;
     private final UserService userService;
     private final CommitmentRepository commitmentRepository;
+    private final com.aazdoh.ai.context.AccountabilityContextBuilder contextBuilder;
+    private final com.aazdoh.ai.client.AccountabilityAiClient aiClient;
 
     public PartnershipService(
             PartnershipRepository partnershipRepository,
             UserRepository userRepository,
             UserService userService,
-            CommitmentRepository commitmentRepository
+            CommitmentRepository commitmentRepository,
+            com.aazdoh.ai.context.AccountabilityContextBuilder contextBuilder,
+            com.aazdoh.ai.client.AccountabilityAiClient aiClient
     ) {
         this.partnershipRepository = partnershipRepository;
         this.userRepository = userRepository;
         this.userService = userService;
         this.commitmentRepository = commitmentRepository;
+        this.contextBuilder = contextBuilder;
+        this.aiClient = aiClient;
     }
 
     @Transactional
@@ -160,7 +166,33 @@ public class PartnershipService {
                 .map(CommitmentResponse::fromEntity)
                 .collect(Collectors.toList());
 
-        return new PartnerDailyOverviewDto(partner.getId(), partner.getFullName(), date, dtoList);
+        PartnerDailyOverviewDto overview = new PartnerDailyOverviewDto(partner.getId(), partner.getFullName(), targetDate, dtoList);
+
+        // Compute live AI Brief for partner
+        try {
+            com.aazdoh.ai.context.UserAccountabilityContextDto context = contextBuilder.buildContext(partnerUserId);
+            com.aazdoh.ai.dto.PlanStressTestResponse stressTest = aiClient.stressTestPlan(
+                    context,
+                    dtoList,
+                    null,
+                    false,
+                    partner.getAiPersona()
+            );
+
+            if (stressTest != null) {
+                overview.setAiRiskScore(stressTest.getRiskScore());
+                overview.setAiRiskLevel(stressTest.getRiskLevel() != null ? stressTest.getRiskLevel() : "LOW");
+                overview.setAiDiagnosticSummary(stressTest.getDiagnosticSummary());
+                overview.setPlannedHours(stressTest.getPlannedHours());
+                overview.setCapacityHours(stressTest.getHistoricalCapacityHours());
+            }
+        } catch (Exception e) {
+            overview.setAiRiskScore(15);
+            overview.setAiRiskLevel("LOW");
+            overview.setAiDiagnosticSummary(partner.getFullName() + " has " + dtoList.size() + " shared commitments scheduled for today.");
+        }
+
+        return overview;
     }
 
     public boolean areActivePartners(UUID user1, UUID user2) {

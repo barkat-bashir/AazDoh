@@ -16,6 +16,13 @@ public class PartnerDailyOverviewDto {
     private int completedCommitments;
     private double completionRate;
 
+    // Partner AI Accountability Brief
+    private Integer aiRiskScore;
+    private String aiRiskLevel;
+    private String aiDiagnosticSummary;
+    private double plannedHours;
+    private double capacityHours;
+
     public PartnerDailyOverviewDto() {
     }
 
@@ -83,5 +90,45 @@ public class PartnerDailyOverviewDto {
 
     public void setCompletionRate(double completionRate) {
         this.completionRate = completionRate;
+    }
+
+    public Integer getAiRiskScore() {
+        return aiRiskScore;
+    }
+
+    public void setAiRiskScore(Integer aiRiskScore) {
+        this.aiRiskScore = aiRiskScore;
+    }
+
+    public String getAiRiskLevel() {
+        return aiRiskLevel;
+    }
+
+    public void setAiRiskLevel(String aiRiskLevel) {
+        this.aiRiskLevel = aiRiskLevel;
+    }
+
+    public String getAiDiagnosticSummary() {
+        return aiDiagnosticSummary;
+    }
+
+    public void setAiDiagnosticSummary(String aiDiagnosticSummary) {
+        this.aiDiagnosticSummary = aiDiagnosticSummary;
+    }
+
+    public double getPlannedHours() {
+        return plannedHours;
+    }
+
+    public void setPlannedHours(double plannedHours) {
+        this.plannedHours = plannedHours;
+    }
+
+    public double getCapacityHours() {
+        return capacityHours;
+    }
+
+    public void setCapacityHours(double capacityHours) {
+        this.capacityHours = capacityHours;
     }
 }
