@@ -16,20 +16,9 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAi }) => {
   }).format(new Date());
 
   return (
-    <header style={{
-      borderBottom: '1px solid var(--border-walnut-faint)',
-      background: 'rgba(28, 21, 16, 0.85)',
-      backdropFilter: 'blur(12px)',
-      position: 'sticky',
-      top: 0,
-      zIndex: 50,
-      padding: '14px 28px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    }}>
+    <header className="app-header">
       {/* Brand Logo & Tagline */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -38,22 +27,23 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAi }) => {
           color: 'inherit',
         }}>
           <div style={{
-            width: '36px',
-            height: '36px',
+            width: '34px',
+            height: '34px',
             borderRadius: '10px',
             background: 'linear-gradient(135deg, var(--chinar-rust), #8A3016)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             boxShadow: '0 4px 12px var(--chinar-glow)',
+            flexShrink: 0,
           }}>
-            <Flame size={20} color="#F5EFEB" />
+            <Flame size={18} color="#F5EFEB" />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <span style={{
                 fontFamily: 'Outfit, sans-serif',
-                fontSize: '1.25rem',
+                fontSize: '1.2rem',
                 fontWeight: 800,
                 letterSpacing: '-0.02em',
                 color: 'var(--text-kehwa-cream)',
@@ -61,45 +51,46 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAi }) => {
                 AazDoh
               </span>
             </div>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-tweed-dim)', fontWeight: 500 }}>
+            <div className="hide-mobile" style={{ fontSize: '0.72rem', color: 'var(--text-tweed-dim)', fontWeight: 500 }}>
               Commit • Do • Report • Reflect
             </div>
           </div>
         </div>
 
-        <div style={{
-          height: '24px',
+        <div className="hide-tablet" style={{
+          height: '22px',
           width: '1px',
           background: 'var(--border-walnut-faint)',
-          margin: '0 8px',
+          margin: '0 6px',
         }} />
 
-        <div style={{ fontSize: '0.88rem', color: 'var(--text-parchment-muted)', fontWeight: 500 }}>
+        <div className="hide-tablet" style={{ fontSize: '0.84rem', color: 'var(--text-parchment-muted)', fontWeight: 500 }}>
           {formattedDate}
         </div>
       </div>
 
       {/* Right controls: AI quick trigger & Profile */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <button
           onClick={onOpenAi}
           className="btn-secondary"
           style={{
             borderColor: 'var(--border-copper-subtle)',
             background: 'rgba(192, 83, 48, 0.1)',
-            padding: '8px 14px',
-            fontSize: '0.85rem',
+            padding: '6px 10px',
+            fontSize: '0.82rem',
           }}
           title="Open AI Accountability Agent"
         >
-          <Sparkles size={16} color="var(--saffron-ember)" />
-          <span>AI Agent</span>
+          <Sparkles size={15} color="var(--saffron-ember)" />
+          <span className="hide-mobile">AI Agent</span>
           <span style={{
-            fontSize: '0.68rem',
+            fontSize: '0.66rem',
             padding: '1px 5px',
             borderRadius: '4px',
             background: 'var(--bg-walnut-card)',
             color: 'var(--text-parchment-muted)',
+            fontWeight: 600,
           }}>
             {user?.aiPersona || 'BALANCED'}
           </span>
@@ -109,8 +100,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAi }) => {
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
-            padding: '4px 12px',
+            gap: '8px',
+            padding: '3px 8px 3px 4px',
             background: 'var(--bg-walnut-surface)',
             border: '1px solid var(--border-walnut-faint)',
             borderRadius: 'var(--radius-full)',
@@ -127,10 +118,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAi }) => {
               fontSize: '0.78rem',
               fontWeight: 700,
               color: 'var(--saffron-ember)',
+              flexShrink: 0,
             }}>
               {user.fullName.charAt(0).toUpperCase()}
             </div>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-kehwa-cream)' }}>
+            <span className="hide-mobile" style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user.fullName}
             </span>
             <button
@@ -147,7 +139,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAi }) => {
               }}
               title="Log out"
             >
-              <LogOut size={15} />
+              <LogOut size={14} />
             </button>
           </div>
         )}

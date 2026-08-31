@@ -37,7 +37,7 @@ export const Modal: React.FC<ModalProps> = ({
         style={{ maxWidth }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{
+        <div className="modal-header-box" style={{
           padding: '20px 24px',
           borderBottom: '1px solid var(--border-walnut-faint)',
           display: 'flex',
@@ -70,7 +70,7 @@ export const Modal: React.FC<ModalProps> = ({
           </button>
         </div>
 
-        <div style={{ padding: '24px' }}>
+        <div className="modal-body-box" style={{ padding: '24px' }}>
           {children}
         </div>
       </div>
