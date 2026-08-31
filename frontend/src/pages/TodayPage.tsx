@@ -68,7 +68,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
   };
 
   return (
-    <div style={{ maxWidth: '920px', margin: '0 auto', padding: '24px 20px' }}>
+    <div className="page-container">
       {/* Progress and Action Header */}
       <DailyProgressHeader
         commitments={commitments}
@@ -86,15 +86,30 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
             Loading commitments...
           </p>
         ) : commitments.length === 0 ? (
-          <div className="harud-card" style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-tweed-dim)' }}>
-            <CalendarCheck size={48} color="var(--border-copper-subtle)" style={{ marginBottom: '14px' }} />
-            <h3 style={{ fontSize: '1.2rem', color: 'var(--text-kehwa-cream)' }}>No Commitments for this day</h3>
-            <p style={{ maxWidth: '400px', margin: '8px auto 20px', fontSize: '0.88rem' }}>
-              Accountability begins with clear promises. What are the 2 or 3 essential tasks you commit to completing today?
+          <div className="harud-card" style={{ padding: 'clamp(36px, 7vw, 52px) 20px', textAlign: 'center', color: 'var(--text-tweed-dim)' }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '16px',
+              background: 'linear-gradient(135deg, rgba(192, 83, 48, 0.15), rgba(226, 149, 59, 0.1))',
+              border: '1px solid var(--border-copper-subtle)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px',
+            }}>
+              <CalendarCheck size={28} color="var(--saffron-ember)" />
+            </div>
+            <h3 style={{ fontSize: '1.25rem', color: 'var(--text-kehwa-cream)', fontWeight: 700 }}>
+              {selectedDate === todayStr ? 'No Commitments Yet Today' : `No Commitments for ${selectedDate}`}
+            </h3>
+            <p style={{ maxWidth: '380px', margin: '8px auto 22px', fontSize: '0.88rem', lineHeight: 1.55, color: 'var(--text-parchment-muted)' }}>
+              Accountability begins with clear promises. What are the 2 or 3 essential tasks you commit to completing?
             </p>
             <button
               onClick={() => setIsAddModalOpen(true)}
               className="btn-primary"
+              style={{ padding: '10px 20px', fontSize: '0.92rem' }}
             >
               <Plus size={16} />
               <span>Create First Commitment</span>

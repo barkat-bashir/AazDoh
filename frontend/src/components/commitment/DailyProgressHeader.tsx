@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Commitment } from '../../api/commitmentApi';
-import { Plus, CheckSquare, Sparkles, Flame, Clock } from 'lucide-react';
+import { Plus, CheckSquare, Sparkles, Flame, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 
 interface DailyProgressHeaderProps {
   commitments: Commitment[];
@@ -19,6 +19,7 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
   onOpenReviewModal,
   onOpenAiReview,
 }) => {
+  const dateInputRef = useRef<HTMLInputElement>(null);
   const total = commitments.length;
   const completed = commitments.filter((c) => c.status === 'COMPLETED').length;
   const totalMinutes = commitments.reduce((acc, c) => acc + c.estimatedMinutes, 0);
@@ -30,115 +31,231 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
   const totalHours = (totalMinutes / 60).toFixed(1);
   const completedHours = (completedMinutes / 60).toFixed(1);
 
-  const isToday = selectedDate === new Date().toISOString().split('T')[0];
+  const todayStr = new Date().toISOString().split('T')[0];
+  const isToday = selectedDate === todayStr;
+
+  // Format date display label nicely
+  const getFormattedDateLabel = () => {
+    try {
+      const parts = selectedDate.split('-');
+      if (parts.length === 3) {
+        const dateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        const formatted = new Intl.DateTimeFormat('en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+        }).format(dateObj);
+
+        if (isToday) return `Today, ${formatted}`;
+        
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        if (selectedDate === yesterday.toISOString().split('T')[0]) {
+          return `Yesterday, ${formatted}`;
+        }
+
+        return formatted;
+      }
+    } catch {
+      // Fallback
+    }
+    return selectedDate;
+  };
+
+  const shiftDate = (days: number) => {
+    const parts = selectedDate.split('-');
+    if (parts.length === 3) {
+      const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      d.setDate(d.getDate() + days);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      onDateChange(`${y}-${m}-${day}`);
+    }
+  };
 
   return (
-    <div className="harud-card" style={{ padding: '24px', marginBottom: '24px' }}>
+    <div className="harud-card" style={{ padding: 'clamp(16px, 3vw, 24px)', marginBottom: '20px' }}>
+      {/* Top row: Date Switcher & Main Actions */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '16px',
-        marginBottom: '20px',
+        gap: '12px',
+        marginBottom: total > 0 ? '16px' : '0',
       }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h2 style={{ fontSize: '1.45rem', color: 'var(--text-kehwa-cream)' }}>
-              {isToday ? "Today's Commitments" : `Commitments for ${selectedDate}`}
-            </h2>
+        {/* Left: Date Switcher Pill */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            background: 'var(--bg-walnut-surface)',
+            border: '1px solid var(--border-walnut-faint)',
+            borderRadius: 'var(--radius-full)',
+            padding: '3px 6px',
+          }}>
+            <button
+              onClick={() => shiftDate(-1)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-parchment-muted)',
+                cursor: 'pointer',
+                padding: '4px 6px',
+                display: 'flex',
+                alignItems: 'center',
+                borderRadius: '50%',
+              }}
+              title="Previous Day"
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            <button
+              onClick={() => dateInputRef.current?.showPicker?.() || dateInputRef.current?.focus()}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: isToday ? 'var(--saffron-ember)' : 'var(--text-kehwa-cream)',
+                fontSize: '0.88rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                padding: '4px 8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+              title="Pick a date"
+            >
+              <Calendar size={14} color="var(--chinar-rust)" />
+              <span>{getFormattedDateLabel()}</span>
+            </button>
+
             <input
+              ref={dateInputRef}
               type="date"
               value={selectedDate}
               onChange={(e) => onDateChange(e.target.value)}
-              style={{
-                background: 'var(--bg-walnut-surface)',
-                border: '1px solid var(--border-walnut-faint)',
-                borderRadius: 'var(--radius-sm)',
-                padding: '4px 8px',
-                color: 'var(--text-parchment-muted)',
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-              }}
+              style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }}
             />
+
+            <button
+              onClick={() => shiftDate(1)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-parchment-muted)',
+                cursor: 'pointer',
+                padding: '4px 6px',
+                display: 'flex',
+                alignItems: 'center',
+                borderRadius: '50%',
+              }}
+              title="Next Day"
+            >
+              <ChevronRight size={16} />
+            </button>
           </div>
-          <p style={{ fontSize: '0.86rem', color: 'var(--text-parchment-muted)', marginTop: '4px' }}>
-            {total === 0
-              ? 'No commitments defined yet. Set your daily goals.'
-              : `${completed} of ${total} Kept • ${completedHours}h of ${totalHours}h focused`}
-          </p>
+
+          {!isToday && (
+            <button
+              onClick={() => onDateChange(todayStr)}
+              className="btn-outline"
+              style={{ padding: '4px 10px', fontSize: '0.76rem', borderRadius: 'var(--radius-full)' }}
+            >
+              Jump to Today
+            </button>
+          )}
         </div>
 
-        {/* Header Action Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <button
-            onClick={onOpenAiReview}
-            className="btn-secondary"
-            style={{ borderColor: 'var(--border-copper-subtle)', background: 'rgba(226, 149, 59, 0.12)', color: 'var(--saffron-ember)', fontWeight: '700' }}
-            title="Chief of Staff 60-second plan stress-test with risk index and de-risking actions"
-          >
-            <Sparkles size={15} color="var(--saffron-ember)" />
-            <span>⚡ Plan Stress-Test</span>
-          </button>
+        {/* Right: Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {total > 0 && (
+            <>
+              <button
+                onClick={onOpenAiReview}
+                className="btn-secondary"
+                style={{
+                  borderColor: 'var(--border-copper-subtle)',
+                  background: 'rgba(226, 149, 59, 0.1)',
+                  color: 'var(--saffron-ember)',
+                  fontSize: '0.82rem',
+                  padding: '7px 12px',
+                }}
+                title="60-Second AI Plan Feasibility Stress-Test"
+              >
+                <Sparkles size={14} color="var(--saffron-ember)" />
+                <span>Stress-Test</span>
+              </button>
 
-          <button
-            onClick={onOpenReviewModal}
-            className="btn-saffron"
-            title="Run end-of-day reflection review"
-          >
-            <CheckSquare size={16} />
-            <span>Daily Review</span>
-          </button>
+              <button
+                onClick={onOpenReviewModal}
+                className="btn-saffron"
+                style={{ fontSize: '0.82rem', padding: '7px 12px' }}
+                title="Run daily accountability reflection"
+              >
+                <CheckSquare size={14} />
+                <span>Review</span>
+              </button>
+            </>
+          )}
 
           <button
             onClick={onOpenAddModal}
             className="btn-primary"
+            style={{ fontSize: '0.84rem', padding: '7px 14px' }}
           >
-            <Plus size={16} />
+            <Plus size={15} />
             <span>Add Commitment</span>
           </button>
         </div>
       </div>
 
-      {/* Visual Kashmir Momentum Bar */}
-      <div>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          fontSize: '0.78rem',
-          fontWeight: 600,
-          color: 'var(--text-tweed-dim)',
-          marginBottom: '6px',
-        }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Flame size={13} color="var(--chinar-rust)" />
-            <span>Daily Accountability Completion</span>
-          </span>
-          <span style={{ color: percentage === 100 ? '#4ADE80' : 'var(--saffron-ember)' }}>
-            {percentage}%
-          </span>
-        </div>
-
-        <div style={{
-          width: '100%',
-          height: '8px',
-          background: 'var(--bg-walnut-surface)',
-          borderRadius: 'var(--radius-full)',
-          overflow: 'hidden',
-          border: '1px solid var(--border-walnut-faint)',
-        }}>
+      {/* Progress & Stats Bar (Only when tasks exist) */}
+      {total > 0 && (
+        <div style={{ paddingTop: '12px', borderTop: '1px solid var(--border-walnut-faint)' }}>
           <div style={{
-            height: '100%',
-            width: `${percentage}%`,
-            background: percentage === 100
-              ? 'linear-gradient(90deg, #2E7D52, #4ADE80)'
-              : 'linear-gradient(90deg, var(--chinar-rust), var(--saffron-ember))',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontSize: '0.78rem',
+            fontWeight: 600,
+            color: 'var(--text-tweed-dim)',
+            marginBottom: '6px',
+            flexWrap: 'wrap',
+            gap: '6px',
+          }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text-parchment-muted)' }}>
+              <Flame size={13} color="var(--chinar-rust)" />
+              <span>{completed} of {total} Kept • {completedHours}h of {totalHours}h focused</span>
+            </span>
+            <span style={{ color: percentage === 100 ? '#4ADE80' : 'var(--saffron-ember)', fontWeight: 700 }}>
+              {percentage}%
+            </span>
+          </div>
+
+          <div style={{
+            width: '100%',
+            height: '7px',
+            background: 'var(--bg-walnut-surface)',
             borderRadius: 'var(--radius-full)',
-            transition: 'width 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-            boxShadow: percentage > 0 ? '0 0 10px var(--chinar-glow)' : 'none',
-          }} />
+            overflow: 'hidden',
+            border: '1px solid var(--border-walnut-faint)',
+          }}>
+            <div style={{
+              height: '100%',
+              width: `${percentage}%`,
+              background: percentage === 100
+                ? 'linear-gradient(90deg, #2E7D52, #4ADE80)'
+                : 'linear-gradient(90deg, var(--chinar-rust), var(--saffron-ember))',
+              borderRadius: 'var(--radius-full)',
+              transition: 'width 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+              boxShadow: percentage > 0 ? '0 0 10px var(--chinar-glow)' : 'none',
+            }} />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
