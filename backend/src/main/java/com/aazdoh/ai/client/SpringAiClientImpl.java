@@ -290,10 +290,18 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
                 }
             } catch (Throwable e) {
                 log.warn("Error generating stress-test diagnostic from LLM: {}", e.getMessage());
-                response.setDiagnosticSummary(String.format("Planned load (%.1fh) exceeds your 7-day average focus capacity (%.1fh). Accepting the optimized adjustments increases probability of completion to 94%%.", plannedHours, capacityHours));
+                if (plannedHours > capacityHours) {
+                    response.setDiagnosticSummary(String.format("Planned load (%.1fh) exceeds your 7-day average focus capacity (%.1fh). Accepting the optimized adjustments increases probability of completion to 94%%.", plannedHours, capacityHours));
+                } else {
+                    response.setDiagnosticSummary(String.format("Your planned load of %.1fh sits comfortably within your 7-day average focus capacity (%.1fh). High probability of strong follow-through today.", plannedHours, capacityHours));
+                }
             }
         } else {
-            response.setDiagnosticSummary(String.format("Planned load (%.1fh) exceeds your 7-day average focus capacity (%.1fh). Accepting the optimized adjustments increases probability of completion to 94%%.", plannedHours, capacityHours));
+            if (plannedHours > capacityHours) {
+                response.setDiagnosticSummary(String.format("Planned load (%.1fh) exceeds your 7-day average focus capacity (%.1fh). Accepting the optimized adjustments increases probability of completion to 94%%.", plannedHours, capacityHours));
+            } else {
+                response.setDiagnosticSummary(String.format("Your planned load of %.1fh sits comfortably within your 7-day average focus capacity (%.1fh). High probability of strong follow-through today.", plannedHours, capacityHours));
+            }
         }
 
         return response;
