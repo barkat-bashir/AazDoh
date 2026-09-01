@@ -72,10 +72,11 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
       onClose={onClose}
       title="Create Daily Commitment"
       subtitle="What promise are you making to yourself for today?"
+      maxWidth="560px"
     >
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div>
-          <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '6px' }}>
+          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '5px' }}>
             Commitment Title *
           </label>
           <input
@@ -90,7 +91,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '6px' }}>
+          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '5px' }}>
             Expected Deliverable / Outcome
           </label>
           <input
@@ -102,10 +103,10 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
           />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '6px' }}>
-              <Clock size={14} color="var(--saffron-ember)" />
+            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '5px' }}>
+              <Clock size={13} color="var(--saffron-ember)" />
               <span>Estimated Focus</span>
             </label>
             <select
@@ -124,7 +125,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '6px' }}>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '5px' }}>
               Priority Level
             </label>
             <select
@@ -132,43 +133,45 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
               value={priority}
               onChange={(e) => setPriority(e.target.value as CommitmentPriority)}
             >
-              <option value="LOW">Low</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="HIGH">High</option>
-              <option value="URGENT">Urgent</option>
+              <option value="LOW">Low Priority</option>
+              <option value="MEDIUM">Medium Priority</option>
+              <option value="HIGH">High Priority</option>
+              <option value="URGENT">Urgent Priority</option>
             </select>
           </div>
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '6px' }}>
+          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '5px' }}>
             Notes & Context (Optional)
           </label>
           <textarea
             className="input-field"
+            rows={2}
             placeholder="Context, blockers, or specific scope boundary..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+            style={{ resize: 'vertical', minHeight: '52px' }}
           />
         </div>
 
         <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '6px' }}>
-            <Shield size={14} color="var(--chinar-rust)" />
+          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '5px' }}>
+            <Shield size={13} color="var(--chinar-rust)" />
             <span>Accountability Visibility</span>
           </label>
-          <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '2px' }}>
             <label style={{
-              flex: 1,
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              padding: '10px 12px',
+              padding: '8px 10px',
               background: visibility === 'SHARED_WITH_PARTNER' ? 'var(--bg-walnut-card-hover)' : 'var(--bg-walnut-surface)',
               border: `1px solid ${visibility === 'SHARED_WITH_PARTNER' ? 'var(--chinar-rust)' : 'var(--border-walnut-faint)'}`,
               borderRadius: 'var(--radius-sm)',
               cursor: 'pointer',
-              fontSize: '0.85rem',
+              fontSize: '0.82rem',
+              color: 'var(--text-kehwa-cream)',
             }}>
               <input
                 type="radio"
@@ -180,16 +183,16 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
             </label>
 
             <label style={{
-              flex: 1,
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              padding: '10px 12px',
+              padding: '8px 10px',
               background: visibility === 'PRIVATE' ? 'var(--bg-walnut-card-hover)' : 'var(--bg-walnut-surface)',
               border: `1px solid ${visibility === 'PRIVATE' ? 'var(--chinar-rust)' : 'var(--border-walnut-faint)'}`,
               borderRadius: 'var(--radius-sm)',
               cursor: 'pointer',
-              fontSize: '0.85rem',
+              fontSize: '0.82rem',
+              color: 'var(--text-kehwa-cream)',
             }}>
               <input
                 type="radio"
@@ -207,8 +210,8 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
           alignItems: 'center',
           justifyContent: 'flex-end',
           gap: '10px',
-          marginTop: '12px',
-          paddingTop: '16px',
+          marginTop: '6px',
+          paddingTop: '14px',
           borderTop: '1px solid var(--border-walnut-faint)',
         }}>
           <button
@@ -216,6 +219,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
             className="btn-secondary"
             onClick={onClose}
             disabled={loading}
+            style={{ padding: '8px 14px', fontSize: '0.84rem' }}
           >
             Cancel
           </button>
@@ -223,8 +227,9 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
             type="submit"
             className="btn-primary"
             disabled={loading}
+            style={{ padding: '8px 18px', fontSize: '0.84rem' }}
           >
-            <Sparkles size={16} />
+            <Sparkles size={15} />
             <span>{loading ? 'Committing...' : 'Commit to Today'}</span>
           </button>
         </div>
