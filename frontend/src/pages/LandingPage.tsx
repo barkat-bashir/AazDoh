@@ -1,6 +1,6 @@
 import React from 'react';
 import { 
-  Flame, 
+  Flame,
   Sparkles, 
   Users, 
   TrendingUp, 
@@ -16,6 +16,7 @@ import {
   Shield,
   Github
 } from 'lucide-react';
+import { BrandLogo } from '../components/common/BrandLogo';
 
 interface LandingPageProps {
   onGetStarted: () => void;
@@ -34,28 +35,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', color: 'var(--text-kehwa-cream)' }}>
       {/* Navigation Header */}
       <nav className="landing-nav">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, var(--chinar-rust), #8A3016)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 12px var(--chinar-glow)',
-          }}>
-            <Flame size={20} color="#F5EFEB" />
-          </div>
-          <span style={{
-            fontFamily: 'Outfit, sans-serif',
-            fontSize: '1.35rem',
-            fontWeight: 800,
-            letterSpacing: '-0.02em',
-          }}>
-            AazDoh
-          </span>
-        </div>
+        <BrandLogo size="lg" />
       </nav>
 
       {/* Hero Section */}

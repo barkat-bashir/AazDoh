@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Menu, Flame, Sparkles } from 'lucide-react';
+import { Menu } from 'lucide-react';
+import { BrandLogo } from './BrandLogo';
 
 interface HeaderProps {
   onOpenSettings: () => void;
@@ -19,43 +20,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSettings }) => {
     <header className="app-header">
       {/* Brand Logo & Tagline */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          textDecoration: 'none',
-          color: 'inherit',
-        }}>
-          <div style={{
-            width: '34px',
-            height: '34px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, var(--chinar-rust), #8A3016)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 12px var(--chinar-glow)',
-            flexShrink: 0,
-          }}>
-            <Flame size={18} color="#F5EFEB" />
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <span style={{
-                fontFamily: 'Outfit, sans-serif',
-                fontSize: '1.2rem',
-                fontWeight: 800,
-                letterSpacing: '-0.02em',
-                color: 'var(--text-kehwa-cream)',
-              }}>
-                AazDoh
-              </span>
-            </div>
-            <div className="hide-mobile" style={{ fontSize: '0.72rem', color: 'var(--text-tweed-dim)', fontWeight: 500 }}>
-              Commit • Do • Report • Reflect
-            </div>
-          </div>
-        </div>
+        <BrandLogo showTagline={true} />
 
         <div className="hide-tablet" style={{
           height: '22px',
