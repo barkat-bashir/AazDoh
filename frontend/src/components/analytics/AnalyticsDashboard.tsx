@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { analyticsApi, AccountabilityStats } from '../../api/analyticsApi';
+import { aiApi, AiFeedbackResponse } from '../../api/aiApi';
 import { useToast } from '../../context/ToastContext';
-import { BarChart3, TrendingUp, Clock, CheckCircle2, XCircle, AlertTriangle, Flame } from 'lucide-react';
+import { BarChart3, TrendingUp, Clock, CheckCircle2, XCircle, AlertTriangle, Flame, Sparkles, RefreshCw } from 'lucide-react';
 
 export const AnalyticsDashboard: React.FC = () => {
   const { showToast } = useToast();
   const [days, setDays] = useState(30);
   const [stats, setStats] = useState<AccountabilityStats | null>(null);
+  const [insights, setInsights] = useState<AiFeedbackResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingInsights, setLoadingInsights] = useState(false);
 
   useEffect(() => {
     loadStats(days);
+    loadInsights();
   }, [days]);
 
   const loadStats = async (d: number) => {
@@ -22,6 +26,18 @@ export const AnalyticsDashboard: React.FC = () => {
       showToast('Could not load analytics summary', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadInsights = async () => {
+    try {
+      setLoadingInsights(true);
+      const res = await aiApi.getInsights();
+      setInsights(res);
+    } catch (err: any) {
+      // Non-critical if insights fail
+    } finally {
+      setLoadingInsights(false);
     }
   };
 
@@ -192,6 +208,62 @@ export const AnalyticsDashboard: React.FC = () => {
                   </div>
                 ))}
               </div>
+            )}
+          </div>
+
+          {/* AI Behavioral Insights Card */}
+          <div className="harud-card" style={{ padding: '24px', border: '1px solid var(--border-copper-subtle)', background: 'linear-gradient(180deg, var(--bg-walnut-card) 0%, var(--bg-walnut-surface) 100%)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, var(--chinar-rust), var(--saffron-ember))',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Sparkles size={16} color="#fff" />
+                </div>
+                <h4 style={{ fontSize: '1.05rem', color: 'var(--text-kehwa-cream)', margin: 0, fontWeight: 700 }}>
+                  AI Behavioral Synthesis
+                </h4>
+              </div>
+
+              <button
+                onClick={loadInsights}
+                disabled={loadingInsights}
+                className="btn-secondary"
+                style={{ padding: '4px 10px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                title="Refresh AI synthesis"
+              >
+                <RefreshCw size={12} className={loadingInsights ? 'spinner' : ''} />
+                <span>{loadingInsights ? 'Synthesizing...' : 'Refresh'}</span>
+              </button>
+            </div>
+
+            {loadingInsights ? (
+              <p style={{ color: 'var(--text-tweed-dim)', fontSize: '0.86rem', fontStyle: 'italic', margin: 0 }}>
+                Synthesizing multi-day execution patterns with AI Chief of Staff...
+              </p>
+            ) : insights ? (
+              <div style={{
+                background: 'rgba(28, 21, 16, 0.6)',
+                borderLeft: '4px solid var(--saffron-ember)',
+                padding: '14px 16px',
+                borderRadius: '0 10px 10px 0',
+                color: 'var(--text-kehwa-cream)',
+                fontSize: '0.9rem',
+                lineHeight: 1.6,
+                whiteSpace: 'pre-wrap',
+              }}>
+                {insights.feedback}
+              </div>
+            ) : (
+              <p style={{ color: 'var(--text-tweed-dim)', fontSize: '0.86rem', margin: 0 }}>
+                Keep logging daily commitments to generate long-term AI behavioral pattern analysis.
+              </p>
             )}
           </div>
         </>

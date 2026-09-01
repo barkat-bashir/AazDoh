@@ -10,9 +10,8 @@ import { TermsPage } from './pages/TermsPage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { TodayPage } from './pages/TodayPage';
 import { PartnersPage } from './pages/PartnersPage';
-import { AiAgentPage } from './pages/AiAgentPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
-import { SettingsPage } from './pages/SettingsPage';
+import { SettingsModal } from './components/settings/SettingsModal';
 
 type PublicView = 'landing' | 'auth' | 'terms' | 'privacy';
 
@@ -20,6 +19,7 @@ const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('today');
   const [publicView, setPublicView] = useState<PublicView>('landing');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   if (loading) {
     return (
@@ -96,16 +96,19 @@ const AppContent: React.FC = () => {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-walnut-deep)', position: 'relative' }}>
       <ChinarLeavesCanvas />
-      <Header onOpenAi={() => setActiveTab('ai')} />
+      <Header onOpenSettings={() => setIsSettingsOpen(true)} />
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
       
       <main style={{ flex: 1, paddingBottom: '60px', position: 'relative', zIndex: 10 }}>
-        {activeTab === 'today' && <TodayPage onOpenAi={() => setActiveTab('ai')} />}
-        {activeTab === 'ai' && <AiAgentPage />}
+        {activeTab === 'today' && <TodayPage />}
         {activeTab === 'partners' && <PartnersPage />}
         {activeTab === 'analytics' && <AnalyticsPage />}
-        {activeTab === 'settings' && <SettingsPage />}
       </main>
+
+      <SettingsModal 
+        isOpen={isSettingsOpen} 
+        onClose={() => setIsSettingsOpen(false)} 
+      />
 
       {/* Authenticated Footer */}
       <footer style={{

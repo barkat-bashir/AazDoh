@@ -12,7 +12,7 @@ import { useToast } from '../context/ToastContext';
 import { CalendarCheck, Plus } from 'lucide-react';
 
 interface TodayPageProps {
-  onOpenAi: () => void;
+  onOpenAi?: () => void;
 }
 
 export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {

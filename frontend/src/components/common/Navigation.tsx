@@ -1,7 +1,7 @@
 import React from 'react';
 import { CalendarCheck, Users, BarChart3, Settings, Sparkles } from 'lucide-react';
 
-export type TabType = 'today' | 'partners' | 'ai' | 'analytics' | 'settings';
+export type TabType = 'today' | 'partners' | 'analytics';
 
 interface NavigationProps {
   activeTab: TabType;
@@ -11,10 +11,8 @@ interface NavigationProps {
 export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
   const tabs = [
     { id: 'today' as TabType, label: 'Today', icon: CalendarCheck },
-    { id: 'ai' as TabType, label: 'AI Agent', icon: Sparkles },
-    { id: 'partners' as TabType, label: 'Peer Accountability', icon: Users },
-    { id: 'analytics' as TabType, label: 'Behavioral Insights', icon: BarChart3 },
-    { id: 'settings' as TabType, label: 'Preferences', icon: Settings },
+    { id: 'partners' as TabType, label: 'Partners', icon: Users },
+    { id: 'analytics' as TabType, label: 'Insights', icon: BarChart3 },
   ];
 
   return (
