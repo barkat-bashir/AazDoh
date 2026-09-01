@@ -58,7 +58,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           lineHeight: 1.6,
           marginBottom: '32px',
         }}>
-          Standard to-do apps reward dopamine checkmarks. <strong>AazDoh</strong> replaces wishful thinking with operational integrity: <strong>60-Second AI Plan Stress-Testing</strong>, an <strong>Anti-Self-Deception AI Mirror</strong> that detects chronic excuses, and true 1-on-1 peer transparency.
+          Standard to-do apps reward dopamine checkmarks. <strong>AazDoh</strong> replaces wishful thinking with operational integrity: <strong>60-Second Plan Feasibility Audits</strong>, a <strong>Cognitive Excuse Classifier</strong> with historical receipts, and true 1-on-1 peer accountability.
         </p>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -132,7 +132,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <span className="badge badge-completed" style={{ flexShrink: 0 }}>Kept</span>
           </div>
 
-          {/* Mock AI Chief of Staff Box */}
+          {/* Mock Feasibility Diagnostic Box */}
           <div style={{
             padding: '14px 16px',
             background: 'rgba(226, 149, 59, 0.08)',
@@ -146,14 +146,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           }}>
             <Sparkles size={18} color="var(--saffron-ember)" style={{ marginTop: '2px', flexShrink: 0 }} />
             <div>
-              <span style={{ color: 'var(--saffron-ember)', fontWeight: 700 }}>Chief of Staff Feasibility Diagnostic: </span>
+              <span style={{ color: 'var(--saffron-ember)', fontWeight: 700 }}>Workload Feasibility Diagnostic: </span>
               "Your 3.5h load sits comfortably below your 4.2h baseline velocity. No friction bottleneck detected today. Protect your primary 90-minute block for high-momentum execution."
             </div>
           </div>
         </div>
       </section>
 
-      {/* Flagship AI Features Grid */}
+      {/* Behavioral Engineering Features Grid */}
       <section className="landing-features-section">
         <div style={{ textAlign: 'center', marginBottom: '36px' }}>
           <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--saffron-ember)', textTransform: 'uppercase' }}>
@@ -168,7 +168,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </div>
 
         <div className="landing-features-grid">
-          {/* Feature 1: 60-Second Stress Tester */}
+          {/* Feature 1: 60-Second Feasibility Audit */}
           <div className="harud-card landing-feature-card">
             <div style={{
               width: '44px',
@@ -183,10 +183,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <Activity size={22} color="#F5EFEB" />
             </div>
             <h3 style={{ fontSize: '1.3rem', marginBottom: '10px', color: 'var(--text-kehwa-cream)' }}>
-              60-Second Plan Stress-Tester
+              60-Second Plan Feasibility Audit
             </h3>
             <p style={{ color: 'var(--text-parchment-muted)', fontSize: '0.92rem', lineHeight: 1.6, marginBottom: '18px' }}>
-              Before starting your day, your AI Chief of Staff stress-tests your plan against your 7-day historical focus velocity. If you are overloaded, it generates <strong>1-Click De-Risked Proposals</strong> to trim, split, or reschedule lower-priority items.
+              Before starting your day, AazDoh audits your proposed commitments against your 7-day historical focus velocity. If you are overloaded, it generates <strong>1-Click Rebalanced Proposals</strong> to trim, split, or reschedule lower-priority items.
             </p>
             <div style={{ marginTop: 'auto', paddingTop: '14px', borderTop: '1px solid var(--border-walnut-faint)', fontSize: '0.82rem', color: 'var(--saffron-ember)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Zap size={14} />
@@ -194,7 +194,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
           </div>
 
-          {/* Feature 2: Anti-Self-Deception Mirror */}
+          {/* Feature 2: Cognitive Excuse Mirror */}
           <div className="harud-card landing-feature-card">
             <div style={{
               width: '44px',
@@ -209,10 +209,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <History size={22} color="#140E0A" />
             </div>
             <h3 style={{ fontSize: '1.3rem', marginBottom: '10px', color: 'var(--text-kehwa-cream)' }}>
-              Anti-Self-Deception AI Mirror
+              Cognitive Excuse Mirror & Receipts
             </h3>
             <p style={{ color: 'var(--text-parchment-muted)', fontSize: '0.92rem', lineHeight: 1.6, marginBottom: '18px' }}>
-              When you try to postpone a task, the AI cross-references your reason against past postponement receipts. It identifies classic rationalization traps (<em>Morning Illusion</em>, <em>Perfectionist Stalling</em>) and offers an instant <strong>15-Minute Micro-Start</strong> to break inertia.
+              When you postpone a commitment, AazDoh cross-references your stated reason against your past postponement history. It detects recurring avoidance traps (<em>Morning Illusion</em>, <em>Perfectionist Stalling</em>) and offers an instant <strong>15-Minute Micro-Start</strong> to break inertia.
             </p>
             <div style={{ marginTop: 'auto', paddingTop: '14px', borderTop: '1px solid var(--border-walnut-faint)', fontSize: '0.82rem', color: 'var(--chinar-rust)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
               <AlertTriangle size={14} />
@@ -261,9 +261,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="landing-cycle-grid">
             <div className="harud-card" style={{ padding: '22px' }}>
               <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--chinar-rust)' }}>01</span>
-              <h4 style={{ fontSize: '1.1rem', margin: '8px 0 6px' }}>Commit & Stress-Test</h4>
+              <h4 style={{ fontSize: '1.1rem', margin: '8px 0 6px' }}>Commit & Audit</h4>
               <p style={{ fontSize: '0.86rem', color: 'var(--text-parchment-muted)', lineHeight: 1.5 }}>
-                Define 2–4 high-leverage deliverables. Run the 60-second stress-test to ensure feasibility before you begin.
+                Define 2–4 high-leverage deliverables. Run the 60-second feasibility audit to ensure sustainable capacity before you begin.
               </p>
             </div>
 
@@ -287,7 +287,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#F87171' }}>04</span>
               <h4 style={{ fontSize: '1.1rem', margin: '8px 0 6px' }}>Reflect & Unblock</h4>
               <p style={{ fontSize: '0.86rem', color: 'var(--text-parchment-muted)', lineHeight: 1.5 }}>
-                Confront excuses via the AI Mirror, classify root failure causes, and dispatch actionable next steps.
+                Confront avoidance patterns with historical receipts, classify root failure causes, and dispatch actionable next steps.
               </p>
             </div>
           </div>
