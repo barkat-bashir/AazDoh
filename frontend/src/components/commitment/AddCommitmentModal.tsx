@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Modal } from '../common/Modal';
 import { commitmentApi, CommitmentPriority, CommitmentVisibility } from '../../api/commitmentApi';
 import { useToast } from '../../context/ToastContext';
-import { Sparkles, Clock, Shield } from 'lucide-react';
+import { Sparkles, Clock, Shield, Flame, Users, Lock, Check } from 'lucide-react';
 
 interface AddCommitmentModalProps {
   isOpen: boolean;
@@ -21,15 +21,30 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
 }) => {
   const { showToast } = useToast();
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
   const [expectedOutcome, setExpectedOutcome] = useState('');
   const [estimatedMinutes, setEstimatedMinutes] = useState(60);
   const [priority, setPriority] = useState<CommitmentPriority>('MEDIUM');
   const [visibility, setVisibility] = useState<CommitmentVisibility>('SHARED_WITH_PARTNER');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const focusOptions = [
+    { label: '30m', value: 30 },
+    { label: '45m', value: 45 },
+    { label: '1 Hour', value: 60 },
+    { label: '1.5 Hours', value: 90 },
+    { label: '2 Hours', value: 120 },
+    { label: '3h+', value: 180 },
+  ];
+
+  const priorityOptions: { label: string; value: CommitmentPriority; icon?: any; color: string }[] = [
+    { label: 'Low', value: 'LOW', color: 'var(--text-parchment-muted)' },
+    { label: 'Medium', value: 'MEDIUM', color: 'var(--saffron-ember)' },
+    { label: 'High', value: 'HIGH', icon: Flame, color: 'var(--chinar-rust)' },
+    { label: 'Urgent', value: 'URGENT', color: '#F87171' },
+  ];
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!title.trim()) {
       showToast('Commitment title is required', 'error');
       return;
@@ -40,7 +55,6 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
       const targetDate = selectedDate || new Date().toISOString().split('T')[0];
       await commitmentApi.create({
         title: title.trim(),
-        description: description.trim() || undefined,
         expectedOutcome: expectedOutcome.trim() || undefined,
         estimatedMinutes: Number(estimatedMinutes),
         priority,
@@ -50,9 +64,9 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
 
       showToast('Commitment created successfully', 'success');
       setTitle('');
-      setDescription('');
       setExpectedOutcome('');
       setEstimatedMinutes(60);
+      setPriority('MEDIUM');
       onSuccess();
       onClose();
 
@@ -66,6 +80,12 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      handleSubmit();
+    }
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -74,9 +94,10 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
       subtitle="What promise are you making to yourself for today?"
       maxWidth="560px"
     >
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        {/* Title */}
         <div>
-          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '5px' }}>
+          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-kehwa-cream)', marginBottom: '5px' }}>
             Commitment Title *
           </label>
           <input
@@ -90,148 +111,187 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
           />
         </div>
 
+        {/* Definition of Done */}
         <div>
           <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '5px' }}>
-            Expected Deliverable / Outcome
+            Definition of Done / Deliverable <span style={{ color: 'var(--text-tweed-dim)', fontWeight: 400 }}>(Optional)</span>
           </label>
           <input
             type="text"
             className="input-field"
-            placeholder="e.g. All idempotency key tests passing in postman"
+            placeholder="e.g. All idempotency integration tests passing in Postman"
             value={expectedOutcome}
             onChange={(e) => setExpectedOutcome(e.target.value)}
           />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '5px' }}>
-              <Clock size={13} color="var(--saffron-ember)" />
-              <span>Estimated Focus</span>
-            </label>
-            <select
-              className="input-field"
-              value={estimatedMinutes}
-              onChange={(e) => setEstimatedMinutes(Number(e.target.value))}
-            >
-              <option value={30}>30 Minutes</option>
-              <option value={45}>45 Minutes</option>
-              <option value={60}>1 Hour (60m)</option>
-              <option value={90}>1.5 Hours (90m)</option>
-              <option value={120}>2 Hours (120m)</option>
-              <option value={180}>3 Hours (180m)</option>
-              <option value={240}>4 Hours (240m)</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '5px' }}>
-              Priority Level
-            </label>
-            <select
-              className="input-field"
-              value={priority}
-              onChange={(e) => setPriority(e.target.value as CommitmentPriority)}
-            >
-              <option value="LOW">Low Priority</option>
-              <option value="MEDIUM">Medium Priority</option>
-              <option value="HIGH">High Priority</option>
-              <option value="URGENT">Urgent Priority</option>
-            </select>
-          </div>
-        </div>
-
+        {/* Estimated Focus Time Pills */}
         <div>
-          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '5px' }}>
-            Notes & Context (Optional)
+          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '6px' }}>
+            <Clock size={13} color="var(--saffron-ember)" />
+            <span>Estimated Focus Time</span>
           </label>
-          <textarea
-            className="input-field"
-            rows={2}
-            placeholder="Context, blockers, or specific scope boundary..."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            style={{ resize: 'vertical', minHeight: '52px' }}
-          />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(76px, 1fr))', gap: '6px' }}>
+            {focusOptions.map((opt) => {
+              const isSelected = estimatedMinutes === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setEstimatedMinutes(opt.value)}
+                  style={{
+                    padding: '7px 4px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.82rem',
+                    fontWeight: isSelected ? 700 : 500,
+                    background: isSelected ? 'var(--chinar-rust)' : 'var(--bg-walnut-card)',
+                    color: isSelected ? '#fff' : 'var(--text-parchment-muted)',
+                    border: `1px solid ${isSelected ? 'var(--chinar-rust)' : 'var(--border-walnut-faint)'}`,
+                    cursor: 'pointer',
+                    transition: 'var(--transition-smooth)',
+                    boxShadow: isSelected ? '0 2px 8px rgba(192, 83, 48, 0.35)' : 'none',
+                  }}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
+        {/* Priority Level Pills */}
         <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '5px' }}>
-            <Shield size={13} color="var(--chinar-rust)" />
+          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '6px' }}>
+            <Flame size={13} color="var(--chinar-rust)" />
+            <span>Priority Level</span>
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+            {priorityOptions.map((opt) => {
+              const isSelected = priority === opt.value;
+              const Icon = opt.icon;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setPriority(opt.value)}
+                  style={{
+                    padding: '7px 4px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.8rem',
+                    fontWeight: isSelected ? 700 : 500,
+                    background: isSelected ? 'var(--bg-walnut-card-hover)' : 'var(--bg-walnut-card)',
+                    color: isSelected ? opt.color : 'var(--text-tweed-dim)',
+                    border: `1.5px solid ${isSelected ? opt.color : 'var(--border-walnut-faint)'}`,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px',
+                    transition: 'var(--transition-smooth)',
+                  }}
+                >
+                  {Icon && <Icon size={12} color={opt.color} />}
+                  <span>{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Accountability Visibility Cards */}
+        <div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '6px' }}>
+            <Shield size={13} color="var(--saffron-ember)" />
             <span>Accountability Visibility</span>
           </label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '2px' }}>
-            <label style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 10px',
-              background: visibility === 'SHARED_WITH_PARTNER' ? 'var(--bg-walnut-card-hover)' : 'var(--bg-walnut-surface)',
-              border: `1px solid ${visibility === 'SHARED_WITH_PARTNER' ? 'var(--chinar-rust)' : 'var(--border-walnut-faint)'}`,
-              borderRadius: 'var(--radius-sm)',
-              cursor: 'pointer',
-              fontSize: '0.82rem',
-              color: 'var(--text-kehwa-cream)',
-            }}>
-              <input
-                type="radio"
-                name="visibility"
-                checked={visibility === 'SHARED_WITH_PARTNER'}
-                onChange={() => setVisibility('SHARED_WITH_PARTNER')}
-              />
-              <span>Share with Partner</span>
-            </label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            {/* Share with Partner */}
+            <div
+              onClick={() => setVisibility('SHARED_WITH_PARTNER')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '9px 12px',
+                background: visibility === 'SHARED_WITH_PARTNER' ? 'rgba(192, 83, 48, 0.12)' : 'var(--bg-walnut-card)',
+                border: `1.5px solid ${visibility === 'SHARED_WITH_PARTNER' ? 'var(--chinar-rust)' : 'var(--border-walnut-faint)'}`,
+                borderRadius: 'var(--radius-sm)',
+                cursor: 'pointer',
+                transition: 'var(--transition-smooth)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '0.82rem', fontWeight: 600, color: visibility === 'SHARED_WITH_PARTNER' ? 'var(--text-kehwa-cream)' : 'var(--text-parchment-muted)' }}>
+                <Users size={14} color={visibility === 'SHARED_WITH_PARTNER' ? 'var(--saffron-ember)' : 'var(--text-tweed-dim)'} />
+                <span>Share with Partner</span>
+              </div>
+              {visibility === 'SHARED_WITH_PARTNER' && (
+                <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: 'var(--chinar-rust)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Check size={11} color="#fff" />
+                </div>
+              )}
+            </div>
 
-            <label style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 10px',
-              background: visibility === 'PRIVATE' ? 'var(--bg-walnut-card-hover)' : 'var(--bg-walnut-surface)',
-              border: `1px solid ${visibility === 'PRIVATE' ? 'var(--chinar-rust)' : 'var(--border-walnut-faint)'}`,
-              borderRadius: 'var(--radius-sm)',
-              cursor: 'pointer',
-              fontSize: '0.82rem',
-              color: 'var(--text-kehwa-cream)',
-            }}>
-              <input
-                type="radio"
-                name="visibility"
-                checked={visibility === 'PRIVATE'}
-                onChange={() => setVisibility('PRIVATE')}
-              />
-              <span>Private Only</span>
-            </label>
+            {/* Private Only */}
+            <div
+              onClick={() => setVisibility('PRIVATE')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '9px 12px',
+                background: visibility === 'PRIVATE' ? 'rgba(226, 149, 59, 0.12)' : 'var(--bg-walnut-card)',
+                border: `1.5px solid ${visibility === 'PRIVATE' ? 'var(--saffron-ember)' : 'var(--border-walnut-faint)'}`,
+                borderRadius: 'var(--radius-sm)',
+                cursor: 'pointer',
+                transition: 'var(--transition-smooth)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '0.82rem', fontWeight: 600, color: visibility === 'PRIVATE' ? 'var(--text-kehwa-cream)' : 'var(--text-parchment-muted)' }}>
+                <Lock size={14} color={visibility === 'PRIVATE' ? 'var(--saffron-ember)' : 'var(--text-tweed-dim)'} />
+                <span>Private Only</span>
+              </div>
+              {visibility === 'PRIVATE' && (
+                <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: 'var(--saffron-ember)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Check size={11} color="#fff" />
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
+        {/* Footer Actions */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'flex-end',
-          gap: '10px',
-          marginTop: '6px',
-          paddingTop: '14px',
+          justifyContent: 'space-between',
+          marginTop: '4px',
+          paddingTop: '12px',
           borderTop: '1px solid var(--border-walnut-faint)',
         }}>
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={onClose}
-            disabled={loading}
-            style={{ padding: '8px 14px', fontSize: '0.84rem' }}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="btn-primary"
-            disabled={loading}
-            style={{ padding: '8px 18px', fontSize: '0.84rem' }}
-          >
-            <Sparkles size={15} />
-            <span>{loading ? 'Committing...' : 'Commit to Today'}</span>
-          </button>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-tweed-dim)' }}>
+            Press <kbd style={{ padding: '1px 4px', borderRadius: '3px', background: 'var(--bg-walnut-card)', border: '1px solid var(--border-walnut-faint)', fontSize: '0.7rem' }}>Ctrl</kbd> + <kbd style={{ padding: '1px 4px', borderRadius: '3px', background: 'var(--bg-walnut-card)', border: '1px solid var(--border-walnut-faint)', fontSize: '0.7rem' }}>Enter</kbd> to save
+          </span>
+
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={onClose}
+              disabled={loading}
+              style={{ padding: '8px 14px', fontSize: '0.84rem' }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={loading}
+              style={{ padding: '8px 18px', fontSize: '0.84rem' }}
+            >
+              <Sparkles size={15} />
+              <span>{loading ? 'Committing...' : 'Commit to Today'}</span>
+            </button>
+          </div>
         </div>
       </form>
     </Modal>
