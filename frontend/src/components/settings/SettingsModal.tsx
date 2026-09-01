@@ -117,15 +117,69 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         {/* Modal Body */}
-        <form onSubmit={handleSave} className="modal-body-box" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <form onSubmit={handleSave} className="modal-body-box" style={{ padding: '20px 24px 24px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
           
+          {/* User Profile Summary Card */}
+          {user && (
+            <div style={{
+              background: 'var(--bg-walnut-card)',
+              border: '1px solid var(--border-copper-subtle)',
+              borderRadius: 'var(--radius-md)',
+              padding: '14px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, var(--chinar-rust), var(--saffron-ember))',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.1rem',
+                  fontWeight: 800,
+                  color: '#fff',
+                  boxShadow: '0 3px 10px rgba(192, 83, 48, 0.35)',
+                  flexShrink: 0,
+                }}>
+                  {user.fullName.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-kehwa-cream)' }}>
+                    {user.fullName}
+                  </h4>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--text-tweed-dim)' }}>
+                    {user.email}
+                  </p>
+                </div>
+              </div>
+
+              <div style={{
+                fontSize: '0.72rem',
+                padding: '3px 8px',
+                borderRadius: '6px',
+                background: 'var(--bg-walnut-surface)',
+                border: '1px solid var(--border-walnut-faint)',
+                color: 'var(--saffron-ember)',
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+              }}>
+                {user.aiPersona || 'BALANCED'}
+              </div>
+            </div>
+          )}
+
           {/* AI Persona Section */}
           <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-kehwa-cream)', marginBottom: '6px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-kehwa-cream)', marginBottom: '4px' }}>
               <Sparkles size={15} color="var(--saffron-ember)" />
               <span>AI Accountability Challenger Persona</span>
             </label>
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-parchment-muted)', marginBottom: '12px', marginTop: 0 }}>
+            <p style={{ fontSize: '0.76rem', color: 'var(--text-parchment-muted)', marginBottom: '10px', marginTop: 0 }}>
               Adjust the rigor and tone of your AI Chief of Staff and Excuse Mirror.
             </p>
 

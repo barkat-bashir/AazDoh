@@ -1,13 +1,13 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Sparkles, LogOut, Flame } from 'lucide-react';
+import { Menu, Flame, Sparkles } from 'lucide-react';
 
 interface HeaderProps {
   onOpenSettings: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ onOpenSettings }) => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   const formattedDate = new Intl.DateTimeFormat('en-US', {
     weekday: 'long',
@@ -69,94 +69,72 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSettings }) => {
         </div>
       </div>
 
-      {/* Right controls: AI Persona quick pill & Profile Settings */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      {/* Right controls: Single Unified Menu / Profile Button */}
+      {user && (
         <button
           onClick={onOpenSettings}
           className="btn-secondary"
           style={{
-            borderColor: 'var(--border-copper-subtle)',
-            background: 'rgba(192, 83, 48, 0.1)',
-            padding: '6px 10px',
-            fontSize: '0.82rem',
-            cursor: 'pointer',
-          }}
-          title="AI Challenger Persona (Click to Change)"
-        >
-          <Sparkles size={15} color="var(--saffron-ember)" />
-          <span className="hide-mobile">AI Mode:</span>
-          <span style={{
-            fontSize: '0.66rem',
-            padding: '1px 5px',
-            borderRadius: '4px',
-            background: 'var(--bg-walnut-card)',
-            color: 'var(--text-kehwa-cream)',
-            fontWeight: 700,
-          }}>
-            {user?.aiPersona || 'BALANCED'}
-          </span>
-        </button>
-
-        {user && (
-          <div style={{
-            display: 'flex',
+            display: 'inline-flex',
             alignItems: 'center',
             gap: '8px',
-            padding: '3px 8px 3px 4px',
-            background: 'var(--bg-walnut-surface)',
-            border: '1px solid var(--border-walnut-faint)',
+            padding: '4px 10px 4px 5px',
             borderRadius: 'var(--radius-full)',
+            background: 'var(--bg-walnut-surface)',
+            border: '1px solid var(--border-copper-subtle)',
+            cursor: 'pointer',
+            transition: 'var(--transition-smooth)',
+            boxShadow: 'var(--shadow-warm-sm)',
+          }}
+          title="Open Menu (Profile, AI Mode, Preferences & Logout)"
+        >
+          {/* Avatar Chip */}
+          <div style={{
+            width: '26px',
+            height: '26px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, var(--chinar-rust), var(--saffron-ember))',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '0.78rem',
+            fontWeight: 800,
+            color: '#fff',
+            flexShrink: 0,
+            boxShadow: '0 2px 6px rgba(192, 83, 48, 0.3)',
           }}>
-            <div 
-              onClick={onOpenSettings}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                cursor: 'pointer',
-              }}
-              title="Click to open Account & Preferences"
-            >
-              <div style={{
-                width: '26px',
-                height: '26px',
-                borderRadius: '50%',
-                background: 'var(--bg-walnut-card-hover)',
-                border: '1px solid var(--border-copper-subtle)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                color: 'var(--saffron-ember)',
-                flexShrink: 0,
-              }}>
-                {user.fullName.charAt(0).toUpperCase()}
-              </div>
-              <span className="hide-mobile" style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {user.fullName}
-              </span>
-            </div>
-
-            <button
-              onClick={logout}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-tweed-dim)',
-                cursor: 'pointer',
-                padding: '4px',
-                display: 'flex',
-                alignItems: 'center',
-                transition: 'var(--transition-smooth)',
-              }}
-              title="Log out"
-            >
-              <LogOut size={14} />
-            </button>
+            {user.fullName.charAt(0).toUpperCase()}
           </div>
-        )}
-      </div>
+
+          {/* User Name & Persona Chip (Tablet & Desktop) */}
+          <div className="hide-mobile" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              color: 'var(--text-kehwa-cream)',
+              maxWidth: '120px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}>
+              {user.fullName}
+            </span>
+            <span style={{
+              fontSize: '0.66rem',
+              padding: '1px 5px',
+              borderRadius: '4px',
+              background: 'var(--bg-walnut-card)',
+              color: 'var(--saffron-ember)',
+              fontWeight: 700,
+            }}>
+              {user.aiPersona || 'BALANCED'}
+            </span>
+          </div>
+
+          {/* Menu Hamburger Icon */}
+          <Menu size={16} color="var(--text-parchment-muted)" style={{ flexShrink: 0 }} />
+        </button>
+      )}
     </header>
   );
 };
