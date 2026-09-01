@@ -289,13 +289,15 @@ textarea.input-field {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(10, 7, 5, 0.75);
+  background: rgba(10, 7, 5, 0.78);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
-  padding: 20px;
+  z-index: 1000;
+  padding: 24px 16px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   animation: fadeIn 0.15s ease-out;
 }
 
@@ -306,8 +308,12 @@ textarea.input-field {
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 30px var(--chinar-glow);
   width: 100%;
   max-width: 580px;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-height: calc(100vh - 48px);
+  max-height: calc(100dvh - 48px);
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 

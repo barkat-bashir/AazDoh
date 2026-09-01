@@ -34,14 +34,7 @@ export const Modal: React.FC<ModalProps> = ({
     <div className="modal-backdrop" onClick={onClose}>
       <div
         className="modal-content"
-        style={{ 
-          maxWidth,
-          maxHeight: '92vh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          padding: 0,
-        }}
+        style={{ maxWidth, margin: 'auto' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header-box" style={{
