@@ -218,7 +218,7 @@ export const AnalyticsDashboard: React.FC = () => {
             )}
           </div>
 
-          {/* AI Behavioral Insights Card */}
+          {/* Behavioral Insights Card */}
           <div className="harud-card" style={{ padding: '24px', border: '1px solid var(--border-copper-subtle)', background: 'linear-gradient(180deg, var(--bg-walnut-card) 0%, var(--bg-walnut-surface) 100%)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -234,7 +234,7 @@ export const AnalyticsDashboard: React.FC = () => {
                   <Sparkles size={16} color="#fff" />
                 </div>
                 <h4 style={{ fontSize: '1.05rem', color: 'var(--text-kehwa-cream)', margin: 0, fontWeight: 700 }}>
-                  AI Behavioral Synthesis
+                  Behavioral Execution Synthesis
                 </h4>
               </div>
 
@@ -243,7 +243,7 @@ export const AnalyticsDashboard: React.FC = () => {
                 disabled={loadingInsights}
                 className="btn-secondary"
                 style={{ padding: '4px 10px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '6px' }}
-                title="Refresh AI synthesis"
+                title="Refresh behavioral synthesis"
               >
                 <RefreshCw size={12} className={loadingInsights ? 'spinner' : ''} />
                 <span>{loadingInsights ? 'Synthesizing...' : 'Refresh'}</span>
@@ -252,7 +252,7 @@ export const AnalyticsDashboard: React.FC = () => {
 
             {loadingInsights ? (
               <p style={{ color: 'var(--text-tweed-dim)', fontSize: '0.86rem', fontStyle: 'italic', margin: 0 }}>
-                Synthesizing multi-day execution patterns with AI Chief of Staff...
+                Synthesizing multi-day execution trends and friction patterns...
               </p>
             ) : insights ? (
               <div style={{
@@ -269,7 +269,7 @@ export const AnalyticsDashboard: React.FC = () => {
               </div>
             ) : (
               <p style={{ color: 'var(--text-tweed-dim)', fontSize: '0.86rem', margin: 0 }}>
-                Keep logging daily commitments to generate long-term AI behavioral pattern analysis.
+                Keep logging daily commitments to generate long-term behavioral pattern analysis.
               </p>
             )}
           </div>

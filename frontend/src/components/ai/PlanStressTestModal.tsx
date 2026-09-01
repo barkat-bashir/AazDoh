@@ -123,10 +123,10 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
             </div>
             <div>
               <h3 style={{ fontSize: 'clamp(1.05rem, 3.5vw, 1.25rem)', fontWeight: '700', margin: 0, color: 'var(--text-kehwa-cream)' }}>
-                AI Plan Feasibility Radar
+                Plan Feasibility Radar
               </h3>
               <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-tweed-dim)' }}>
-                Executive capacity audit & proactive failure prevention
+                Capacity audit & proactive workload rebalancing
               </p>
             </div>
           </div>
@@ -154,10 +154,10 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
               }} 
             />
             <p style={{ fontWeight: '600', color: 'var(--text-kehwa-cream)', marginBottom: '4px' }}>
-              Cross-examining today's plan against historical focus velocity...
+              Auditing today's plan against 7-day focus capacity...
             </p>
             <p style={{ fontSize: '12px', color: 'var(--text-tweed-dim)' }}>
-              Calculating task entropy, postponement lineage, and energy curves.
+              Checking task sizing, postponement history, and daily energy limits.
             </p>
           </div>
         ) : data ? (
@@ -235,7 +235,7 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tweed-dim)', fontWeight: 700 }}>
-                      Failure Probability
+                      Risk Level
                     </span>
                     <span 
                       style={{ 
@@ -247,7 +247,7 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
                         fontWeight: '700'
                       }}
                     >
-                      {data.riskLevel} RISK
+                      {data.riskLevel}
                     </span>
                   </div>
                   <div style={{ fontSize: '13px', color: 'var(--text-kehwa-cream)', marginTop: '2px', fontWeight: '500' }}>
@@ -291,7 +291,7 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
               <div style={{ marginBottom: '22px' }}>
                 <h4 style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--saffron-ember)', fontWeight: 700, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Sparkles size={13} />
-                  <span>Chief of Staff Proposed Task Actions</span>
+                  <span>Recommended Task Plan</span>
                 </h4>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -361,11 +361,11 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
               </div>
             )}
 
-            {/* Quick Defense Input Section */}
+            {/* Context Input Section */}
             {showDefenseInput && (
               <form onSubmit={handleSendDefense} style={{ marginBottom: '18px' }}>
                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '600', color: 'var(--text-kehwa-cream)', marginBottom: '6px' }}>
-                  💬 Defend your capacity to your Chief of Staff (1 sentence):
+                  💬 Add context to adjust feasibility assessment (1 sentence):
                 </label>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <input 
@@ -423,7 +423,7 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
                       }}
                     >
                       <Sparkles size={16} />
-                      <span>{isApplying ? 'Applying Plan...' : 'Apply De-Risked Plan (1-Click)'}</span>
+                      <span>{isApplying ? 'Applying Plan...' : 'Apply Optimized Plan (1-Click)'}</span>
                     </button>
                   ) : (
                     <button
@@ -453,17 +453,17 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
                       className="btn-secondary"
                       style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.82rem' }}
                     >
-                      <span>💬 Quick Defense</span>
+                      <span>💬 Add Context</span>
                     </button>
 
                     <button
                       onClick={handleOverrideSprint}
                       className="btn-secondary"
-                      title="Accept risk and log a high-entropy sprint under sovereign override"
+                      title="Keep your original plan as-is"
                       style={{ padding: '10px 14px', color: 'var(--text-parchment-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.82rem' }}
                     >
                       <Flame size={14} style={{ color: 'var(--chinar-rust)' }} />
-                      <span>Override Sprint</span>
+                      <span>Keep Original Plan</span>
                     </button>
                   </div>
                 </>

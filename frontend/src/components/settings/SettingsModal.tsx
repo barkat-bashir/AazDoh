@@ -173,14 +173,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           )}
 
-          {/* AI Persona Section */}
+          {/* Accountability Coaching Rigor Section */}
           <div>
             <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-kehwa-cream)', marginBottom: '4px' }}>
               <Sparkles size={15} color="var(--saffron-ember)" />
-              <span>AI Accountability Challenger Persona</span>
+              <span>Accountability Coaching Rigor</span>
             </label>
             <p style={{ fontSize: '0.76rem', color: 'var(--text-parchment-muted)', marginBottom: '10px', marginTop: 0 }}>
-              Adjust the rigor and tone of your AI Chief of Staff and Excuse Mirror.
+              Adjust the tone and directness of behavioral feedback and feasibility checks.
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
