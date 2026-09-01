@@ -62,7 +62,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   return (
-    <div className="modal-backdrop" style={{ zIndex: 1200 }}>
+    <div className="modal-backdrop" style={{ zIndex: 99999 }}>
       <div 
         className="modal-content"
         style={{ 

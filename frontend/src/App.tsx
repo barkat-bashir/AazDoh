@@ -99,7 +99,7 @@ const AppContent: React.FC = () => {
       <Header onOpenSettings={() => setIsSettingsOpen(true)} />
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
       
-      <main style={{ flex: 1, paddingBottom: '60px', position: 'relative', zIndex: 10 }}>
+      <main style={{ flex: 1, paddingBottom: '60px', position: 'relative' }}>
         {activeTab === 'today' && <TodayPage />}
         {activeTab === 'partners' && <PartnersPage />}
         {activeTab === 'analytics' && <AnalyticsPage />}
@@ -121,7 +121,6 @@ const AppContent: React.FC = () => {
         fontSize: '0.8rem',
         color: 'var(--text-tweed-dim)',
         position: 'relative',
-        zIndex: 10,
         flexWrap: 'wrap',
         gap: '10px',
       }}>

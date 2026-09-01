@@ -90,7 +90,7 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
   };
 
   return (
-    <div className="modal-backdrop" style={{ zIndex: 1100 }}>
+    <div className="modal-backdrop" style={{ zIndex: 99999 }}>
       <div 
         className="modal-content" 
         style={{ 
