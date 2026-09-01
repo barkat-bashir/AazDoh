@@ -172,39 +172,63 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
         {/* Right: Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           {total > 0 && (
-            <>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              background: 'var(--bg-walnut-surface)',
+              border: '1px solid var(--border-walnut-faint)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '2px',
+              gap: '2px',
+            }}>
               <button
                 onClick={onOpenAiReview}
                 className="btn-secondary"
                 style={{
-                  borderColor: 'var(--border-copper-subtle)',
-                  background: 'rgba(226, 149, 59, 0.1)',
+                  border: 'none',
+                  background: 'transparent',
                   color: 'var(--saffron-ember)',
-                  fontSize: '0.82rem',
-                  padding: '7px 12px',
+                  fontSize: '0.8rem',
+                  padding: '6px 10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  borderRadius: '4px',
                 }}
-                title="60-Second AI Plan Feasibility Stress-Test"
+                title="Audit Plan Capacity & Feasibility"
               >
-                <Sparkles size={14} color="var(--saffron-ember)" />
-                <span>Stress-Test</span>
+                <Sparkles size={13} color="var(--saffron-ember)" />
+                <span>Radar</span>
               </button>
+
+              <div style={{ width: '1px', height: '16px', background: 'var(--border-walnut-faint)' }} />
 
               <button
                 onClick={onOpenReviewModal}
-                className="btn-saffron"
-                style={{ fontSize: '0.82rem', padding: '7px 12px' }}
-                title="Run daily accountability reflection"
+                className="btn-secondary"
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  color: 'var(--text-kehwa-cream)',
+                  fontSize: '0.8rem',
+                  padding: '6px 10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  borderRadius: '4px',
+                }}
+                title="Run daily accountability reflection ceremony"
               >
-                <CheckSquare size={14} />
-                <span>Review</span>
+                <CheckSquare size={13} color="var(--saffron-ember)" />
+                <span>Review Day</span>
               </button>
-            </>
+            </div>
           )}
 
           <button
             onClick={onOpenAddModal}
             className="btn-primary"
-            style={{ fontSize: '0.84rem', padding: '7px 14px' }}
+            style={{ fontSize: '0.84rem', padding: '7px 14px', display: 'flex', alignItems: 'center', gap: '5px' }}
           >
             <Plus size={15} />
             <span>Add Commitment</span>
