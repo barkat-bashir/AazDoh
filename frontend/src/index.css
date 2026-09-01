@@ -477,8 +477,19 @@ textarea.input-field {
   padding: 24px 20px;
 }
 
+.analytics-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
 /* Tablet & Mobile Media Queries */
 @media (max-width: 860px) {
+  .analytics-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
   .partner-layout {
     grid-template-columns: 1fr;
     gap: 20px;

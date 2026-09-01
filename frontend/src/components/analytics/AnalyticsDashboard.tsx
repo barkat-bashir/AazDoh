@@ -105,65 +105,72 @@ export const AnalyticsDashboard: React.FC = () => {
       ) : stats ? (
         <>
           {/* Key Stat Cards Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+          <div className="analytics-stats-grid">
             {/* Completion Rate */}
-            <div className="harud-card" style={{ padding: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-tweed-dim)', fontSize: '0.82rem' }}>
+            <div className="harud-card" style={{ padding: '18px 16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-tweed-dim)', fontSize: '0.8rem', fontWeight: 600 }}>
                 <span>Completion Velocity</span>
-                <TrendingUp size={16} color="var(--saffron-ember)" />
+                <TrendingUp size={15} color="var(--saffron-ember)" />
               </div>
               <div style={{
-                fontSize: '2rem',
+                fontSize: '1.9rem',
                 fontWeight: 800,
                 color: stats.completionRate >= 75 ? '#4ADE80' : 'var(--saffron-ember)',
-                marginTop: '8px',
+                marginTop: '6px',
+                lineHeight: 1.1,
               }}>
                 {Math.round(stats.completionRate)}%
               </div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-tweed-dim)', marginTop: '4px' }}>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-tweed-dim)', marginTop: '4px' }}>
                 {stats.completedCommitments} kept out of {stats.totalCommitments} total
               </div>
             </div>
 
             {/* Total Focus Hours */}
-            <div className="harud-card" style={{ padding: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-tweed-dim)', fontSize: '0.82rem' }}>
+            <div className="harud-card" style={{ padding: '18px 16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-tweed-dim)', fontSize: '0.8rem', fontWeight: 600 }}>
                 <span>Total Focus Time</span>
-                <Clock size={16} color="var(--chinar-rust)" />
+                <Clock size={15} color="var(--chinar-rust)" />
               </div>
-              <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-kehwa-cream)', marginTop: '8px' }}>
+              <div style={{ fontSize: '1.9rem', fontWeight: 800, color: 'var(--text-kehwa-cream)', marginTop: '6px', lineHeight: 1.1 }}>
                 {stats.totalFocusHours.toFixed(1)}h
               </div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-tweed-dim)', marginTop: '4px' }}>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-tweed-dim)', marginTop: '4px' }}>
                 Avg {stats.avgDailyFocusHours.toFixed(1)}h per day
               </div>
             </div>
 
             {/* Kept Commitments */}
-            <div className="harud-card" style={{ padding: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-tweed-dim)', fontSize: '0.82rem' }}>
-                <span>Commitments Kept</span>
-                <CheckCircle2 size={16} color="#4ADE80" />
+            <div className="harud-card" style={{ padding: '18px 16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-tweed-dim)', fontSize: '0.8rem', fontWeight: 600 }}>
+                <span>Promises Honored</span>
+                <CheckCircle2 size={15} color="#4ADE80" />
               </div>
-              <div style={{ fontSize: '2rem', fontWeight: 800, color: '#4ADE80', marginTop: '8px' }}>
+              <div style={{ fontSize: '1.9rem', fontWeight: 800, color: '#4ADE80', marginTop: '6px', lineHeight: 1.1 }}>
                 {stats.completedCommitments}
               </div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-tweed-dim)', marginTop: '4px' }}>
-                Promises honored
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-tweed-dim)', marginTop: '4px' }}>
+                Executed without fail
               </div>
             </div>
 
             {/* Missed / Postponed */}
-            <div className="harud-card" style={{ padding: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-tweed-dim)', fontSize: '0.82rem' }}>
-                <span>Missed / Rescheduled</span>
-                <AlertTriangle size={16} color="#F87171" />
+            <div className="harud-card" style={{ padding: '18px 16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-tweed-dim)', fontSize: '0.8rem', fontWeight: 600 }}>
+                <span>Rescheduled / Missed</span>
+                <AlertTriangle size={15} color={stats.postponedCommitments + stats.missedCommitments > 0 ? '#F87171' : 'var(--text-tweed-dim)'} />
               </div>
-              <div style={{ fontSize: '2rem', fontWeight: 800, color: '#F87171', marginTop: '8px' }}>
-                {stats.missedCommitments}
+              <div style={{
+                fontSize: '1.9rem',
+                fontWeight: 800,
+                color: stats.postponedCommitments + stats.missedCommitments > 0 ? '#F87171' : 'var(--text-tweed-dim)',
+                marginTop: '6px',
+                lineHeight: 1.1,
+              }}>
+                {stats.postponedCommitments + stats.missedCommitments}
               </div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-tweed-dim)', marginTop: '4px' }}>
-                {stats.postponedCommitments} rescheduled tasks
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-tweed-dim)', marginTop: '4px' }}>
+                {stats.postponedCommitments} rescheduled • {stats.missedCommitments} dropped
               </div>
             </div>
           </div>
