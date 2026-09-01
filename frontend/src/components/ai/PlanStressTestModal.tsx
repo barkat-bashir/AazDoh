@@ -275,7 +275,9 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
               }}
             >
               <p style={{ margin: 0, fontSize: '0.88rem', lineHeight: '1.6', color: 'var(--text-kehwa-cream)' }}>
-                "{data.diagnosticSummary}"
+                "{data.plannedHours <= data.historicalCapacityHours && data.diagnosticSummary?.toLowerCase().includes('exceeds')
+                  ? `Your planned load of ${data.plannedHours}h sits comfortably within your 7-day average focus capacity (${data.historicalCapacityHours}h). High probability of strong follow-through today.`
+                  : data.diagnosticSummary}"
               </p>
               {data.defenseFeedback && (
                 <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: '12px', color: '#48bb78', fontWeight: '600' }}>
