@@ -123,10 +123,10 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
             </div>
             <div>
               <h3 style={{ fontSize: 'clamp(1.05rem, 3.5vw, 1.25rem)', fontWeight: '700', margin: 0, color: 'var(--text-kehwa-cream)' }}>
-                Plan Feasibility Radar
+                Plan Feasibility Check
               </h3>
               <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-tweed-dim)' }}>
-                Capacity audit & proactive workload rebalancing
+                Real-time capacity verification & workload rebalancing
               </p>
             </div>
           </div>
@@ -154,7 +154,7 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
               }} 
             />
             <p style={{ fontWeight: '600', color: 'var(--text-kehwa-cream)', marginBottom: '4px' }}>
-              Auditing today's plan against 7-day focus capacity...
+              Checking today's plan against 7-day focus capacity...
             </p>
             <p style={{ fontSize: '12px', color: 'var(--text-tweed-dim)' }}>
               Checking task sizing, postponement history, and daily energy limits.

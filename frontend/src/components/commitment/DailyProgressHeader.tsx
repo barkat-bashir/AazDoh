@@ -195,10 +195,10 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
                   gap: '5px',
                   borderRadius: '4px',
                 }}
-                title="Audit Plan Capacity & Feasibility"
+                title="Check Plan Feasibility & Capacity"
               >
                 <Sparkles size={13} color="var(--saffron-ember)" />
-                <span>Radar</span>
+                <span>Feasibility</span>
               </button>
 
               <div style={{ width: '1px', height: '16px', background: 'var(--border-walnut-faint)' }} />

@@ -58,7 +58,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           lineHeight: 1.6,
           marginBottom: '32px',
         }}>
-          Standard to-do apps reward dopamine checkmarks. <strong>AazDoh</strong> replaces wishful thinking with operational integrity: <strong>60-Second Plan Feasibility Audits</strong>, a <strong>Cognitive Excuse Classifier</strong> with historical receipts, and true 1-on-1 peer accountability.
+          Standard to-do apps reward dopamine checkmarks. <strong>AazDoh</strong> replaces wishful thinking with operational integrity: <strong>Plan Feasibility Checks</strong>, a <strong>Cognitive Excuse Classifier</strong> with historical receipts, and true 1-on-1 peer accountability.
         </p>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -87,7 +87,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <div>
               <div style={{ fontSize: '0.74rem', color: 'var(--saffron-ember)', fontWeight: 700, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Activity size={13} />
-                <span>60-Second Plan Feasibility Radar</span>
+                <span>Plan Feasibility Check</span>
               </div>
               <h3 style={{ fontSize: '1.2rem', color: 'var(--text-kehwa-cream)', marginTop: '2px' }}>
                 Today's Workload: 3.5h Planned • 15% Failure Risk
@@ -146,7 +146,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           }}>
             <Sparkles size={18} color="var(--saffron-ember)" style={{ marginTop: '2px', flexShrink: 0 }} />
             <div>
-              <span style={{ color: 'var(--saffron-ember)', fontWeight: 700 }}>Workload Feasibility Diagnostic: </span>
+              <span style={{ color: 'var(--saffron-ember)', fontWeight: 700 }}>Plan Feasibility Assessment: </span>
               "Your 3.5h load sits comfortably below your 4.2h baseline velocity. No friction bottleneck detected today. Protect your primary 90-minute block for high-momentum execution."
             </div>
           </div>
@@ -168,7 +168,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </div>
 
         <div className="landing-features-grid">
-          {/* Feature 1: 60-Second Feasibility Audit */}
+          {/* Feature 1: Plan Feasibility Check */}
           <div className="harud-card landing-feature-card">
             <div style={{
               width: '44px',
@@ -183,10 +183,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <Activity size={22} color="#F5EFEB" />
             </div>
             <h3 style={{ fontSize: '1.3rem', marginBottom: '10px', color: 'var(--text-kehwa-cream)' }}>
-              60-Second Plan Feasibility Audit
+              Plan Feasibility Check
             </h3>
             <p style={{ color: 'var(--text-parchment-muted)', fontSize: '0.92rem', lineHeight: 1.6, marginBottom: '18px' }}>
-              Before starting your day, AazDoh audits your proposed commitments against your 7-day historical focus velocity. If you are overloaded, it generates <strong>1-Click Rebalanced Proposals</strong> to trim, split, or reschedule lower-priority items.
+              Before starting your day, AazDoh checks your proposed commitments against your 7-day historical focus velocity. If you are overloaded, it generates <strong>1-Click Rebalanced Proposals</strong> to trim, split, or reschedule lower-priority items.
             </p>
             <div style={{ marginTop: 'auto', paddingTop: '14px', borderTop: '1px solid var(--border-walnut-faint)', fontSize: '0.82rem', color: 'var(--saffron-ember)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Zap size={14} />
@@ -261,9 +261,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="landing-cycle-grid">
             <div className="harud-card" style={{ padding: '22px' }}>
               <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--chinar-rust)' }}>01</span>
-              <h4 style={{ fontSize: '1.1rem', margin: '8px 0 6px' }}>Commit & Audit</h4>
+              <h4 style={{ fontSize: '1.1rem', margin: '8px 0 6px' }}>Commit & Check Feasibility</h4>
               <p style={{ fontSize: '0.86rem', color: 'var(--text-parchment-muted)', lineHeight: 1.5 }}>
-                Define 2–4 high-leverage deliverables. Run the 60-second feasibility audit to ensure sustainable capacity before you begin.
+                Define 2–4 high-leverage deliverables. Run a quick feasibility check to ensure sustainable capacity before you begin.
               </p>
             </div>
 
