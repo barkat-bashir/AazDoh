@@ -261,7 +261,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="landing-cycle-grid">
             <div className="harud-card" style={{ padding: '22px' }}>
               <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--chinar-rust)' }}>01</span>
-              <h4 style={{ fontSize: '1.1rem', margin: '8px 0 6px' }}>Commit & Check Feasibility</h4>
+              <h4 style={{ fontSize: '1.1rem', margin: '8px 0 6px' }}>Commit</h4>
               <p style={{ fontSize: '0.86rem', color: 'var(--text-parchment-muted)', lineHeight: 1.5 }}>
                 Define 2–4 high-leverage deliverables. Run a quick feasibility check to ensure sustainable capacity before you begin.
               </p>
@@ -285,7 +285,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             <div className="harud-card" style={{ padding: '22px' }}>
               <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#F87171' }}>04</span>
-              <h4 style={{ fontSize: '1.1rem', margin: '8px 0 6px' }}>Reflect & Unblock</h4>
+              <h4 style={{ fontSize: '1.1rem', margin: '8px 0 6px' }}>Reflect</h4>
               <p style={{ fontSize: '0.86rem', color: 'var(--text-parchment-muted)', lineHeight: 1.5 }}>
                 Confront avoidance patterns with historical receipts, classify root failure causes, and dispatch actionable next steps.
               </p>
