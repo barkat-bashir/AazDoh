@@ -1,4 +1,5 @@
-const BASE_URL = '/api/v1';
+const API_HOST = (import.meta.env.VITE_API_BASE_URL || '').trim();
+const BASE_URL = `${API_HOST.replace(/\/$/, '')}/api/v1`;
 
 export interface ApiResponse<T> {
   success: boolean;
