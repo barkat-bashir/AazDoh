@@ -1,0 +1,41 @@
+services:
+  # AazDoh Spring Boot Backend Web Service
+  - type: web
+    name: aazdoh-backend
+    runtime: docker
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    plan: free
+    region: oregon
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_DATASOURCE_URL
+        fromDatabase:
+          name: aazdoh-db
+          property: connectionString
+      - key: SPRING_DATASOURCE_USERNAME
+        fromDatabase:
+          name: aazdoh-db
+          property: user
+      - key: SPRING_DATASOURCE_PASSWORD
+        fromDatabase:
+          name: aazdoh-db
+          property: password
+      - key: JWT_SECRET
+        generateValue: true
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_BASE_URL
+        value: https://generativelanguage.googleapis.com/v1beta/openai/
+      - key: AI_MODEL
+        value: gemini-2.5-flash
+      - key: AI_PROVIDER
+        value: gemini
+
+databases:
+  # Managed PostgreSQL Database on Render
+  - name: aazdoh-db
+    databaseName: aazdoh_db
+    user: aazdoh_user
+    plan: free
+    region: oregon
