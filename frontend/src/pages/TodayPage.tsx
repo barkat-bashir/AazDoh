@@ -50,8 +50,14 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
     }
   };
 
-  const handleOpenStressTest = async (defenseText?: string, overrideSprint?: boolean) => {
-    setIsStressTestOpen(true);
+  const handleRunFeasibilityCheck = async (
+    defenseText?: string, 
+    overrideSprint?: boolean, 
+    forceOpenModal: boolean = false
+  ) => {
+    if (forceOpenModal) {
+      setIsStressTestOpen(true);
+    }
     try {
       setIsStressTestLoading(true);
       const response = await aiApi.stressTestPlan({
@@ -60,8 +66,19 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
         overrideSprint: overrideSprint,
       });
       setStressTestData(response);
+
+      const isStressed = 
+        response.riskScore >= 45 || 
+        response.plannedHours > response.historicalCapacityHours ||
+        response.proposedOptimizations?.some(p => p.suggestedAction === 'TRIM' || p.suggestedAction === 'SPLIT' || p.suggestedAction === 'SHIFT_TO_TOMORROW');
+
+      if (isStressed) {
+        setIsStressTestOpen(true);
+      }
     } catch (err: any) {
-      showToast('Could not run plan stress-test', 'error');
+      if (forceOpenModal) {
+        showToast('Could not run plan feasibility check', 'error');
+      }
     } finally {
       setIsStressTestLoading(false);
     }
@@ -76,7 +93,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
         onDateChange={setSelectedDate}
         onOpenAddModal={() => setIsAddModalOpen(true)}
         onOpenReviewModal={() => setIsReviewModalOpen(true)}
-        onOpenAiReview={() => handleOpenStressTest()}
+        onOpenAiReview={() => handleRunFeasibilityCheck(undefined, undefined, true)}
       />
 
       {/* Commitment List */}
@@ -134,7 +151,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
         onClose={() => setIsAddModalOpen(false)}
         onSuccess={() => loadCommitments(selectedDate)}
         selectedDate={selectedDate}
-        onTriggerAiPlanReview={() => handleOpenStressTest()}
+        onTriggerAiPlanReview={() => handleRunFeasibilityCheck()}
       />
 
       <PlanStressTestModal
@@ -143,7 +160,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
         stressTestData={stressTestData}
         isLoading={isStressTestLoading}
         onPlanApplied={() => loadCommitments(selectedDate)}
-        onReStressTest={(defenseText, override) => handleOpenStressTest(defenseText, override)}
+        onReStressTest={(defenseText, override) => handleRunFeasibilityCheck(defenseText, override, true)}
       />
 
       <DailyReviewModal
