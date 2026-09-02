@@ -11,6 +11,7 @@ import { PlanStressTestModal } from '../components/ai/PlanStressTestModal';
 import { aiApi, PlanStressTestResponse } from '../api/aiApi';
 import { useToast } from '../context/ToastContext';
 import { CalendarCheck, Plus } from 'lucide-react';
+import { discussionApi } from '../api/discussionApi';
 
 interface TodayPageProps {
   onOpenAi?: () => void;
@@ -38,6 +39,11 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
   const { data: commitments = [], isLoading: loading } = useQuery({
     queryKey: ['commitments', selectedDate],
     queryFn: () => commitmentApi.getToday(selectedDate),
+  });
+
+  const { data: unreadSummary } = useQuery({
+    queryKey: ['unreadSummary'],
+    queryFn: () => discussionApi.getUnreadSummary(),
   });
 
   const refreshCommitments = () => {
@@ -128,15 +134,19 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
             </button>
           </div>
         ) : (
-          commitments.map((commitment) => (
-            <CommitmentCard
-              key={commitment.id}
-              commitment={commitment}
-              onRefresh={refreshCommitments}
-              onOpenDiscussion={(c) => setDiscussionCommitment(c)}
-              onPostponeClick={(c) => setPostponingCommitment(c)}
-            />
-          ))
+          commitments.map((commitment) => {
+            const isUnread = !!commitment.hasUnreadDiscussion || !!(unreadSummary?.unreadCommitmentIds?.includes(commitment.id));
+            const enriched = isUnread ? { ...commitment, hasUnreadDiscussion: true } : commitment;
+            return (
+              <CommitmentCard
+                key={commitment.id}
+                commitment={enriched}
+                onRefresh={refreshCommitments}
+                onOpenDiscussion={(c) => setDiscussionCommitment(c)}
+                onPostponeClick={(c) => setPostponingCommitment(c)}
+              />
+            );
+          })
         )}
       </div>
 

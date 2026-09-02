@@ -22,6 +22,10 @@ export interface UnreadSummary {
   unreadDiscussionMessages: number;
   pendingInvitations: number;
   totalUnreadNotifications: number;
+  unreadTodayMessages?: number;
+  unreadPartnerMessages?: number;
+  unreadPartnerIds?: string[];
+  unreadCommitmentIds?: string[];
 }
 
 export const discussionApi = {
@@ -36,4 +40,9 @@ export const discussionApi = {
 
   getUnreadSummary: () =>
     request<UnreadSummary>('/discussions/unread-summary'),
+
+  markAllAsRead: () =>
+    request<void>('/discussions/mark-all-read', {
+      method: 'POST',
+    }),
 };

@@ -6,12 +6,18 @@ export type TabType = 'today' | 'partners' | 'analytics';
 interface NavigationProps {
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
+  unreadTodayCount?: number;
   unreadPartnerCount?: number;
 }
 
-export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, unreadPartnerCount = 0 }) => {
+export const Navigation: React.FC<NavigationProps> = ({
+  activeTab,
+  onTabChange,
+  unreadTodayCount = 0,
+  unreadPartnerCount = 0,
+}) => {
   const tabs = [
-    { id: 'today' as TabType, label: 'Today', icon: CalendarCheck },
+    { id: 'today' as TabType, label: 'Today', icon: CalendarCheck, badge: unreadTodayCount },
     { id: 'partners' as TabType, label: 'Partners', icon: Users, badge: unreadPartnerCount },
     { id: 'analytics' as TabType, label: 'Insights', icon: BarChart3 },
   ];

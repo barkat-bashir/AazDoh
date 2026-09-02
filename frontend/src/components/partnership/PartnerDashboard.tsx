@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Partnership, PartnerDailyOverview, partnershipApi } from '../../api/partnershipApi';
 import { Commitment } from '../../api/commitmentApi';
+import { discussionApi } from '../../api/discussionApi';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { 
@@ -41,6 +42,12 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
   const [acceptShareOverrides, setAcceptShareOverrides] = useState<Record<string, boolean>>({});
 
   // TanStack Query: in-memory caching & deduplication
+  const { data: unreadSummary } = useQuery({
+    queryKey: ['unreadSummary'],
+    queryFn: () => discussionApi.getUnreadSummary(),
+    enabled: !!user,
+  });
+
   const { data: partners = [], isLoading: loadingPartners } = useQuery({
     queryKey: ['partners', 'active'],
     queryFn: () => partnershipApi.getActive(),
@@ -157,9 +164,38 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
         {/* Active Partners Box */}
         <div className="harud-card" style={{ padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-            <h4 style={{ fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-kehwa-cream)' }}>
-              Partners ({partners.length})
-            </h4>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h4 style={{ fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-kehwa-cream)', margin: 0 }}>
+                Partners ({partners.length})
+              </h4>
+              {unreadSummary?.unreadPartnerMessages && unreadSummary.unreadPartnerMessages > 0 ? (
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    try {
+                      await discussionApi.markAllAsRead();
+                      queryClient.invalidateQueries({ queryKey: ['unreadSummary'] });
+                      queryClient.invalidateQueries({ queryKey: ['partnerOverview'] });
+                      queryClient.invalidateQueries({ queryKey: ['commitments'] });
+                      showToast('All notifications marked as read', 'info');
+                    } catch (err) {}
+                  }}
+                  style={{
+                    background: 'rgba(226, 149, 59, 0.12)',
+                    border: '1px solid rgba(226, 149, 59, 0.3)',
+                    color: 'var(--saffron-ember)',
+                    fontSize: '0.68rem',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                  }}
+                  title="Clear all unread notification badges"
+                >
+                  Clear All
+                </button>
+              ) : null}
+            </div>
             <button
               onClick={onOpenInviteModal}
               className="btn-primary"
@@ -183,6 +219,8 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
                 const rawName = p.requesterId === user?.id ? p.partnerName : p.requesterName;
                 const partnerName = toProperCase(rawName);
                 const isSelected = selectedPartner?.id === p.id;
+                const otherUserId = p.requesterId === user?.id ? p.partnerId : p.requesterId;
+                const hasPartnerUnread = !!unreadSummary?.unreadPartnerIds?.includes(otherUserId);
                 return (
                   <button
                     key={p.id}
@@ -223,8 +261,28 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
                       {partnerName.charAt(0).toUpperCase()}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '0.9rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {partnerName}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+                        <span style={{ fontSize: '0.9rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {partnerName}
+                        </span>
+                        {hasPartnerUnread && (
+                          <span style={{
+                            background: 'var(--chinar-rust)',
+                            color: '#fff',
+                            fontSize: '0.62rem',
+                            fontWeight: 800,
+                            padding: '1px 5px',
+                            borderRadius: '8px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '2px',
+                            boxShadow: '0 0 8px rgba(192, 83, 48, 0.6)',
+                            flexShrink: 0,
+                          }}>
+                            <MessageSquare size={9} />
+                            New
+                          </span>
+                        )}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
                         <span style={{ fontSize: '0.72rem', color: 'var(--text-tweed-dim)' }}>
@@ -651,29 +709,34 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
                           </div>
                         </div>
 
-                        <button
-                          onClick={() => onOpenDiscussion(c)}
-                          className="btn-outline"
-                          style={c.hasUnreadDiscussion ? {
-                            borderColor: 'var(--saffron-ember)',
-                            background: 'rgba(226, 149, 59, 0.16)',
-                            color: 'var(--saffron-ember)',
-                            fontWeight: 700,
-                            boxShadow: '0 0 12px rgba(226, 149, 59, 0.25)',
-                          } : (c.discussionMessageCount && c.discussionMessageCount > 0) ? {
-                            borderColor: 'rgba(226, 149, 59, 0.35)',
-                            color: 'var(--text-kehwa-cream)',
-                          } : { borderColor: 'var(--border-copper-subtle)' }}
-                        >
-                          <MessageSquare size={14} color={c.hasUnreadDiscussion ? 'var(--saffron-ember)' : undefined} />
-                          <span>
-                            {c.hasUnreadDiscussion
-                              ? `Discuss (${c.discussionMessageCount || 1}) • ⚡ New`
-                              : (c.discussionMessageCount && c.discussionMessageCount > 0)
-                                ? `Discuss (${c.discussionMessageCount})`
-                                : 'Discuss'}
-                          </span>
-                        </button>
+                        {(() => {
+                          const isUnread = !!c.hasUnreadDiscussion || !!(unreadSummary?.unreadCommitmentIds?.includes(c.id));
+                          return (
+                            <button
+                              onClick={() => onOpenDiscussion(c)}
+                              className="btn-outline"
+                              style={isUnread ? {
+                                borderColor: 'var(--saffron-ember)',
+                                background: 'rgba(226, 149, 59, 0.16)',
+                                color: 'var(--saffron-ember)',
+                                fontWeight: 700,
+                                boxShadow: '0 0 12px rgba(226, 149, 59, 0.25)',
+                              } : (c.discussionMessageCount && c.discussionMessageCount > 0) ? {
+                                borderColor: 'rgba(226, 149, 59, 0.35)',
+                                color: 'var(--text-kehwa-cream)',
+                              } : { borderColor: 'var(--border-copper-subtle)' }}
+                            >
+                              <MessageSquare size={14} color={isUnread ? 'var(--saffron-ember)' : undefined} />
+                              <span>
+                                {isUnread
+                                  ? `Discuss • ⚡ New`
+                                  : (c.discussionMessageCount && c.discussionMessageCount > 0)
+                                    ? `Discuss (${c.discussionMessageCount})`
+                                    : 'Discuss'}
+                              </span>
+                            </button>
+                          );
+                        })()}
                       </div>
                     );
                   })}

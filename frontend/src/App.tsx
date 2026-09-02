@@ -144,11 +144,21 @@ const AppContent: React.FC = () => {
   }
 
   // Authenticated Application Dashboard
+  const unreadTodayCount = unreadSummary?.unreadTodayMessages || 0;
+  const unreadPartnerCount = unreadSummary?.unreadPartnerMessages !== undefined
+    ? unreadSummary.unreadPartnerMessages
+    : (unreadSummary?.pendingInvitations || 0);
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-walnut-deep)', position: 'relative' }}>
       <ChinarLeavesCanvas />
       <Header onOpenSettings={() => setIsSettingsOpen(true)} />
-      <Navigation activeTab={activeTab} onTabChange={setActiveTab} unreadPartnerCount={unreadCount} />
+      <Navigation
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        unreadTodayCount={unreadTodayCount}
+        unreadPartnerCount={unreadPartnerCount}
+      />
       
       <main style={{ flex: 1, paddingBottom: '60px', position: 'relative' }}>
         {activeTab === 'today' && <TodayPage />}
