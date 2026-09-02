@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Commitment, commitmentApi } from '../api/commitmentApi';
 import { DailyProgressHeader } from '../components/commitment/DailyProgressHeader';
 import { CommitmentCard } from '../components/commitment/CommitmentCard';
@@ -17,11 +18,10 @@ interface TodayPageProps {
 
 export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const todayStr = new Date().toISOString().split('T')[0];
 
   const [selectedDate, setSelectedDate] = useState(todayStr);
-  const [commitments, setCommitments] = useState<Commitment[]>([]);
-  const [loading, setLoading] = useState(true);
 
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -34,20 +34,15 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
   const [stressTestData, setStressTestData] = useState<PlanStressTestResponse | null>(null);
   const [isStressTestLoading, setIsStressTestLoading] = useState(false);
 
-  useEffect(() => {
-    loadCommitments(selectedDate);
-  }, [selectedDate]);
+  // TanStack Query: in-memory caching (0ms tab switching)
+  const { data: commitments = [], isLoading: loading } = useQuery({
+    queryKey: ['commitments', selectedDate],
+    queryFn: () => commitmentApi.getToday(selectedDate),
+  });
 
-  const loadCommitments = async (date: string) => {
-    try {
-      setLoading(true);
-      const list = await commitmentApi.getToday(date);
-      setCommitments(list);
-    } catch (err: any) {
-      showToast('Could not load commitments', 'error');
-    } finally {
-      setLoading(false);
-    }
+  const refreshCommitments = () => {
+    queryClient.invalidateQueries({ queryKey: ['commitments'] });
+    queryClient.invalidateQueries({ queryKey: ['unreadSummary'] });
   };
 
   const handleRunFeasibilityCheck = async (
@@ -137,7 +132,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
             <CommitmentCard
               key={commitment.id}
               commitment={commitment}
-              onRefresh={() => loadCommitments(selectedDate)}
+              onRefresh={refreshCommitments}
               onOpenDiscussion={(c) => setDiscussionCommitment(c)}
               onPostponeClick={(c) => setPostponingCommitment(c)}
             />
@@ -149,7 +144,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
       <AddCommitmentModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onSuccess={() => loadCommitments(selectedDate)}
+        onSuccess={refreshCommitments}
         selectedDate={selectedDate}
         onTriggerAiPlanReview={() => handleRunFeasibilityCheck()}
       />
@@ -159,7 +154,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
         onClose={() => setIsStressTestOpen(false)}
         stressTestData={stressTestData}
         isLoading={isStressTestLoading}
-        onPlanApplied={() => loadCommitments(selectedDate)}
+        onPlanApplied={refreshCommitments}
         onReStressTest={(defenseText, override) => handleRunFeasibilityCheck(defenseText, override, true)}
       />
 
@@ -167,20 +162,23 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
         commitments={commitments}
         isOpen={isReviewModalOpen}
         onClose={() => setIsReviewModalOpen(false)}
-        onSuccess={() => loadCommitments(selectedDate)}
+        onSuccess={refreshCommitments}
       />
 
       <PostponeCommitmentModal
         commitment={postponingCommitment}
         isOpen={!!postponingCommitment}
         onClose={() => setPostponingCommitment(null)}
-        onSuccess={() => loadCommitments(selectedDate)}
+        onSuccess={refreshCommitments}
       />
 
       <CommitmentDiscussionModal
         commitment={discussionCommitment}
         isOpen={!!discussionCommitment}
-        onClose={() => setDiscussionCommitment(null)}
+        onClose={() => {
+          setDiscussionCommitment(null);
+          refreshCommitments();
+        }}
       />
     </div>
   );
