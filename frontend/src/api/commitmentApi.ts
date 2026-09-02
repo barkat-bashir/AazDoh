@@ -17,6 +17,8 @@ export interface Commitment {
   deadline?: string;
   status: CommitmentStatus;
   visibility: CommitmentVisibility;
+  targetPartnerId?: string;
+  targetPartnerName?: string;
   postponedFromId?: string;
   originCommitmentId?: string;
   postponementCount?: number;
@@ -34,6 +36,7 @@ export interface CreateCommitmentRequest {
   commitmentDate: string;
   deadline?: string;
   visibility: CommitmentVisibility;
+  targetPartnerId?: string;
 }
 
 export interface UpdateCommitmentRequest {
@@ -46,6 +49,7 @@ export interface UpdateCommitmentRequest {
   deadline?: string;
   status?: CommitmentStatus;
   visibility?: CommitmentVisibility;
+  targetPartnerId?: string;
 }
 
 export interface PostponeCommitmentRequest {

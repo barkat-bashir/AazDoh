@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
 import { commitmentApi, CommitmentPriority, CommitmentVisibility } from '../../api/commitmentApi';
+import { partnershipApi } from '../../api/partnershipApi';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { Sparkles, Clock, Shield, Flame, Users, Lock, Check } from 'lucide-react';
+import { Sparkles, Clock, Shield, Flame, Users, Lock, Check, User as UserIcon } from 'lucide-react';
 
 interface AddCommitmentModalProps {
   isOpen: boolean;
@@ -19,13 +21,29 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
   selectedDate,
   onTriggerAiPlanReview,
 }) => {
+  const { user } = useAuth();
   const { showToast } = useToast();
   const [title, setTitle] = useState('');
   const [expectedOutcome, setExpectedOutcome] = useState('');
   const [estimatedMinutes, setEstimatedMinutes] = useState(60);
   const [priority, setPriority] = useState<CommitmentPriority>('MEDIUM');
   const [visibility, setVisibility] = useState<CommitmentVisibility>('SHARED_WITH_PARTNER');
+  const [targetPartnerId, setTargetPartnerId] = useState<string | null>(null);
+  const [activePartners, setActivePartners] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && user?.id) {
+      partnershipApi.getActive().then(partnerships => {
+        const list = partnerships.map(p => {
+          const partnerUserId = p.requesterId === user.id ? p.partnerId : p.requesterId;
+          const partnerName = p.requesterId === user.id ? p.partnerName : p.requesterName;
+          return { id: partnerUserId, name: partnerName };
+        });
+        setActivePartners(list);
+      }).catch(() => {});
+    }
+  }, [isOpen, user?.id]);
 
   const focusOptions = [
     { label: '30m', value: 30 },
@@ -60,6 +78,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
         priority,
         commitmentDate: targetDate,
         visibility,
+        targetPartnerId: visibility === 'SHARED_WITH_PARTNER' ? (targetPartnerId || undefined) : undefined,
       });
 
       showToast('Commitment created successfully', 'success');
@@ -67,6 +86,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
       setExpectedOutcome('');
       setEstimatedMinutes(60);
       setPriority('MEDIUM');
+      setTargetPartnerId(null);
       onSuccess();
       onClose();
 
@@ -257,6 +277,61 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
               )}
             </div>
           </div>
+
+          {/* Targeted Partner Selector */}
+          {visibility === 'SHARED_WITH_PARTNER' && activePartners.length > 0 && (
+            <div style={{ marginTop: '10px', padding: '10px 12px', background: 'var(--bg-walnut-surface)', borderRadius: '8px', border: '1px solid var(--border-walnut-faint)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-kehwa-cream)' }}>
+                  Visible To:
+                </span>
+                <span style={{ fontSize: '0.70rem', color: 'var(--text-parchment-muted)' }}>
+                  {targetPartnerId ? 'Targeted Partner Only' : 'All Connected Partners'}
+                </span>
+              </div>
+              
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => setTargetPartnerId(null)}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    fontSize: '0.74rem',
+                    border: '1px solid',
+                    borderColor: targetPartnerId === null ? 'var(--saffron-ember)' : 'var(--border-walnut-faint)',
+                    background: targetPartnerId === null ? 'rgba(226, 149, 59, 0.2)' : 'transparent',
+                    color: targetPartnerId === null ? 'var(--saffron-ember)' : 'var(--text-tweed-dim)',
+                    cursor: 'pointer',
+                    fontWeight: targetPartnerId === null ? 700 : 500,
+                  }}
+                >
+                  👥 All Partners
+                </button>
+
+                {activePartners.map(p => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setTargetPartnerId(p.id)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '0.74rem',
+                      border: '1px solid',
+                      borderColor: targetPartnerId === p.id ? 'var(--chinar-rust)' : 'var(--border-walnut-faint)',
+                      background: targetPartnerId === p.id ? 'rgba(192, 83, 48, 0.2)' : 'transparent',
+                      color: targetPartnerId === p.id ? 'var(--chinar-rust)' : 'var(--text-tweed-dim)',
+                      cursor: 'pointer',
+                      fontWeight: targetPartnerId === p.id ? 700 : 500,
+                    }}
+                  >
+                    👤 {p.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer Actions */}

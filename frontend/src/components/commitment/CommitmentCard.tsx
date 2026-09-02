@@ -188,7 +188,9 @@ export const CommitmentCard: React.FC<CommitmentCardProps> = ({
                 {commitment.visibility === 'SHARED_WITH_PARTNER' ? (
                   <>
                     <Eye size={14} color="var(--chinar-rust)" />
-                    <span>Shared</span>
+                    <span>
+                      {commitment.targetPartnerName ? `Shared with ${commitment.targetPartnerName}` : 'Shared with Partners'}
+                    </span>
                   </>
                 ) : (
                   <>
