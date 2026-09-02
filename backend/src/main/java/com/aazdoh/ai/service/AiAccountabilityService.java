@@ -31,6 +31,8 @@ public class AiAccountabilityService {
     private final ReviewService reviewService;
     private final UserService userService;
     private final AiInteractionRepository aiInteractionRepository;
+    private final com.aazdoh.ai.repository.AiStressTestSnapshotRepository snapshotRepository;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     public AiAccountabilityService(
             AccountabilityContextBuilder contextBuilder,
@@ -38,7 +40,9 @@ public class AiAccountabilityService {
             CommitmentService commitmentService,
             ReviewService reviewService,
             UserService userService,
-            AiInteractionRepository aiInteractionRepository
+            AiInteractionRepository aiInteractionRepository,
+            com.aazdoh.ai.repository.AiStressTestSnapshotRepository snapshotRepository,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper
     ) {
         this.contextBuilder = contextBuilder;
         this.aiClient = aiClient;
@@ -46,6 +50,8 @@ public class AiAccountabilityService {
         this.reviewService = reviewService;
         this.userService = userService;
         this.aiInteractionRepository = aiInteractionRepository;
+        this.snapshotRepository = snapshotRepository;
+        this.objectMapper = objectMapper;
     }
 
     @Async
@@ -114,9 +120,20 @@ public class AiAccountabilityService {
             return CompletableFuture.completedFuture(emptyRes);
         }
 
-        UserAccountabilityContextDto context = contextBuilder.buildContext(userId);
         String quickDefense = request != null ? request.getQuickDefense() : null;
         boolean overrideSprint = request != null && request.isOverrideSprint();
+        String planHash = computePlanHash(todaysCommitments);
+
+        // Check snapshot cache if no defense override is active
+        if ((quickDefense == null || quickDefense.isBlank()) && !overrideSprint) {
+            java.util.Optional<com.aazdoh.ai.entity.AiStressTestSnapshot> cached =
+                    snapshotRepository.findFirstByUserIdAndCommitmentDateAndPlanHash(userId, targetDate, planHash);
+            if (cached.isPresent()) {
+                return CompletableFuture.completedFuture(mapSnapshotToResponse(cached.get(), user.getAiPersona().name()));
+            }
+        }
+
+        UserAccountabilityContextDto context = contextBuilder.buildContext(userId);
 
         com.aazdoh.ai.dto.PlanStressTestResponse response = aiClient.stressTestPlan(
                 context,
@@ -125,6 +142,11 @@ public class AiAccountabilityService {
                 overrideSprint,
                 user.getAiPersona()
         );
+
+        // Save snapshot if not an override sprint
+        if (!overrideSprint && (quickDefense == null || quickDefense.isBlank())) {
+            saveSnapshot(user, targetDate, planHash, response);
+        }
 
         return CompletableFuture.completedFuture(response);
     }
@@ -224,5 +246,81 @@ public class AiAccountabilityService {
         );
 
         return CompletableFuture.completedFuture(response);
+    }
+
+    public static String computePlanHash(List<CommitmentResponse> commitments) {
+        if (commitments == null || commitments.isEmpty()) {
+            return "empty";
+        }
+        StringBuilder sb = new StringBuilder();
+        commitments.stream()
+                .sorted(java.util.Comparator.comparing(CommitmentResponse::getId))
+                .forEach(c -> sb.append(c.getId())
+                               .append(":")
+                               .append(c.getEstimatedMinutes())
+                               .append(":")
+                               .append(c.getTitle())
+                               .append(";"));
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = md.digest(sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            return Integer.toHexString(sb.toString().hashCode());
+        }
+    }
+
+    private void saveSnapshot(User user, LocalDate date, String planHash, com.aazdoh.ai.dto.PlanStressTestResponse response) {
+        try {
+            com.aazdoh.ai.entity.AiStressTestSnapshot snapshot = snapshotRepository
+                    .findFirstByUserIdAndCommitmentDateAndPlanHash(user.getId(), date, planHash)
+                    .orElseGet(com.aazdoh.ai.entity.AiStressTestSnapshot::new);
+
+            snapshot.setUser(user);
+            snapshot.setCommitmentDate(date);
+            snapshot.setPlanHash(planHash);
+            snapshot.setRiskScore(response.getRiskScore());
+            snapshot.setRiskLevel(response.getRiskLevel() != null ? response.getRiskLevel() : "LOW");
+            snapshot.setDiagnosticSummary(response.getDiagnosticSummary());
+            snapshot.setPlannedHours(response.getPlannedHours());
+            snapshot.setCapacityHours(response.getHistoricalCapacityHours());
+            snapshot.setOptimizedHours(response.getOptimizedHours());
+            if (response.getProposedOptimizations() != null) {
+                snapshot.setProposalsJson(objectMapper.writeValueAsString(response.getProposedOptimizations()));
+            }
+            snapshotRepository.save(snapshot);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private com.aazdoh.ai.dto.PlanStressTestResponse mapSnapshotToResponse(com.aazdoh.ai.entity.AiStressTestSnapshot snapshot, String persona) {
+        com.aazdoh.ai.dto.PlanStressTestResponse res = new com.aazdoh.ai.dto.PlanStressTestResponse();
+        res.setRiskScore(snapshot.getRiskScore());
+        res.setRiskLevel(snapshot.getRiskLevel());
+        res.setDiagnosticSummary(snapshot.getDiagnosticSummary());
+        res.setPlannedHours(snapshot.getPlannedHours());
+        res.setHistoricalCapacityHours(snapshot.getCapacityHours());
+        res.setOptimizedHours(snapshot.getOptimizedHours());
+        res.setPersona(persona);
+        if (snapshot.getProposalsJson() != null && !snapshot.getProposalsJson().isBlank()) {
+            try {
+                List<com.aazdoh.ai.dto.OptimizedTaskProposal> proposals = objectMapper.readValue(
+                        snapshot.getProposalsJson(),
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, com.aazdoh.ai.dto.OptimizedTaskProposal.class)
+                );
+                res.setProposedOptimizations(proposals);
+            } catch (Exception e) {
+                res.setProposedOptimizations(List.of());
+            }
+        } else {
+            res.setProposedOptimizations(List.of());
+        }
+        return res;
     }
 }

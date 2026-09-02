@@ -35,6 +35,7 @@ public class PartnershipService {
     private final com.aazdoh.ai.context.AccountabilityContextBuilder contextBuilder;
     private final com.aazdoh.ai.client.AccountabilityAiClient aiClient;
     private final com.aazdoh.discussion.repository.DiscussionMessageRepository discussionMessageRepository;
+    private final com.aazdoh.ai.repository.AiStressTestSnapshotRepository aiSnapshotRepository;
 
     public PartnershipService(
             PartnershipRepository partnershipRepository,
@@ -43,7 +44,8 @@ public class PartnershipService {
             CommitmentRepository commitmentRepository,
             com.aazdoh.ai.context.AccountabilityContextBuilder contextBuilder,
             com.aazdoh.ai.client.AccountabilityAiClient aiClient,
-            com.aazdoh.discussion.repository.DiscussionMessageRepository discussionMessageRepository
+            com.aazdoh.discussion.repository.DiscussionMessageRepository discussionMessageRepository,
+            com.aazdoh.ai.repository.AiStressTestSnapshotRepository aiSnapshotRepository
     ) {
         this.partnershipRepository = partnershipRepository;
         this.userRepository = userRepository;
@@ -52,6 +54,7 @@ public class PartnershipService {
         this.contextBuilder = contextBuilder;
         this.aiClient = aiClient;
         this.discussionMessageRepository = discussionMessageRepository;
+        this.aiSnapshotRepository = aiSnapshotRepository;
     }
 
     @Transactional
@@ -197,7 +200,31 @@ public class PartnershipService {
 
         PartnerDailyOverviewDto overview = new PartnerDailyOverviewDto(partner.getId(), partner.getFullName(), targetDate, dtoList);
 
-        // Compute live AI Brief for partner
+        if (dtoList.isEmpty()) {
+            overview.setAiRiskScore(0);
+            overview.setAiRiskLevel("LOW");
+            overview.setAiDiagnosticSummary(partner.getFullName() + " has no shared commitments scheduled for today.");
+            overview.setPlannedHours(0.0);
+            overview.setCapacityHours(2.0);
+            return overview;
+        }
+
+        // Fast Snapshot Cache lookup (0ms latency, zero LLM calls)
+        String planHash = com.aazdoh.ai.service.AiAccountabilityService.computePlanHash(dtoList);
+        java.util.Optional<com.aazdoh.ai.entity.AiStressTestSnapshot> cachedSnapshot =
+                aiSnapshotRepository.findFirstByUserIdAndCommitmentDateAndPlanHash(partnerUserId, targetDate, planHash);
+
+        if (cachedSnapshot.isPresent()) {
+            com.aazdoh.ai.entity.AiStressTestSnapshot snapshot = cachedSnapshot.get();
+            overview.setAiRiskScore(snapshot.getRiskScore());
+            overview.setAiRiskLevel(snapshot.getRiskLevel());
+            overview.setAiDiagnosticSummary(snapshot.getDiagnosticSummary());
+            overview.setPlannedHours(snapshot.getPlannedHours());
+            overview.setCapacityHours(snapshot.getCapacityHours());
+            return overview;
+        }
+
+        // Compute live AI Brief only on cache miss
         try {
             com.aazdoh.ai.context.UserAccountabilityContextDto context = contextBuilder.buildContext(partnerUserId);
             com.aazdoh.ai.dto.PlanStressTestResponse stressTest = aiClient.stressTestPlan(
@@ -214,6 +241,21 @@ public class PartnershipService {
                 overview.setAiDiagnosticSummary(stressTest.getDiagnosticSummary());
                 overview.setPlannedHours(stressTest.getPlannedHours());
                 overview.setCapacityHours(stressTest.getHistoricalCapacityHours());
+
+                // Persist snapshot so subsequent views are instant (<2ms)
+                try {
+                    com.aazdoh.ai.entity.AiStressTestSnapshot snapshot = new com.aazdoh.ai.entity.AiStressTestSnapshot();
+                    snapshot.setUser(partner);
+                    snapshot.setCommitmentDate(targetDate);
+                    snapshot.setPlanHash(planHash);
+                    snapshot.setRiskScore(stressTest.getRiskScore());
+                    snapshot.setRiskLevel(stressTest.getRiskLevel() != null ? stressTest.getRiskLevel() : "LOW");
+                    snapshot.setDiagnosticSummary(stressTest.getDiagnosticSummary());
+                    snapshot.setPlannedHours(stressTest.getPlannedHours());
+                    snapshot.setCapacityHours(stressTest.getHistoricalCapacityHours());
+                    snapshot.setOptimizedHours(stressTest.getOptimizedHours());
+                    aiSnapshotRepository.save(snapshot);
+                } catch (Exception ignored) {}
             }
         } catch (Exception e) {
             overview.setAiRiskScore(15);
