@@ -31,6 +31,8 @@ public class UpdateCommitmentRequest {
 
     private CommitmentVisibility visibility;
 
+    private java.util.UUID targetPartnerId;
+
     public UpdateCommitmentRequest() {
     }
 
@@ -104,5 +106,13 @@ public class UpdateCommitmentRequest {
 
     public void setVisibility(CommitmentVisibility visibility) {
         this.visibility = visibility;
+    }
+
+    public java.util.UUID getTargetPartnerId() {
+        return targetPartnerId;
+    }
+
+    public void setTargetPartnerId(java.util.UUID targetPartnerId) {
+        this.targetPartnerId = targetPartnerId;
     }
 }

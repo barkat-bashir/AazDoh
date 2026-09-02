@@ -65,6 +65,9 @@ public class Commitment extends BaseEntity {
     @Column(name = "postpone_reason", columnDefinition = "TEXT")
     private String postponeReason;
 
+    @Column(name = "target_partner_id")
+    private UUID targetPartnerId;
+
     @Column(name = "completed_at")
     private OffsetDateTime completedAt;
 
@@ -200,5 +203,13 @@ public class Commitment extends BaseEntity {
 
     public void setDeletedAt(OffsetDateTime deletedAt) {
         this.deletedAt = deletedAt;
+    }
+
+    public UUID getTargetPartnerId() {
+        return targetPartnerId;
+    }
+
+    public void setTargetPartnerId(UUID targetPartnerId) {
+        this.targetPartnerId = targetPartnerId;
     }
 }

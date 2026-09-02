@@ -23,6 +23,8 @@ public class CommitmentResponse {
     private OffsetDateTime deadline;
     private CommitmentStatus status;
     private CommitmentVisibility visibility;
+    private UUID targetPartnerId;
+    private String targetPartnerName;
     private UUID postponedFromId;
     private UUID originCommitmentId;
     private int postponementCount;
@@ -47,6 +49,7 @@ public class CommitmentResponse {
         response.setDeadline(commitment.getDeadline());
         response.setStatus(commitment.getStatus());
         response.setVisibility(commitment.getVisibility());
+        response.setTargetPartnerId(commitment.getTargetPartnerId());
         response.setPostponedFromId(commitment.getPostponedFromId());
         response.setOriginCommitmentId(commitment.getOriginCommitmentId());
         response.setPostponementCount(commitment.getPostponementCount());
@@ -150,6 +153,22 @@ public class CommitmentResponse {
 
     public void setVisibility(CommitmentVisibility visibility) {
         this.visibility = visibility;
+    }
+
+    public UUID getTargetPartnerId() {
+        return targetPartnerId;
+    }
+
+    public void setTargetPartnerId(UUID targetPartnerId) {
+        this.targetPartnerId = targetPartnerId;
+    }
+
+    public String getTargetPartnerName() {
+        return targetPartnerName;
+    }
+
+    public void setTargetPartnerName(String targetPartnerName) {
+        this.targetPartnerName = targetPartnerName;
     }
 
     public UUID getPostponedFromId() {

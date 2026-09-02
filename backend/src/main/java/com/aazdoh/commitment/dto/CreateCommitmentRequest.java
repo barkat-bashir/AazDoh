@@ -32,6 +32,8 @@ public class CreateCommitmentRequest {
 
     private CommitmentVisibility visibility = CommitmentVisibility.SHARED_WITH_PARTNER;
 
+    private java.util.UUID targetPartnerId;
+
     public CreateCommitmentRequest() {
     }
 
@@ -97,5 +99,13 @@ public class CreateCommitmentRequest {
 
     public void setVisibility(CommitmentVisibility visibility) {
         this.visibility = visibility;
+    }
+
+    public java.util.UUID getTargetPartnerId() {
+        return targetPartnerId;
+    }
+
+    public void setTargetPartnerId(java.util.UUID targetPartnerId) {
+        this.targetPartnerId = targetPartnerId;
     }
 }
