@@ -16,7 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -25,15 +27,18 @@ public class CommitmentService {
 
     private final CommitmentRepository commitmentRepository;
     private final UserService userService;
+    private final com.aazdoh.user.repository.UserRepository userRepository;
     private final com.aazdoh.discussion.repository.DiscussionMessageRepository discussionMessageRepository;
 
     public CommitmentService(
             CommitmentRepository commitmentRepository,
             UserService userService,
+            com.aazdoh.user.repository.UserRepository userRepository,
             com.aazdoh.discussion.repository.DiscussionMessageRepository discussionMessageRepository
     ) {
         this.commitmentRepository = commitmentRepository;
         this.userService = userService;
+        this.userRepository = userRepository;
         this.discussionMessageRepository = discussionMessageRepository;
     }
 
@@ -60,14 +65,20 @@ public class CommitmentService {
 
     public List<CommitmentResponse> getTodayCommitments(UUID userId, LocalDate date) {
         List<Commitment> list = commitmentRepository.findByUserIdAndCommitmentDate(userId, date);
-        List<CommitmentResponse> responses = list.stream().map(this::mapToResponse).collect(Collectors.toList());
+        Map<UUID, String> partnerNameMap = getPartnerNameMap(list);
+        List<CommitmentResponse> responses = list.stream()
+                .map(c -> mapToResponse(c, partnerNameMap))
+                .collect(Collectors.toList());
         populateDiscussionStats(responses, userId);
         return responses;
     }
 
     public List<CommitmentResponse> getCommitmentsByRange(UUID userId, LocalDate startDate, LocalDate endDate) {
         List<Commitment> list = commitmentRepository.findByUserIdAndDateRange(userId, startDate, endDate);
-        return list.stream().map(this::mapToResponse).collect(Collectors.toList());
+        Map<UUID, String> partnerNameMap = getPartnerNameMap(list);
+        return list.stream()
+                .map(c -> mapToResponse(c, partnerNameMap))
+                .collect(Collectors.toList());
     }
 
     public CommitmentResponse getCommitmentById(UUID userId, UUID commitmentId) {
@@ -177,13 +188,37 @@ public class CommitmentService {
         return commitmentRepository.findRecentPostponedCommitmentsWithReasons(userId);
     }
 
+    private Map<UUID, String> getPartnerNameMap(List<Commitment> commitments) {
+        if (commitments == null || commitments.isEmpty()) {
+            return java.util.Collections.emptyMap();
+        }
+        java.util.Set<UUID> partnerIds = commitments.stream()
+                .map(Commitment::getTargetPartnerId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (partnerIds.isEmpty()) {
+            return java.util.Collections.emptyMap();
+        }
+        java.util.Map<UUID, String> map = new java.util.HashMap<>();
+        userRepository.findAllById(partnerIds).forEach(u -> map.put(u.getId(), u.getFullName()));
+        return map;
+    }
+
     private CommitmentResponse mapToResponse(Commitment commitment) {
+        return mapToResponse(commitment, null);
+    }
+
+    private CommitmentResponse mapToResponse(Commitment commitment, Map<UUID, String> partnerNameMap) {
         CommitmentResponse res = CommitmentResponse.fromEntity(commitment);
         if (commitment.getTargetPartnerId() != null) {
-            try {
-                User partner = userService.findUserById(commitment.getTargetPartnerId());
-                res.setTargetPartnerName(partner.getFullName());
-            } catch (Exception ignored) {
+            if (partnerNameMap != null && partnerNameMap.containsKey(commitment.getTargetPartnerId())) {
+                res.setTargetPartnerName(partnerNameMap.get(commitment.getTargetPartnerId()));
+            } else {
+                try {
+                    User partner = userService.findUserById(commitment.getTargetPartnerId());
+                    res.setTargetPartnerName(partner.getFullName());
+                } catch (Exception ignored) {
+                }
             }
         }
         return res;
