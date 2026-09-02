@@ -18,7 +18,7 @@ public interface DiscussionMessageRepository extends JpaRepository<DiscussionMes
     @Query("SELECT COUNT(m) FROM DiscussionMessage m JOIN m.discussion d JOIN d.commitment c " +
            "WHERE m.author.id != :userId AND m.readAt IS NULL " +
            "AND (c.user.id = :userId OR c.targetPartnerId = :userId " +
-           "     OR EXISTS (SELECT 1 FROM AccountabilityPartnership ap WHERE ap.status = 'ACTIVE' " +
+           "     OR EXISTS (SELECT 1 FROM AccountabilityPartnership ap WHERE ap.status = 'ACCEPTED' " +
            "                AND ((ap.requester.id = :userId AND ap.partner.id = c.user.id) " +
            "                     OR (ap.partner.id = :userId AND ap.requester.id = c.user.id))))")
     long countUnreadMessagesForUser(@Param("userId") UUID userId);

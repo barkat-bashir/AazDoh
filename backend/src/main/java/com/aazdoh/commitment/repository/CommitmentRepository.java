@@ -16,30 +16,30 @@ import java.util.UUID;
 @Repository
 public interface CommitmentRepository extends JpaRepository<Commitment, UUID> {
 
-    @Query("SELECT c FROM Commitment c WHERE c.id = :id AND c.deletedAt IS NULL")
+    @Query("SELECT c FROM Commitment c JOIN FETCH c.user u WHERE c.id = :id AND c.deletedAt IS NULL")
     Optional<Commitment> findActiveById(@Param("id") UUID id);
 
-    @Query("SELECT c FROM Commitment c WHERE c.id = :id AND c.user.id = :userId AND c.deletedAt IS NULL")
+    @Query("SELECT c FROM Commitment c JOIN FETCH c.user u WHERE c.id = :id AND c.user.id = :userId AND c.deletedAt IS NULL")
     Optional<Commitment> findActiveByIdAndUserId(@Param("id") UUID id, @Param("userId") UUID userId);
 
-    @Query("SELECT c FROM Commitment c WHERE c.user.id = :userId AND c.commitmentDate = :date AND c.deletedAt IS NULL ORDER BY c.priority DESC, c.createdAt ASC")
+    @Query("SELECT c FROM Commitment c JOIN FETCH c.user u WHERE c.user.id = :userId AND c.commitmentDate = :date AND c.deletedAt IS NULL ORDER BY c.priority DESC, c.createdAt ASC")
     List<Commitment> findByUserIdAndCommitmentDate(@Param("userId") UUID userId, @Param("date") LocalDate date);
 
-    @Query("SELECT c FROM Commitment c WHERE c.user.id = :userId AND c.commitmentDate BETWEEN :startDate AND :endDate AND c.deletedAt IS NULL ORDER BY c.commitmentDate DESC, c.createdAt ASC")
+    @Query("SELECT c FROM Commitment c JOIN FETCH c.user u WHERE c.user.id = :userId AND c.commitmentDate BETWEEN :startDate AND :endDate AND c.deletedAt IS NULL ORDER BY c.commitmentDate DESC, c.createdAt ASC")
     List<Commitment> findByUserIdAndDateRange(
             @Param("userId") UUID userId,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate
     );
 
-    @Query("SELECT c FROM Commitment c WHERE c.user.id = :userId AND c.visibility = :visibility AND c.commitmentDate = :date AND c.deletedAt IS NULL ORDER BY c.createdAt ASC")
+    @Query("SELECT c FROM Commitment c JOIN FETCH c.user u WHERE c.user.id = :userId AND c.visibility = :visibility AND c.commitmentDate = :date AND c.deletedAt IS NULL ORDER BY c.createdAt ASC")
     List<Commitment> findByUserIdAndVisibilityAndCommitmentDate(
             @Param("userId") UUID userId,
             @Param("visibility") CommitmentVisibility visibility,
             @Param("date") LocalDate date
     );
 
-    @Query("SELECT c FROM Commitment c WHERE c.user.id = :userId AND c.visibility = com.aazdoh.commitment.entity.CommitmentVisibility.SHARED_WITH_PARTNER AND (c.targetPartnerId IS NULL OR c.targetPartnerId = :partnerId) AND c.commitmentDate = :date AND c.deletedAt IS NULL ORDER BY c.createdAt ASC")
+    @Query("SELECT c FROM Commitment c JOIN FETCH c.user u WHERE c.user.id = :userId AND c.visibility = com.aazdoh.commitment.entity.CommitmentVisibility.SHARED_WITH_PARTNER AND (c.targetPartnerId IS NULL OR c.targetPartnerId = :partnerId) AND c.commitmentDate = :date AND c.deletedAt IS NULL ORDER BY c.createdAt ASC")
     List<Commitment> findSharedCommitmentsForPartner(
             @Param("userId") UUID userId,
             @Param("partnerId") UUID partnerId,
