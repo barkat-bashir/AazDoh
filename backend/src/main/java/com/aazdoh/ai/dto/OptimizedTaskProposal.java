@@ -11,6 +11,7 @@ public class OptimizedTaskProposal {
     private String proposedTitle;
     private int proposedMinutes;
     private String reasoning;
+    private java.util.List<SplitBlockDetail> splitBlocks = new java.util.ArrayList<>();
 
     public OptimizedTaskProposal() {
     }
@@ -79,5 +80,13 @@ public class OptimizedTaskProposal {
 
     public void setReasoning(String reasoning) {
         this.reasoning = reasoning;
+    }
+
+    public java.util.List<SplitBlockDetail> getSplitBlocks() {
+        return splitBlocks;
+    }
+
+    public void setSplitBlocks(java.util.List<SplitBlockDetail> splitBlocks) {
+        this.splitBlocks = splitBlocks;
     }
 }

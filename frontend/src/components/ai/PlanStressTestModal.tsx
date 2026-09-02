@@ -37,20 +37,43 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
   const [defenseText, setDefenseText] = useState('');
   const [isApplying, setIsApplying] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [proposals, setProposals] = useState<OptimizedTaskProposal[]>([]);
+
+  React.useEffect(() => {
+    if (stressTestData?.proposedOptimizations) {
+      setProposals(JSON.parse(JSON.stringify(stressTestData.proposedOptimizations)));
+    }
+  }, [stressTestData]);
 
   if (!isOpen) return null;
 
   const data = stressTestData;
 
+  const handleToggleSplitSchedule = (proposalIdx: number, scheduleTomorrow: boolean) => {
+    setProposals(prev => {
+      const copy = [...prev];
+      const target = { ...copy[proposalIdx] };
+      if (target.splitBlocks) {
+        target.splitBlocks = target.splitBlocks.map((b, idx) => {
+          if (idx === 0) return b; // Part 1 always stays on Today
+          return { ...b, scheduleTomorrow };
+        });
+      }
+      copy[proposalIdx] = target;
+      return copy;
+    });
+  };
+
   const handleApplyOptimizations = async () => {
-    if (!data || !data.proposedOptimizations || data.proposedOptimizations.length === 0) {
+    const toApply = proposals.length > 0 ? proposals : data?.proposedOptimizations;
+    if (!toApply || toApply.length === 0) {
       onClose();
       return;
     }
     try {
       setIsApplying(true);
       await aiApi.applyOptimizedPlan({
-        acceptedProposals: data.proposedOptimizations,
+        acceptedProposals: toApply,
       });
       setSuccessMessage('Optimized plan applied successfully! Your day is now de-risked.');
       setTimeout(() => {
@@ -295,10 +318,12 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
                 </h4>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {data.proposedOptimizations.map((prop: OptimizedTaskProposal, idx: number) => {
-                    const isTrim = prop.suggestedAction === 'TRIM' || prop.suggestedAction === 'SPLIT';
+                  {(proposals.length > 0 ? proposals : data.proposedOptimizations).map((prop: OptimizedTaskProposal, idx: number) => {
+                    const isSplit = prop.suggestedAction === 'SPLIT';
+                    const isTrim = prop.suggestedAction === 'TRIM';
                     const isShift = prop.suggestedAction === 'SHIFT_TO_TOMORROW';
                     const isKeep = prop.suggestedAction === 'KEEP';
+                    const hasSplitBlocks = isSplit && prop.splitBlocks && prop.splitBlocks.length > 1;
 
                     return (
                       <div 
@@ -307,53 +332,148 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
                           background: 'var(--bg-walnut-surface)',
                           border: '1px solid var(--border-walnut-faint)',
                           borderRadius: 'var(--radius-sm)',
-                          padding: '12px 16px',
+                          padding: '14px 16px',
                           display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '12px'
+                          flexDirection: 'column',
+                          gap: '10px'
                         }}
                       >
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
-                            {isTrim && (
-                              <span className="badge badge-postponed" style={{ fontSize: '10px' }}>
-                                TRIMMED
-                              </span>
-                            )}
-                            {isShift && (
-                              <span className="badge badge-priority-urgent" style={{ fontSize: '10px' }}>
-                                REBALANCED TOMORROW
-                              </span>
-                            )}
-                            {isKeep && (
-                              <span className="badge badge-completed" style={{ fontSize: '10px' }}>
-                                KEPT AS-IS
-                              </span>
-                            )}
-                            <strong style={{ fontSize: '0.88rem', color: 'var(--text-kehwa-cream)' }}>
-                              {prop.currentTitle}
-                            </strong>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                              {isSplit && (
+                                <span className="badge" style={{ fontSize: '10px', background: 'rgba(226, 149, 59, 0.15)', color: 'var(--saffron-ember)', border: '1px solid rgba(226, 149, 59, 0.35)', fontWeight: 700 }}>
+                                  SPLIT ({prop.splitBlocks?.length || 2} SPRINTS)
+                                </span>
+                              )}
+                              {isTrim && (
+                                <span className="badge badge-postponed" style={{ fontSize: '10px' }}>
+                                  TRIMMED
+                                </span>
+                              )}
+                              {isShift && (
+                                <span className="badge badge-priority-urgent" style={{ fontSize: '10px' }}>
+                                  REBALANCED TOMORROW
+                                </span>
+                              )}
+                              {isKeep && (
+                                <span className="badge badge-completed" style={{ fontSize: '10px' }}>
+                                  KEPT AS-IS
+                                </span>
+                              )}
+                              <strong style={{ fontSize: '0.88rem', color: 'var(--text-kehwa-cream)' }}>
+                                {prop.currentTitle}
+                              </strong>
+                            </div>
+                            
+                            <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-parchment-muted)' }}>
+                              {prop.reasoning}
+                            </p>
                           </div>
-                          
-                          <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-parchment-muted)' }}>
-                            {prop.reasoning}
-                          </p>
+
+                          <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: '600' }}>
+                              <span style={{ color: isShift ? 'var(--chinar-rust)' : isTrim || isSplit ? 'var(--text-tweed-dim)' : '#4ADE80', textDecoration: isTrim || isShift || isSplit ? 'line-through' : 'none' }}>
+                                {prop.currentMinutes}m
+                              </span>
+                              {(isTrim || isSplit) && (
+                                <>
+                                  <ArrowRight size={12} style={{ color: 'var(--saffron-ember)' }} />
+                                  <span style={{ color: 'var(--saffron-ember)' }}>{prop.proposedMinutes}m</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
                         </div>
 
-                        <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: '600' }}>
-                            <span style={{ color: isShift ? 'var(--chinar-rust)' : isTrim ? 'var(--text-tweed-dim)' : '#4ADE80', textDecoration: isTrim || isShift ? 'line-through' : 'none' }}>
-                              {prop.currentMinutes}m
-                            </span>
-                            {isTrim && (
-                              <>
-                                <ArrowRight size={12} style={{ color: 'var(--saffron-ember)' }} />
-                                <span style={{ color: 'var(--saffron-ember)' }}>{prop.proposedMinutes}m</span>
-                              </>
-                            )}
+                        {/* Interactive Sprints Breakdown for SPLIT */}
+                        {hasSplitBlocks && (
+                          <div style={{ 
+                            padding: '10px 12px', 
+                            background: 'var(--bg-walnut-card)', 
+                            borderRadius: 'var(--radius-sm)', 
+                            border: '1px solid var(--border-walnut-faint)',
+                            marginTop: '2px'
+                          }}>
+                            <div style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--saffron-ember)', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                              <span>⚡ AUTOMATIC FOCUS SPRINTS ({prop.splitBlocks!.length} BLOCKS):</span>
+                              <span style={{ color: 'var(--text-tweed-dim)', fontWeight: 500 }}>Part 1 stays on Today</span>
+                            </div>
+
+                            {/* Sprint blocks chips */}
+                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                              {prop.splitBlocks!.map((b, bIdx) => {
+                                const isTomorrow = b.scheduleTomorrow && bIdx > 0;
+                                return (
+                                  <span
+                                    key={bIdx}
+                                    style={{
+                                      fontSize: '0.73rem',
+                                      padding: '4px 9px',
+                                      borderRadius: '5px',
+                                      background: bIdx === 0 
+                                        ? 'rgba(74, 222, 128, 0.15)' 
+                                        : isTomorrow 
+                                          ? 'rgba(192, 83, 48, 0.15)' 
+                                          : 'rgba(226, 149, 59, 0.15)',
+                                      color: bIdx === 0 
+                                        ? '#4ADE80' 
+                                        : isTomorrow 
+                                          ? 'var(--chinar-rust)' 
+                                          : 'var(--saffron-ember)',
+                                      border: `1px solid ${bIdx === 0 ? 'rgba(74, 222, 128, 0.3)' : isTomorrow ? 'rgba(192, 83, 48, 0.35)' : 'rgba(226, 149, 59, 0.35)'}`,
+                                      fontWeight: 600,
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                    }}
+                                  >
+                                    <strong>{b.title}</strong>: {b.minutes}m {bIdx === 0 ? '(Today)' : isTomorrow ? '(Tomorrow)' : '(Today)'}
+                                  </span>
+                                );
+                              })}
+                            </div>
+
+                            {/* Destination toggle for Part 2+ */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-parchment-muted)' }}>Where to schedule remaining parts?</span>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleSplitSchedule(idx, false)}
+                                style={{
+                                  fontSize: '0.72rem',
+                                  padding: '3px 10px',
+                                  borderRadius: '4px',
+                                  border: '1px solid',
+                                  borderColor: !prop.splitBlocks![1]?.scheduleTomorrow ? 'var(--saffron-ember)' : 'var(--border-walnut-faint)',
+                                  background: !prop.splitBlocks![1]?.scheduleTomorrow ? 'rgba(226, 149, 59, 0.2)' : 'transparent',
+                                  color: !prop.splitBlocks![1]?.scheduleTomorrow ? 'var(--saffron-ember)' : 'var(--text-tweed-dim)',
+                                  cursor: 'pointer',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                📅 Keep All on Today
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleSplitSchedule(idx, true)}
+                                style={{
+                                  fontSize: '0.72rem',
+                                  padding: '3px 10px',
+                                  borderRadius: '4px',
+                                  border: '1px solid',
+                                  borderColor: prop.splitBlocks![1]?.scheduleTomorrow ? 'var(--chinar-rust)' : 'var(--border-walnut-faint)',
+                                  background: prop.splitBlocks![1]?.scheduleTomorrow ? 'rgba(192, 83, 48, 0.2)' : 'transparent',
+                                  color: prop.splitBlocks![1]?.scheduleTomorrow ? 'var(--chinar-rust)' : 'var(--text-tweed-dim)',
+                                  cursor: 'pointer',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                🌙 Move Remaining to Tomorrow
+                              </button>
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                     );
                   })}

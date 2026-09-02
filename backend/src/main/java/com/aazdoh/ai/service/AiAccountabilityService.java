@@ -142,7 +142,39 @@ public class AiAccountabilityService {
                 com.aazdoh.commitment.dto.PostponeCommitmentRequest postponeReq = new com.aazdoh.commitment.dto.PostponeCommitmentRequest();
                 postponeReq.setNewDate(LocalDate.now().plusDays(1));
                 commitmentService.postponeCommitment(userId, proposal.getOriginalCommitmentId(), postponeReq);
-            } else if ("TRIM".equalsIgnoreCase(proposal.getSuggestedAction()) || "SPLIT".equalsIgnoreCase(proposal.getSuggestedAction())) {
+            } else if ("SPLIT".equalsIgnoreCase(proposal.getSuggestedAction())) {
+                CommitmentResponse orig = commitmentService.getCommitmentById(userId, proposal.getOriginalCommitmentId());
+                List<com.aazdoh.ai.dto.SplitBlockDetail> blocks = proposal.getSplitBlocks();
+
+                if (blocks != null && !blocks.isEmpty()) {
+                    // 1. Update original commitment to Part 1
+                    com.aazdoh.ai.dto.SplitBlockDetail firstBlock = blocks.get(0);
+                    com.aazdoh.commitment.dto.UpdateCommitmentRequest updateReq = new com.aazdoh.commitment.dto.UpdateCommitmentRequest();
+                    updateReq.setTitle(firstBlock.getTitle());
+                    updateReq.setEstimatedMinutes(firstBlock.getMinutes());
+                    commitmentService.updateCommitment(userId, proposal.getOriginalCommitmentId(), updateReq);
+
+                    // 2. Automatically generate subsequent sibling blocks (Part 2, Part 3, etc.)
+                    for (int bIdx = 1; bIdx < blocks.size(); bIdx++) {
+                        com.aazdoh.ai.dto.SplitBlockDetail block = blocks.get(bIdx);
+                        LocalDate targetDate = block.isScheduleTomorrow() ? LocalDate.now().plusDays(1) : LocalDate.now();
+
+                        com.aazdoh.commitment.dto.CreateCommitmentRequest createReq = new com.aazdoh.commitment.dto.CreateCommitmentRequest();
+                        createReq.setTitle(block.getTitle());
+                        createReq.setEstimatedMinutes(block.getMinutes());
+                        createReq.setPriority(orig.getPriority() != null ? orig.getPriority() : com.aazdoh.commitment.entity.CommitmentPriority.MEDIUM);
+                        createReq.setVisibility(orig.getVisibility() != null ? orig.getVisibility() : com.aazdoh.commitment.entity.CommitmentVisibility.SHARED_WITH_PARTNER);
+                        createReq.setCommitmentDate(targetDate);
+                        createReq.setExpectedOutcome(orig.getExpectedOutcome());
+                        commitmentService.createCommitment(userId, createReq);
+                    }
+                } else {
+                    com.aazdoh.commitment.dto.UpdateCommitmentRequest updateReq = new com.aazdoh.commitment.dto.UpdateCommitmentRequest();
+                    updateReq.setTitle(proposal.getProposedTitle());
+                    updateReq.setEstimatedMinutes(proposal.getProposedMinutes());
+                    commitmentService.updateCommitment(userId, proposal.getOriginalCommitmentId(), updateReq);
+                }
+            } else if ("TRIM".equalsIgnoreCase(proposal.getSuggestedAction())) {
                 com.aazdoh.commitment.dto.UpdateCommitmentRequest updateReq = new com.aazdoh.commitment.dto.UpdateCommitmentRequest();
                 updateReq.setTitle(proposal.getProposedTitle());
                 updateReq.setEstimatedMinutes(proposal.getProposedMinutes());

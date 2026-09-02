@@ -223,11 +223,33 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
             proposal.setCurrentTitle(task.getTitle());
             proposal.setCurrentMinutes(task.getEstimatedMinutes());
 
-            if (task.getEstimatedMinutes() > 90) {
-                proposal.setSuggestedAction("TRIM");
+            if (task.getEstimatedMinutes() > 75) {
+                proposal.setSuggestedAction("SPLIT");
                 proposal.setProposedTitle("Part 1: " + task.getTitle());
                 proposal.setProposedMinutes(45);
-                proposal.setReasoning("Deconstructed 90+ min block into a focused 45-min execution sprint.");
+
+                // Partition into even 45-minute focus sprints (e.g. 150m -> 45, 45, 45, 15)
+                List<com.aazdoh.ai.dto.SplitBlockDetail> blocks = new java.util.ArrayList<>();
+                int remaining = task.getEstimatedMinutes();
+                int partNum = 1;
+                while (remaining > 0) {
+                    int chunkSize = Math.min(remaining, 45);
+                    blocks.add(new com.aazdoh.ai.dto.SplitBlockDetail(
+                            partNum,
+                            "Part " + partNum + ": " + task.getTitle(),
+                            chunkSize,
+                            partNum > 1 // default part 2+ to tomorrow option ready
+                    ));
+                    remaining -= chunkSize;
+                    partNum++;
+                }
+                proposal.setSplitBlocks(blocks);
+
+                String blocksSummary = blocks.stream()
+                        .map(b -> b.getMinutes() + "m")
+                        .collect(Collectors.joining(" • "));
+                proposal.setReasoning(String.format("Deconstructed %dm block into focused sprints: %s.",
+                        task.getEstimatedMinutes(), blocksSummary));
                 optimizedMinutesAccumulator += 45;
             } else if (ratio > 1.25 && i == todaysCommitments.size() - 1 && todaysCommitments.size() > 1) {
                 proposal.setSuggestedAction("SHIFT_TO_TOMORROW");

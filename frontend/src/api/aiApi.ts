@@ -7,6 +7,13 @@ export interface AiFeedbackResponse {
   timestamp: string;
 }
 
+export interface SplitBlockDetail {
+  blockIndex: number;
+  title: string;
+  minutes: number;
+  scheduleTomorrow: boolean;
+}
+
 export interface OptimizedTaskProposal {
   originalCommitmentId: string;
   currentTitle: string;
@@ -15,6 +22,7 @@ export interface OptimizedTaskProposal {
   proposedTitle: string;
   proposedMinutes: number;
   reasoning: string;
+  splitBlocks?: SplitBlockDetail[];
 }
 
 export interface PlanStressTestResponse {
