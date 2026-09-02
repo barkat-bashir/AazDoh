@@ -25,6 +25,8 @@ public class CommitmentResponse {
     private CommitmentVisibility visibility;
     private UUID targetPartnerId;
     private String targetPartnerName;
+    private int discussionMessageCount;
+    private boolean hasUnreadDiscussion;
     private UUID postponedFromId;
     private UUID originCommitmentId;
     private int postponementCount;
@@ -169,6 +171,22 @@ public class CommitmentResponse {
 
     public void setTargetPartnerName(String targetPartnerName) {
         this.targetPartnerName = targetPartnerName;
+    }
+
+    public int getDiscussionMessageCount() {
+        return discussionMessageCount;
+    }
+
+    public void setDiscussionMessageCount(int discussionMessageCount) {
+        this.discussionMessageCount = discussionMessageCount;
+    }
+
+    public boolean isHasUnreadDiscussion() {
+        return hasUnreadDiscussion;
+    }
+
+    public void setHasUnreadDiscussion(boolean hasUnreadDiscussion) {
+        this.hasUnreadDiscussion = hasUnreadDiscussion;
     }
 
     public UUID getPostponedFromId() {

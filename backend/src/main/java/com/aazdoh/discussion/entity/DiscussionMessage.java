@@ -24,6 +24,9 @@ public class DiscussionMessage extends BaseEntity {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String message;
 
+    @Column(name = "read_at")
+    private java.time.OffsetDateTime readAt;
+
     public DiscussionMessage() {
     }
 
@@ -55,5 +58,13 @@ public class DiscussionMessage extends BaseEntity {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public java.time.OffsetDateTime getReadAt() {
+        return readAt;
+    }
+
+    public void setReadAt(java.time.OffsetDateTime readAt) {
+        this.readAt = readAt;
     }
 }
