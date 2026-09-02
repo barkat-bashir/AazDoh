@@ -10,6 +10,8 @@ export interface Partnership {
   partnerName: string;
   partnerEmail: string;
   status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'TERMINATED';
+  partnershipType?: 'MUTUAL' | 'ONE_WAY_SPONSOR';
+  sharePartnerCommitments?: boolean;
   createdAt: string;
 }
 
@@ -21,6 +23,7 @@ export interface PartnerDailyOverview {
   totalCommitments: number;
   completedCommitments: number;
   completionRate: number;
+  isOneWaySponsor?: boolean;
   // Partner AI Accountability Brief
   aiRiskScore?: number;
   aiRiskLevel?: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL';
@@ -36,15 +39,16 @@ export const partnershipApi = {
   
   getOutgoingInvites: () => request<Partnership[]>('/partnerships/invitations/outgoing'),
 
-  invite: (partnerEmail: string) =>
+  invite: (partnerEmail: string, partnershipType: 'MUTUAL' | 'ONE_WAY_SPONSOR' = 'MUTUAL') =>
     request<Partnership>('/partnerships/invite', {
       method: 'POST',
-      body: JSON.stringify({ partnerEmail }),
+      body: JSON.stringify({ partnerEmail, partnershipType }),
     }),
 
-  accept: (id: string) =>
+  accept: (id: string, shareMyCommitments?: boolean) =>
     request<Partnership>(`/partnerships/${id}/accept`, {
       method: 'POST',
+      body: shareMyCommitments !== undefined ? JSON.stringify({ shareMyCommitments }) : undefined,
     }),
 
   reject: (id: string) =>
