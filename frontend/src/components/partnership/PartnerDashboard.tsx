@@ -113,6 +113,28 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
     }
   };
 
+  const toProperCase = (str?: string) => {
+    if (!str) return '';
+    return str
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  const formatDiagnosticForMentor = (summary?: string, partnerName?: string) => {
+    if (!summary) return '';
+    const name = toProperCase(partnerName);
+    return summary
+      .replace(/^Your planned load/gi, `${name}'s planned load`)
+      .replace(/ your planned load/gi, ` ${name}'s planned load`)
+      .replace(/within your 7-day average/gi, `within their 7-day average`)
+      .replace(/exceeds your 7-day average/gi, `exceeds ${name}'s 7-day average`)
+      .replace(/your historical/gi, `their historical`)
+      .replace(/your momentum/gi, `their momentum`)
+      .replace(/your baseline/gi, `their baseline`);
+  };
+
   const getRiskColor = (riskLevel?: string) => {
     switch (riskLevel) {
       case 'LOW':
@@ -135,13 +157,15 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
         {/* Active Partners Box */}
         <div className="harud-card" style={{ padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-            <h4 style={{ fontSize: '1rem', color: 'var(--text-kehwa-cream)' }}>Partners ({partners.length})</h4>
+            <h4 style={{ fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-kehwa-cream)' }}>
+              Partners ({partners.length})
+            </h4>
             <button
               onClick={onOpenInviteModal}
               className="btn-primary"
-              style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+              style={{ padding: '4px 10px', fontSize: '0.78rem' }}
             >
-              <UserPlus size={14} />
+              <UserPlus size={13} />
               <span>Invite</span>
             </button>
           </div>
@@ -156,7 +180,8 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {partners.map((p) => {
-                const partnerName = p.requesterId === user?.id ? p.partnerName : p.requesterName;
+                const rawName = p.requesterId === user?.id ? p.partnerName : p.requesterName;
+                const partnerName = toProperCase(rawName);
                 const isSelected = selectedPartner?.id === p.id;
                 return (
                   <button
@@ -167,25 +192,33 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
                       alignItems: 'center',
                       gap: '10px',
                       padding: '10px 12px',
-                      background: isSelected ? 'var(--bg-walnut-card-hover)' : 'var(--bg-walnut-surface)',
-                      border: `1px solid ${isSelected ? 'var(--chinar-rust)' : 'var(--border-walnut-faint)'}`,
+                      background: isSelected
+                        ? 'linear-gradient(90deg, rgba(226, 149, 59, 0.12), rgba(30, 23, 18, 0.95))'
+                        : 'var(--bg-walnut-surface)',
+                      border: isSelected ? '1px solid rgba(226, 149, 59, 0.45)' : '1px solid var(--border-walnut-faint)',
+                      borderLeft: isSelected ? '3px solid var(--saffron-ember)' : '3px solid transparent',
                       borderRadius: 'var(--radius-sm)',
+                      boxShadow: isSelected ? '0 4px 16px rgba(192, 83, 48, 0.15)' : 'none',
                       color: 'var(--text-kehwa-cream)',
                       cursor: 'pointer',
                       textAlign: 'left',
-                      transition: 'var(--transition-smooth)',
+                      transition: 'all 0.2s ease',
                     }}
                   >
                     <div style={{
-                      width: '32px',
-                      height: '32px',
+                      width: '34px',
+                      height: '34px',
                       borderRadius: '50%',
-                      background: 'linear-gradient(135deg, var(--chinar-rust), #8A3016)',
+                      background: isSelected
+                        ? 'linear-gradient(135deg, var(--saffron-ember), var(--chinar-rust))'
+                        : 'linear-gradient(135deg, var(--chinar-rust), #8A3016)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontWeight: 700,
                       fontSize: '0.85rem',
+                      color: '#FFF',
+                      boxShadow: isSelected ? '0 0 10px rgba(226, 149, 59, 0.4)' : 'none',
                     }}>
                       {partnerName.charAt(0).toUpperCase()}
                     </div>
@@ -193,16 +226,16 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
                       <div style={{ fontSize: '0.9rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {partnerName}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '0.74rem', color: 'var(--text-tweed-dim)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-tweed-dim)' }}>
                           Connected
                         </span>
                         {p.partnershipType === 'ONE_WAY_SPONSOR' || p.sharePartnerCommitments === false ? (
-                          <span style={{ fontSize: '9px', padding: '1px 5px', borderRadius: '4px', background: 'rgba(226, 149, 59, 0.15)', color: 'var(--saffron-ember)', fontWeight: 600 }}>
+                          <span style={{ fontSize: '9.5px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(226, 149, 59, 0.15)', color: 'var(--saffron-ember)', fontWeight: 600 }}>
                             Sponsor
                           </span>
                         ) : (
-                          <span style={{ fontSize: '9px', padding: '1px 5px', borderRadius: '4px', background: 'rgba(74, 222, 128, 0.15)', color: '#4ADE80', fontWeight: 600 }}>
+                          <span style={{ fontSize: '9.5px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(74, 222, 128, 0.15)', color: '#4ADE80', fontWeight: 600 }}>
                             Mutual
                           </span>
                         )}
@@ -213,6 +246,27 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
               })}
             </div>
           )}
+        </div>
+
+        {/* Accountability Cadence Info Card */}
+        <div style={{
+          padding: '14px 16px',
+          background: 'rgba(226, 149, 59, 0.04)',
+          border: '1px solid rgba(226, 149, 59, 0.12)',
+          borderRadius: 'var(--radius-md)',
+          display: 'flex',
+          gap: '10px',
+          alignItems: 'flex-start',
+        }}>
+          <Zap size={16} color="var(--saffron-ember)" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <div>
+            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--saffron-ember)', marginBottom: '3px' }}>
+              Accountability Cadence
+            </div>
+            <p style={{ fontSize: '0.74rem', color: 'var(--text-tweed-dim)', lineHeight: 1.45, margin: 0 }}>
+              Leave quick mentor feedback on your partner's tasks before midday to keep daily execution momentum sharp.
+            </p>
+          </div>
         </div>
 
         {/* Incoming Invitations */}
@@ -313,7 +367,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
               <div 
                 className="harud-card"
                 style={{
-                  padding: '20px 24px',
+                  padding: '22px 24px',
                   background: 'rgba(30, 23, 18, 0.95)',
                   border: '1px solid var(--border-copper-subtle)',
                   borderRadius: 'var(--radius-md)',
@@ -321,10 +375,10 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div style={{
-                      width: '28px',
-                      height: '28px',
+                      width: '32px',
+                      height: '32px',
                       borderRadius: '8px',
                       background: 'rgba(226, 149, 59, 0.15)',
                       display: 'flex',
@@ -332,14 +386,14 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
                       justifyContent: 'center',
                       color: 'var(--saffron-ember)'
                     }}>
-                      <Sparkles size={16} />
+                      <Sparkles size={17} />
                     </div>
                     <div>
-                      <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--saffron-ember)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                        Partner AI Brief (Mentor View)
+                      <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--saffron-ember)', letterSpacing: '0.04em' }}>
+                        Partner AI Brief • Mentor View
                       </span>
-                      <div style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-kehwa-cream)' }}>
-                        {partnerOverview.partnerName}'s Feasibility Diagnostic
+                      <div style={{ fontSize: '1.02rem', fontWeight: 700, color: 'var(--text-kehwa-cream)', marginTop: '1px' }}>
+                        {toProperCase(partnerOverview.partnerName)}'s Feasibility Diagnostic
                       </div>
                     </div>
                   </div>
@@ -348,7 +402,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
                     <span 
                       style={{ 
                         fontSize: '11px', 
-                        padding: '4px 8px', 
+                        padding: '4px 10px', 
                         borderRadius: '6px', 
                         background: 'rgba(255,255,255,0.06)', 
                         color: getRiskColor(partnerOverview.aiRiskLevel),
@@ -359,56 +413,76 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
                       {partnerOverview.aiRiskScore !== undefined ? `${partnerOverview.aiRiskScore}% Risk (${partnerOverview.aiRiskLevel})` : 'Feasible'}
                     </span>
                     {partnerOverview.plannedHours !== undefined && (
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      <span style={{ fontSize: '11.5px', color: 'var(--text-tweed-dim)' }}>
                         Planned: {partnerOverview.plannedHours}h / Capacity: {partnerOverview.capacityHours}h
                       </span>
                     )}
                   </div>
                 </div>
 
-                <p style={{ fontSize: '0.88rem', color: 'var(--warm-cream)', lineHeight: '1.55', margin: '0 0 14px 0' }}>
-                  "{partnerOverview.aiDiagnosticSummary}"
+                <p style={{ fontSize: '0.88rem', color: 'var(--warm-cream)', lineHeight: '1.6', margin: '0 0 16px 0' }}>
+                  "{formatDiagnosticForMentor(partnerOverview.aiDiagnosticSummary, partnerOverview.partnerName)}"
                 </p>
 
                 {/* Quick Mentor Nudges */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', paddingTop: '10px', borderTop: '1px solid var(--border-walnut-faint)' }}>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', paddingTop: '12px', borderTop: '1px solid var(--border-walnut-faint)' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-tweed-dim)', textTransform: 'uppercase', letterSpacing: '0.05em', marginRight: '2px', fontWeight: 600 }}>
                     Quick Mentor Actions:
                   </span>
                   <button
-                    onClick={() => showToast(`Sent kudos to ${partnerOverview.partnerName}! 👏`, 'success')}
+                    onClick={() => showToast(`Sent kudos to ${toProperCase(partnerOverview.partnerName)}! 👏`, 'success')}
                     style={{
-                      padding: '4px 10px',
+                      padding: '6px 14px',
                       fontSize: '11.5px',
-                      borderRadius: '6px',
+                      borderRadius: '20px',
                       background: 'rgba(74, 222, 128, 0.1)',
-                      border: '1px solid rgba(74, 222, 128, 0.25)',
+                      border: '1px solid rgba(74, 222, 128, 0.35)',
                       color: '#4ADE80',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '4px',
+                      gap: '6px',
                       cursor: 'pointer',
+                      fontWeight: 600,
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(74, 222, 128, 0.2)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(74, 222, 128, 0.1)';
+                      e.currentTarget.style.transform = 'translateY(0)';
                     }}
                   >
-                    <ThumbsUp size={12} />
+                    <ThumbsUp size={13} />
                     <span>👏 Looking Solid</span>
                   </button>
                   <button
-                    onClick={() => showToast(`Invited ${partnerOverview.partnerName} to a 10-min pair unblock! ☕`, 'info')}
+                    onClick={() => showToast(`Invited ${toProperCase(partnerOverview.partnerName)} to a 10-min pair unblock! ☕`, 'info')}
                     style={{
-                      padding: '4px 10px',
+                      padding: '6px 14px',
                       fontSize: '11.5px',
-                      borderRadius: '6px',
+                      borderRadius: '20px',
                       background: 'rgba(226, 149, 59, 0.1)',
-                      border: '1px solid rgba(226, 149, 59, 0.25)',
+                      border: '1px solid rgba(226, 149, 59, 0.35)',
                       color: 'var(--saffron-ember)',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '4px',
+                      gap: '6px',
                       cursor: 'pointer',
+                      fontWeight: 600,
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(226, 149, 59, 0.2)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(226, 149, 59, 0.1)';
+                      e.currentTarget.style.transform = 'translateY(0)';
                     }}
                   >
-                    <Coffee size={12} />
+                    <Coffee size={13} />
                     <span>☕ Offer 10-Min Unblock</span>
                   </button>
                 </div>
@@ -419,22 +493,48 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
             <div className="harud-card" style={{ padding: '24px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
                 <div>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--saffron-ember)', textTransform: 'uppercase' }}>
+                  <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--saffron-ember)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     Shared Commitments
                   </span>
-                  <h3 style={{ fontSize: '1.3rem', color: 'var(--text-kehwa-cream)', marginTop: '2px' }}>
-                    {partnerOverview.partnerName}'s Task List
+                  <h3 style={{ fontSize: '1.25rem', color: 'var(--text-kehwa-cream)', marginTop: '2px', fontWeight: 700 }}>
+                    {toProperCase(partnerOverview.partnerName)}'s Task List
                   </h3>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                {/* Soft Dual-Progress Indicator */}
+                {partnerOverview.sharedCommitments.length > 0 && (
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-tweed-dim)' }}>Today's Kept Rate</div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: partnerOverview.completionRate === 100 ? '#4ADE80' : 'var(--saffron-ember)' }}>
-                      {Math.round(partnerOverview.completionRate)}%
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-tweed-dim)', marginBottom: '5px' }}>
+                      {partnerOverview.sharedCommitments.filter(c => c.status === 'COMPLETED').length} of {partnerOverview.sharedCommitments.length} Finished
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        width: '84px',
+                        height: '6px',
+                        borderRadius: '3px',
+                        background: 'rgba(255, 255, 255, 0.08)',
+                        overflow: 'hidden',
+                      }}>
+                        <div style={{
+                          width: `${Math.round(partnerOverview.completionRate)}%`,
+                          height: '100%',
+                          borderRadius: '3px',
+                          background: partnerOverview.completionRate === 100
+                            ? '#4ADE80'
+                            : 'linear-gradient(90deg, var(--chinar-rust), var(--saffron-ember))',
+                          transition: 'width 0.4s ease',
+                        }} />
+                      </div>
+                      <span style={{
+                        fontSize: '0.96rem',
+                        fontWeight: 700,
+                        color: partnerOverview.completionRate === 100 ? '#4ADE80' : 'var(--text-kehwa-cream)',
+                      }}>
+                        {Math.round(partnerOverview.completionRate)}%
+                      </span>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Commitment List */}
@@ -447,7 +547,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
                     1-Way Accountability Sponsor
                   </h4>
                   <p style={{ fontSize: '0.84rem', color: 'var(--text-parchment-muted)', maxWidth: '420px', margin: '0 auto', lineHeight: 1.5 }}>
-                    {partnerOverview.partnerName} is serving as your accountability sponsor. They can inspect your commitments and keep you honest, while their own daily schedule remains private.
+                    {toProperCase(partnerOverview.partnerName)} is serving as your accountability sponsor. They can inspect your commitments and keep you honest, while their own daily schedule remains private.
                   </p>
                 </div>
               ) : partnerOverview.sharedCommitments.length === 0 ? (
@@ -484,7 +584,19 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
                           ) : isMissed ? (
                             <AlertCircle size={20} color="#F87171" />
                           ) : (
-                            <Circle size={20} color="var(--text-tweed-dim)" />
+                            <div style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              border: '1.5px dashed var(--border-copper-subtle)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: 'var(--text-tweed-dim)',
+                              flexShrink: 0,
+                            }}>
+                              <Clock size={11} />
+                            </div>
                           )}
                           <div>
                             <div style={{
@@ -512,14 +624,25 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
                                 </span>
                               ) : null}
                             </div>
-                            <div style={{ fontSize: '0.78rem', color: 'var(--text-tweed-dim)', marginTop: '2px', display: 'flex', gap: '10px' }}>
+                            <div style={{ fontSize: '0.78rem', color: 'var(--text-tweed-dim)', marginTop: '2px', display: 'flex', gap: '10px', alignItems: 'center' }}>
                               <span>~{c.estimatedMinutes} mins</span>
                               <span>•</span>
-                              <span style={{ color: 'var(--saffron-ember)' }}>{c.priority} Priority</span>
+                              <span style={{ color: 'var(--saffron-ember)', textTransform: 'capitalize' }}>
+                                {c.priority ? c.priority.toLowerCase() : 'medium'} priority
+                              </span>
                               {c.status && (
                                 <>
                                   <span>•</span>
-                                  <span style={{ fontWeight: 600, color: isDone ? '#4ADE80' : isMissed ? '#F87171' : 'var(--text-muted)' }}>
+                                  <span style={{
+                                    fontWeight: 600,
+                                    fontSize: '10px',
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    background: isDone ? 'rgba(74, 222, 128, 0.1)' : isMissed ? 'rgba(248, 113, 113, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+                                    color: isDone ? '#4ADE80' : isMissed ? '#F87171' : 'var(--text-tweed-dim)',
+                                    border: `1px solid ${isDone ? 'rgba(74, 222, 128, 0.25)' : isMissed ? 'rgba(248, 113, 113, 0.25)' : 'rgba(255, 255, 255, 0.1)'}`,
+                                    textTransform: 'uppercase',
+                                  }}>
                                     {c.status}
                                   </span>
                                 </>

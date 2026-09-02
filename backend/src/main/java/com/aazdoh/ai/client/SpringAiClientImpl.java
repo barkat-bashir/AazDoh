@@ -312,17 +312,39 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
                 }
             } catch (Throwable e) {
                 log.warn("Error generating stress-test diagnostic from LLM: {}", e.getMessage());
+                boolean hasName = context != null && context.getUserFullName() != null && !context.getUserFullName().isBlank();
+                String name = hasName ? context.getUserFullName() : null;
+
                 if (plannedHours > capacityHours) {
-                    response.setDiagnosticSummary(String.format("Planned load (%.1fh) exceeds your 7-day average focus capacity (%.1fh). Accepting the optimized adjustments increases probability of completion to 94%%.", plannedHours, capacityHours));
+                    if (hasName) {
+                        response.setDiagnosticSummary(String.format("Planned load (%.1fh) exceeds %s's 7-day average focus capacity (%.1fh). Accepting optimized adjustments increases probability of completion to 94%%.", plannedHours, name, capacityHours));
+                    } else {
+                        response.setDiagnosticSummary(String.format("Planned load (%.1fh) exceeds your 7-day average focus capacity (%.1fh). Accepting the optimized adjustments increases probability of completion to 94%%.", plannedHours, capacityHours));
+                    }
                 } else {
-                    response.setDiagnosticSummary(String.format("Your planned load of %.1fh sits comfortably within your 7-day average focus capacity (%.1fh). High probability of strong follow-through today.", plannedHours, capacityHours));
+                    if (hasName) {
+                        response.setDiagnosticSummary(String.format("%s's planned load of %.1fh sits comfortably within their 7-day average focus capacity (%.1fh). High probability of strong follow-through today.", name, plannedHours, capacityHours));
+                    } else {
+                        response.setDiagnosticSummary(String.format("Your planned load of %.1fh sits comfortably within your 7-day average focus capacity (%.1fh). High probability of strong follow-through today.", plannedHours, capacityHours));
+                    }
                 }
             }
         } else {
+            boolean hasName = context != null && context.getUserFullName() != null && !context.getUserFullName().isBlank();
+            String name = hasName ? context.getUserFullName() : null;
+
             if (plannedHours > capacityHours) {
-                response.setDiagnosticSummary(String.format("Planned load (%.1fh) exceeds your 7-day average focus capacity (%.1fh). Accepting the optimized adjustments increases probability of completion to 94%%.", plannedHours, capacityHours));
+                if (hasName) {
+                    response.setDiagnosticSummary(String.format("Planned load (%.1fh) exceeds %s's 7-day average focus capacity (%.1fh). Accepting optimized adjustments increases probability of completion to 94%%.", plannedHours, name, capacityHours));
+                } else {
+                    response.setDiagnosticSummary(String.format("Planned load (%.1fh) exceeds your 7-day average focus capacity (%.1fh). Accepting the optimized adjustments increases probability of completion to 94%%.", plannedHours, capacityHours));
+                }
             } else {
-                response.setDiagnosticSummary(String.format("Your planned load of %.1fh sits comfortably within your 7-day average focus capacity (%.1fh). High probability of strong follow-through today.", plannedHours, capacityHours));
+                if (hasName) {
+                    response.setDiagnosticSummary(String.format("%s's planned load of %.1fh sits comfortably within their 7-day average focus capacity (%.1fh). High probability of strong follow-through today.", name, plannedHours, capacityHours));
+                } else {
+                    response.setDiagnosticSummary(String.format("Your planned load of %.1fh sits comfortably within your 7-day average focus capacity (%.1fh). High probability of strong follow-through today.", plannedHours, capacityHours));
+                }
             }
         }
 
