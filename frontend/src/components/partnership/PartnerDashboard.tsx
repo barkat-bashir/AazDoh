@@ -18,7 +18,8 @@ import {
   Zap,
   Coffee,
   ThumbsUp,
-  History
+  History,
+  ShieldCheck
 } from 'lucide-react';
 
 interface PartnerDashboardProps {
@@ -40,6 +41,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
   const [partnerOverview, setPartnerOverview] = useState<PartnerDailyOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingOverview, setLoadingOverview] = useState(false);
+  const [acceptShareOverrides, setAcceptShareOverrides] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     loadPartnerships();
@@ -88,10 +90,15 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
     }
   };
 
-  const handleAccept = async (id: string) => {
+  const handleAccept = async (id: string, shareMyCommitments?: boolean) => {
     try {
-      await partnershipApi.accept(id);
-      showToast('Partnership accepted! You are now connected.', 'success');
+      await partnershipApi.accept(id, shareMyCommitments);
+      showToast(
+        shareMyCommitments === false
+          ? 'Accepted as 1-Way Accountability Sponsor. Your day remains private.'
+          : 'Partnership accepted! You are now connected.',
+        'success'
+      );
       loadPartnerships();
     } catch (err: any) {
       showToast(err.message || 'Failed to accept partnership', 'error');
@@ -188,8 +195,19 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
                       <div style={{ fontSize: '0.9rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {partnerName}
                       </div>
-                      <div style={{ fontSize: '0.74rem', color: 'var(--text-tweed-dim)' }}>
-                        Connected
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-tweed-dim)' }}>
+                          Connected
+                        </span>
+                        {p.partnershipType === 'ONE_WAY_SPONSOR' || p.sharePartnerCommitments === false ? (
+                          <span style={{ fontSize: '9px', padding: '1px 5px', borderRadius: '4px', background: 'rgba(226, 149, 59, 0.15)', color: 'var(--saffron-ember)', fontWeight: 600 }}>
+                            Sponsor
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '9px', padding: '1px 5px', borderRadius: '4px', background: 'rgba(74, 222, 128, 0.15)', color: '#4ADE80', fontWeight: 600 }}>
+                            Mutual
+                          </span>
+                        )}
                       </div>
                     </div>
                   </button>
@@ -206,43 +224,83 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
               <AlertCircle size={15} />
               <span>Pending Invitations ({incomingInvites.length})</span>
             </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {incomingInvites.map((inv) => (
-                <div
-                  key={inv.id}
-                  style={{
-                    padding: '10px',
-                    background: 'var(--bg-walnut-surface)',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-walnut-faint)',
-                  }}
-                >
-                  <div style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-kehwa-cream)' }}>
-                    {inv.requesterName}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {incomingInvites.map((inv) => {
+                const isSponsorInvite = inv.partnershipType === 'ONE_WAY_SPONSOR';
+                const shareMyTasks = acceptShareOverrides[inv.id] !== undefined ? acceptShareOverrides[inv.id] : !isSponsorInvite;
+
+                return (
+                  <div
+                    key={inv.id}
+                    style={{
+                      padding: '12px',
+                      background: 'var(--bg-walnut-surface)',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border-walnut-faint)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '4px' }}>
+                      <div style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-kehwa-cream)' }}>
+                        {inv.requesterName}
+                      </div>
+                      <span style={{
+                        fontSize: '10px',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        background: isSponsorInvite ? 'rgba(226, 149, 59, 0.2)' : 'rgba(74, 222, 128, 0.15)',
+                        color: isSponsorInvite ? 'var(--saffron-ember)' : '#4ADE80',
+                        fontWeight: 700,
+                      }}>
+                        {isSponsorInvite ? '🛡️ Sponsor Request' : '🤝 Mutual Sparring'}
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-tweed-dim)', marginBottom: '8px' }}>
+                      {inv.requesterEmail}
+                    </div>
+
+                    {/* Sovereign Privacy Checkbox for Acceptor */}
+                    <label style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '0.74rem',
+                      color: 'var(--text-kehwa-cream)',
+                      background: 'rgba(255,255,255,0.03)',
+                      padding: '6px 8px',
+                      borderRadius: '4px',
+                      marginBottom: '10px',
+                      cursor: 'pointer'
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={shareMyTasks}
+                        onChange={(e) => setAcceptShareOverrides(prev => ({ ...prev, [inv.id]: e.target.checked }))}
+                      />
+                      <span>Also share my daily commitments with {inv.requesterName}</span>
+                    </label>
+
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={() => handleAccept(inv.id, shareMyTasks)}
+                        className="btn-primary"
+                        style={{ padding: '5px 12px', fontSize: '0.78rem' }}
+                      >
+                        <Check size={13} />
+                        <span>Accept</span>
+                      </button>
+                      <button
+                        onClick={() => handleReject(inv.id)}
+                        className="btn-secondary"
+                        style={{ padding: '5px 10px', fontSize: '0.78rem' }}
+                      >
+                        <X size={13} />
+                        <span>Decline</span>
+                      </button>
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.74rem', color: 'var(--text-tweed-dim)' }}>
-                    {inv.requesterEmail}
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                    <button
-                      onClick={() => handleAccept(inv.id)}
-                      className="btn-primary"
-                      style={{ padding: '4px 10px', fontSize: '0.76rem' }}
-                    >
-                      <Check size={12} />
-                      <span>Accept</span>
-                    </button>
-                    <button
-                      onClick={() => handleReject(inv.id)}
-                      className="btn-secondary"
-                      style={{ padding: '4px 8px', fontSize: '0.76rem' }}
-                    >
-                      <X size={12} />
-                      <span>Decline</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -384,6 +442,16 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
               {/* Commitment List */}
               {loadingOverview ? (
                 <p style={{ color: 'var(--text-tweed-dim)', padding: '20px 0' }}>Loading shared commitments...</p>
+              ) : partnerOverview.isOneWaySponsor ? (
+                <div style={{ textAlign: 'center', padding: '36px 20px', background: 'rgba(226, 149, 59, 0.04)', borderRadius: '12px', border: '1px dashed rgba(226, 149, 59, 0.3)' }}>
+                  <ShieldCheck size={38} color="var(--saffron-ember)" style={{ marginBottom: '10px' }} />
+                  <h4 style={{ fontSize: '1rem', color: 'var(--text-kehwa-cream)', marginBottom: '6px' }}>
+                    1-Way Accountability Sponsor
+                  </h4>
+                  <p style={{ fontSize: '0.84rem', color: 'var(--text-parchment-muted)', maxWidth: '420px', margin: '0 auto', lineHeight: 1.5 }}>
+                    {partnerOverview.partnerName} is serving as your accountability sponsor. They can inspect your commitments and keep you honest, while their own daily schedule remains private.
+                  </p>
+                </div>
               ) : partnerOverview.sharedCommitments.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-tweed-dim)' }}>
                   <Users size={36} color="var(--border-copper-subtle)" style={{ marginBottom: '8px' }} />
