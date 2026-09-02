@@ -178,6 +178,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
         onClose={() => {
           setDiscussionCommitment(null);
           refreshCommitments();
+          queryClient.invalidateQueries({ queryKey: ['unreadSummary'] });
         }}
       />
     </div>

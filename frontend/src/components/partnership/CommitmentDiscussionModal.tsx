@@ -12,6 +12,8 @@ interface CommitmentDiscussionModalProps {
   onClose: () => void;
 }
 
+import { useQueryClient } from '@tanstack/react-query';
+
 export const CommitmentDiscussionModal: React.FC<CommitmentDiscussionModalProps> = ({
   commitment,
   isOpen,
@@ -19,6 +21,7 @@ export const CommitmentDiscussionModal: React.FC<CommitmentDiscussionModalProps>
 }) => {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const [messages, setMessages] = useState<DiscussionMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,6 +39,10 @@ export const CommitmentDiscussionModal: React.FC<CommitmentDiscussionModalProps>
       setLoading(true);
       const res = await discussionApi.getDiscussion(commitment.id);
       setMessages(res.messages || []);
+      // Instantly clear unread badges across navbar and task cards upon opening
+      queryClient.invalidateQueries({ queryKey: ['unreadSummary'] });
+      queryClient.invalidateQueries({ queryKey: ['partnerOverview'] });
+      queryClient.invalidateQueries({ queryKey: ['commitments'] });
     } catch (err: any) {
       showToast('Could not load discussion messages', 'error');
     } finally {
@@ -52,6 +59,9 @@ export const CommitmentDiscussionModal: React.FC<CommitmentDiscussionModalProps>
       const saved = await discussionApi.postMessage(commitment.id, newMessage.trim());
       setMessages((prev) => [...prev, saved]);
       setNewMessage('');
+      queryClient.invalidateQueries({ queryKey: ['unreadSummary'] });
+      queryClient.invalidateQueries({ queryKey: ['partnerOverview'] });
+      queryClient.invalidateQueries({ queryKey: ['commitments'] });
     } catch (err: any) {
       showToast(err.message || 'Failed to post message', 'error');
     } finally {
