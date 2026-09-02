@@ -12,6 +12,7 @@ import { TodayPage } from './pages/TodayPage';
 import { PartnersPage } from './pages/PartnersPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { SettingsModal } from './components/settings/SettingsModal';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { discussionApi } from './api/discussionApi';
 import { useQuery } from '@tanstack/react-query';
 
@@ -22,6 +23,10 @@ const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('today');
   const [publicView, setPublicView] = useState<PublicView>('landing');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [resetToken, setResetToken] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('reset-token') || params.get('token');
+  });
 
   // TanStack Query for unread notifications & background sync
   const { data: unreadSummary } = useQuery({
@@ -79,8 +84,26 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // Unauthenticated Views: Landing, Auth, Terms, Privacy
+  // Unauthenticated Views: Reset Password, Landing, Auth, Terms, Privacy
   if (!user) {
+    if (resetToken) {
+      return (
+        <div style={{ position: 'relative', minHeight: '100vh', background: 'var(--bg-walnut-deep)' }}>
+          <ChinarLeavesCanvas />
+          <div style={{ position: 'relative', zIndex: 10 }}>
+            <ResetPasswordPage
+              token={resetToken}
+              onSuccess={() => {
+                setResetToken(null);
+                setPublicView('auth');
+                window.history.replaceState({}, document.title, window.location.pathname);
+              }}
+            />
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div style={{ position: 'relative', minHeight: '100vh', background: 'var(--bg-walnut-deep)' }}>
         <ChinarLeavesCanvas />
