@@ -27,67 +27,65 @@ interface PartnerDashboardProps {
   onOpenDiscussion: (commitment: Commitment) => void;
 }
 
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+
 export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
   onOpenInviteModal,
   onOpenDiscussion,
 }) => {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
 
-  const [partners, setPartners] = useState<Partnership[]>([]);
-  const [incomingInvites, setIncomingInvites] = useState<Partnership[]>([]);
-  const [outgoingInvites, setOutgoingInvites] = useState<Partnership[]>([]);
   const [selectedPartner, setSelectedPartner] = useState<Partnership | null>(null);
-  const [partnerOverview, setPartnerOverview] = useState<PartnerDailyOverview | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadingOverview, setLoadingOverview] = useState(false);
   const [acceptShareOverrides, setAcceptShareOverrides] = useState<Record<string, boolean>>({});
 
+  // TanStack Query: in-memory caching & deduplication
+  const { data: partners = [], isLoading: loadingPartners } = useQuery({
+    queryKey: ['partners', 'active'],
+    queryFn: () => partnershipApi.getActive(),
+  });
+
+  const { data: incomingInvites = [] } = useQuery({
+    queryKey: ['partners', 'incoming'],
+    queryFn: () => partnershipApi.getIncomingInvites(),
+  });
+
+  const { data: outgoingInvites = [] } = useQuery({
+    queryKey: ['partners', 'outgoing'],
+    queryFn: () => partnershipApi.getOutgoingInvites(),
+  });
+
+  const loading = loadingPartners && partners.length === 0;
+
+  // Keep selectedPartner in sync with partner list
   useEffect(() => {
-    loadPartnerships();
-  }, []);
-
-  useEffect(() => {
-    if (selectedPartner) {
-      const partnerUserId = selectedPartner.requesterId === user?.id 
-        ? selectedPartner.partnerId 
-        : selectedPartner.requesterId;
-      loadPartnerOverview(partnerUserId);
-    }
-  }, [selectedPartner]);
-
-  const loadPartnerships = async () => {
-    try {
-      setLoading(true);
-      const [active, incoming, outgoing] = await Promise.all([
-        partnershipApi.getActive(),
-        partnershipApi.getIncomingInvites(),
-        partnershipApi.getOutgoingInvites(),
-      ]);
-      setPartners(active);
-      setIncomingInvites(incoming);
-      setOutgoingInvites(outgoing);
-
-      if (active.length > 0 && !selectedPartner) {
-        setSelectedPartner(active[0]);
+    if (partners.length > 0 && !selectedPartner) {
+      setSelectedPartner(partners[0]);
+    } else if (partners.length > 0 && selectedPartner) {
+      const updated = partners.find(p => p.id === selectedPartner.id);
+      if (updated) {
+        setSelectedPartner(updated);
+      } else {
+        setSelectedPartner(partners[0]);
       }
-    } catch (err: any) {
-      showToast('Failed to load partnerships', 'error');
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [partners]);
 
-  const loadPartnerOverview = async (partnerUserId: string) => {
-    try {
-      setLoadingOverview(true);
-      const overview = await partnershipApi.getPartnerOverview(partnerUserId);
-      setPartnerOverview(overview);
-    } catch (err: any) {
-      showToast('Could not load partner commitments', 'error');
-    } finally {
-      setLoadingOverview(false);
-    }
+  const partnerUserId = selectedPartner
+    ? (selectedPartner.requesterId === user?.id ? selectedPartner.partnerId : selectedPartner.requesterId)
+    : null;
+
+  const { data: partnerOverview = null, isLoading: loadingOverview } = useQuery({
+    queryKey: ['partnerOverview', partnerUserId],
+    queryFn: () => partnershipApi.getPartnerOverview(partnerUserId!),
+    enabled: !!partnerUserId,
+  });
+
+  const refreshPartnerships = () => {
+    queryClient.invalidateQueries({ queryKey: ['partners'] });
+    queryClient.invalidateQueries({ queryKey: ['unreadSummary'] });
+    queryClient.invalidateQueries({ queryKey: ['partnerOverview'] });
   };
 
   const handleAccept = async (id: string, shareMyCommitments?: boolean) => {
@@ -99,7 +97,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
           : 'Partnership accepted! You are now connected.',
         'success'
       );
-      loadPartnerships();
+      refreshPartnerships();
     } catch (err: any) {
       showToast(err.message || 'Failed to accept partnership', 'error');
     }
@@ -109,7 +107,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
     try {
       await partnershipApi.reject(id);
       showToast('Partnership declined', 'info');
-      loadPartnerships();
+      refreshPartnerships();
     } catch (err: any) {
       showToast(err.message || 'Failed to reject partnership', 'error');
     }
