@@ -238,7 +238,7 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
                             partNum,
                             "Part " + partNum + ": " + task.getTitle(),
                             chunkSize,
-                            partNum > 1 // default part 2+ to tomorrow option ready
+                            false // default to Today
                     ));
                     remaining -= chunkSize;
                     partNum++;
