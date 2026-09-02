@@ -533,10 +533,25 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
                         <button
                           onClick={() => onOpenDiscussion(c)}
                           className="btn-outline"
-                          style={{ borderColor: 'var(--border-copper-subtle)' }}
+                          style={c.hasUnreadDiscussion ? {
+                            borderColor: 'var(--saffron-ember)',
+                            background: 'rgba(226, 149, 59, 0.16)',
+                            color: 'var(--saffron-ember)',
+                            fontWeight: 700,
+                            boxShadow: '0 0 12px rgba(226, 149, 59, 0.25)',
+                          } : (c.discussionMessageCount && c.discussionMessageCount > 0) ? {
+                            borderColor: 'rgba(226, 149, 59, 0.35)',
+                            color: 'var(--text-kehwa-cream)',
+                          } : { borderColor: 'var(--border-copper-subtle)' }}
                         >
-                          <MessageSquare size={14} />
-                          <span>Discuss</span>
+                          <MessageSquare size={14} color={c.hasUnreadDiscussion ? 'var(--saffron-ember)' : undefined} />
+                          <span>
+                            {c.hasUnreadDiscussion
+                              ? `Discuss (${c.discussionMessageCount || 1}) • ⚡ New`
+                              : (c.discussionMessageCount && c.discussionMessageCount > 0)
+                                ? `Discuss (${c.discussionMessageCount})`
+                                : 'Discuss'}
+                          </span>
                         </button>
                       </div>
                     );

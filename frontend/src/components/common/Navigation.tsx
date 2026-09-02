@@ -6,12 +6,13 @@ export type TabType = 'today' | 'partners' | 'analytics';
 interface NavigationProps {
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
+  unreadPartnerCount?: number;
 }
 
-export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
+export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, unreadPartnerCount = 0 }) => {
   const tabs = [
     { id: 'today' as TabType, label: 'Today', icon: CalendarCheck },
-    { id: 'partners' as TabType, label: 'Partners', icon: Users },
+    { id: 'partners' as TabType, label: 'Partners', icon: Users, badge: unreadPartnerCount },
     { id: 'analytics' as TabType, label: 'Insights', icon: BarChart3 },
   ];
 
@@ -48,6 +49,23 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                 color={isActive ? 'var(--chinar-rust)' : 'var(--text-tweed-dim)'}
               />
               <span>{tab.label}</span>
+              {tab.badge && tab.badge > 0 ? (
+                <span
+                  style={{
+                    background: 'var(--chinar-rust)',
+                    color: '#fff',
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    padding: '1px 6px',
+                    borderRadius: '10px',
+                    minWidth: '18px',
+                    textAlign: 'center',
+                    boxShadow: '0 0 8px rgba(192, 83, 48, 0.5)',
+                  }}
+                >
+                  {tab.badge}
+                </span>
+              ) : null}
             </button>
           );
         })}

@@ -213,10 +213,26 @@ export const CommitmentCard: React.FC<CommitmentCardProps> = ({
               <button
                 onClick={() => onOpenDiscussion(commitment)}
                 className="btn-outline"
+                style={commitment.hasUnreadDiscussion ? {
+                  borderColor: 'var(--saffron-ember)',
+                  background: 'rgba(226, 149, 59, 0.16)',
+                  color: 'var(--saffron-ember)',
+                  fontWeight: 700,
+                  boxShadow: '0 0 12px rgba(226, 149, 59, 0.25)',
+                } : (commitment.discussionMessageCount && commitment.discussionMessageCount > 0) ? {
+                  borderColor: 'rgba(226, 149, 59, 0.35)',
+                  color: 'var(--text-kehwa-cream)',
+                } : undefined}
                 title="Discuss with accountability partner"
               >
-                <MessageSquare size={14} />
-                <span>Discussion</span>
+                <MessageSquare size={14} color={commitment.hasUnreadDiscussion ? 'var(--saffron-ember)' : undefined} />
+                <span>
+                  {commitment.hasUnreadDiscussion 
+                    ? `Discussion (${commitment.discussionMessageCount || 1}) • ⚡ New`
+                    : (commitment.discussionMessageCount && commitment.discussionMessageCount > 0)
+                      ? `Discussion (${commitment.discussionMessageCount})`
+                      : 'Discussion'}
+                </span>
               </button>
 
               {!isCompleted && !isPostponed && (

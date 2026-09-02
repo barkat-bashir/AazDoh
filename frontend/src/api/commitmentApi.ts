@@ -19,6 +19,8 @@ export interface Commitment {
   visibility: CommitmentVisibility;
   targetPartnerId?: string;
   targetPartnerName?: string;
+  discussionMessageCount?: number;
+  hasUnreadDiscussion?: boolean;
   postponedFromId?: string;
   originCommitmentId?: string;
   postponementCount?: number;

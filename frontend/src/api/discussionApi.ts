@@ -18,6 +18,12 @@ export interface AddMessageRequest {
   message: string;
 }
 
+export interface UnreadSummary {
+  unreadDiscussionMessages: number;
+  pendingInvitations: number;
+  totalUnreadNotifications: number;
+}
+
 export const discussionApi = {
   getDiscussion: (commitmentId: string) =>
     request<DiscussionResponse>(`/commitments/${commitmentId}/discussion`),
@@ -27,4 +33,7 @@ export const discussionApi = {
       method: 'POST',
       body: JSON.stringify({ message }),
     }),
+
+  getUnreadSummary: () =>
+    request<UnreadSummary>('/discussions/unread-summary'),
 };

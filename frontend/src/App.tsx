@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { Header } from './components/common/Header';
@@ -12,6 +12,7 @@ import { TodayPage } from './pages/TodayPage';
 import { PartnersPage } from './pages/PartnersPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { SettingsModal } from './components/settings/SettingsModal';
+import { discussionApi } from './api/discussionApi';
 
 type PublicView = 'landing' | 'auth' | 'terms' | 'privacy';
 
@@ -20,6 +21,51 @@ const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('today');
   const [publicView, setPublicView] = useState<PublicView>('landing');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchUnread = async () => {
+      try {
+        const summary = await discussionApi.getUnreadSummary();
+        setUnreadCount(summary.totalUnreadNotifications);
+      } catch (e) {
+        // silent
+      }
+    };
+
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 20000);
+
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Out-of-tab awareness (Dynamic Tab Title alert)
+  useEffect(() => {
+    const defaultTitle = 'AazDoh • Commit • Do • Report • Reflect';
+
+    if (unreadCount > 0) {
+      document.title = `(${unreadCount}) 💬 Partner update • AazDoh`;
+    } else {
+      document.title = defaultTitle;
+    }
+
+    const handleFocus = () => {
+      if (!document.hidden && user) {
+        discussionApi.getUnreadSummary().then(s => setUnreadCount(s.totalUnreadNotifications)).catch(() => {});
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
+      document.title = defaultTitle;
+    };
+  }, [unreadCount, user]);
 
   if (loading) {
     return (
@@ -97,7 +143,7 @@ const AppContent: React.FC = () => {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-walnut-deep)', position: 'relative' }}>
       <ChinarLeavesCanvas />
       <Header onOpenSettings={() => setIsSettingsOpen(true)} />
-      <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <Navigation activeTab={activeTab} onTabChange={setActiveTab} unreadPartnerCount={unreadCount} />
       
       <main style={{ flex: 1, paddingBottom: '60px', position: 'relative' }}>
         {activeTab === 'today' && <TodayPage />}
