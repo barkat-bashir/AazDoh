@@ -13,6 +13,7 @@ import { PartnersPage } from './pages/PartnersPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { SettingsModal } from './components/settings/SettingsModal';
 import { discussionApi } from './api/discussionApi';
+import { useQuery } from '@tanstack/react-query';
 
 type PublicView = 'landing' | 'auth' | 'terms' | 'privacy';
 
@@ -21,25 +22,16 @@ const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('today');
   const [publicView, setPublicView] = useState<PublicView>('landing');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
 
-  useEffect(() => {
-    if (!user) return;
+  // TanStack Query for unread notifications & background sync
+  const { data: unreadSummary } = useQuery({
+    queryKey: ['unreadSummary'],
+    queryFn: () => discussionApi.getUnreadSummary(),
+    enabled: !!user,
+    refetchInterval: 20000,
+  });
 
-    const fetchUnread = async () => {
-      try {
-        const summary = await discussionApi.getUnreadSummary();
-        setUnreadCount(summary.totalUnreadNotifications);
-      } catch (e) {
-        // silent
-      }
-    };
-
-    fetchUnread();
-    const interval = setInterval(fetchUnread, 20000);
-
-    return () => clearInterval(interval);
-  }, [user]);
+  const unreadCount = unreadSummary?.totalUnreadNotifications || 0;
 
   // Out-of-tab awareness (Dynamic Tab Title alert)
   useEffect(() => {
@@ -51,21 +43,10 @@ const AppContent: React.FC = () => {
       document.title = defaultTitle;
     }
 
-    const handleFocus = () => {
-      if (!document.hidden && user) {
-        discussionApi.getUnreadSummary().then(s => setUnreadCount(s.totalUnreadNotifications)).catch(() => {});
-      }
-    };
-
-    window.addEventListener('focus', handleFocus);
-    document.addEventListener('visibilitychange', handleFocus);
-
     return () => {
-      window.removeEventListener('focus', handleFocus);
-      document.removeEventListener('visibilitychange', handleFocus);
       document.title = defaultTitle;
     };
-  }, [unreadCount, user]);
+  }, [unreadCount]);
 
   if (loading) {
     return (
