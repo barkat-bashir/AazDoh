@@ -67,14 +67,24 @@ public class PartnershipService {
             throw new BadRequestException("An active partnership or pending invitation already exists with this user");
         }
 
-        AccountabilityPartnership partnership = new AccountabilityPartnership(requester, partner);
+        com.aazdoh.partnership.entity.PartnershipType type = request.getPartnershipType() != null 
+                ? request.getPartnershipType() 
+                : com.aazdoh.partnership.entity.PartnershipType.MUTUAL;
+        boolean sharePartnerCommitments = (type == com.aazdoh.partnership.entity.PartnershipType.MUTUAL);
+
+        AccountabilityPartnership partnership = new AccountabilityPartnership(
+                requester, 
+                partner, 
+                type, 
+                sharePartnerCommitments
+        );
         AccountabilityPartnership saved = partnershipRepository.save(partnership);
 
         return PartnershipResponse.fromEntity(saved);
     }
 
     @Transactional
-    public PartnershipResponse acceptInvitation(UUID userId, UUID partnershipId) {
+    public PartnershipResponse acceptInvitation(UUID userId, UUID partnershipId, com.aazdoh.partnership.dto.AcceptPartnershipRequest acceptRequest) {
         AccountabilityPartnership partnership = findPartnership(partnershipId);
 
         if (!partnership.getPartner().getId().equals(userId)) {
@@ -82,6 +92,9 @@ public class PartnershipService {
         }
 
         partnership.setStatus(PartnershipStatus.ACCEPTED);
+        if (acceptRequest != null && acceptRequest.getShareMyCommitments() != null) {
+            partnership.setSharePartnerCommitments(acceptRequest.getShareMyCommitments());
+        }
         AccountabilityPartnership saved = partnershipRepository.save(partnership);
         return PartnershipResponse.fromEntity(saved);
     }
@@ -154,6 +167,17 @@ public class PartnershipService {
             } catch (Exception e) {
                 targetDate = LocalDate.now();
             }
+        }
+
+        // Privacy enforcement: If partner is an asymmetric sponsor/observer, their personal commitments are hidden from requester
+        boolean isPartnerPrivateSponsor = currentUserId.equals(partnership.getRequester().getId()) 
+                && !partnership.isSharePartnerCommitments();
+
+        if (isPartnerPrivateSponsor) {
+            PartnerDailyOverviewDto overview = new PartnerDailyOverviewDto(partner.getId(), partner.getFullName(), targetDate, java.util.Collections.emptyList());
+            overview.setOneWaySponsor(true);
+            overview.setAiDiagnosticSummary(partner.getFullName() + " is serving as your 1-Way Accountability Sponsor. Their personal commitments remain private.");
+            return overview;
         }
 
         List<Commitment> sharedCommitments = commitmentRepository.findByUserIdAndVisibilityAndCommitmentDate(

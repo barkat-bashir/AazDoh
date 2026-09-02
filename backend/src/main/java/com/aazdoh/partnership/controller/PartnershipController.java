@@ -54,9 +54,10 @@ public class PartnershipController {
     @Operation(summary = "Accept an incoming partnership invitation")
     public ResponseEntity<ApiResponse<PartnershipResponse>> acceptInvitation(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @PathVariable("id") UUID partnershipId
+            @PathVariable("id") UUID partnershipId,
+            @RequestBody(required = false) com.aazdoh.partnership.dto.AcceptPartnershipRequest request
     ) {
-        PartnershipResponse response = partnershipService.acceptInvitation(userDetails.getId(), partnershipId);
+        PartnershipResponse response = partnershipService.acceptInvitation(userDetails.getId(), partnershipId, request);
         return ResponseEntity.ok(ApiResponse.ok("Partnership accepted", response));
     }
 
