@@ -64,6 +64,34 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
     });
   };
 
+  const handleRecalculateChunkSize = (proposalIdx: number, chunkSize: number) => {
+    setProposals(prev => {
+      const copy = [...prev];
+      const target = { ...copy[proposalIdx] };
+      const totalMinutes = target.currentMinutes;
+      const willScheduleTomorrow = target.splitBlocks?.[1]?.scheduleTomorrow ?? true;
+
+      const newBlocks: { blockIndex: number; title: string; minutes: number; scheduleTomorrow: boolean }[] = [];
+      let remaining = totalMinutes;
+      let partNum = 1;
+      while (remaining > 0) {
+        const size = Math.min(remaining, chunkSize);
+        newBlocks.push({
+          blockIndex: partNum,
+          title: `Part ${partNum}: ${target.currentTitle}`,
+          minutes: size,
+          scheduleTomorrow: partNum > 1 ? willScheduleTomorrow : false,
+        });
+        remaining -= size;
+        partNum++;
+      }
+      target.splitBlocks = newBlocks;
+      target.proposedMinutes = newBlocks[0]?.minutes || chunkSize;
+      copy[proposalIdx] = target;
+      return copy;
+    });
+  };
+
   const handleApplyOptimizations = async () => {
     const toApply = proposals.length > 0 ? proposals : data?.proposedOptimizations;
     if (!toApply || toApply.length === 0) {
@@ -398,6 +426,35 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
                             <div style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--saffron-ember)', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
                               <span>⚡ AUTOMATIC FOCUS SPRINTS ({prop.splitBlocks!.length} BLOCKS):</span>
                               <span style={{ color: 'var(--text-tweed-dim)', fontWeight: 500 }}>Part 1 stays on Today</span>
+                            </div>
+
+                            {/* Cadence Preset Pills */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '0.70rem', color: 'var(--text-parchment-muted)', fontWeight: 600 }}>Cadence:</span>
+                              {[25, 45, 60].map(mins => {
+                                const currentChunk = prop.splitBlocks?.[0]?.minutes || 45;
+                                const isSelected = currentChunk === mins || (![25, 45, 60].includes(currentChunk) && mins === 45);
+                                return (
+                                  <button
+                                    key={mins}
+                                    type="button"
+                                    onClick={() => handleRecalculateChunkSize(idx, mins)}
+                                    style={{
+                                      fontSize: '0.70rem',
+                                      padding: '2px 8px',
+                                      borderRadius: '4px',
+                                      border: '1px solid',
+                                      borderColor: isSelected ? 'var(--saffron-ember)' : 'var(--border-walnut-faint)',
+                                      background: isSelected ? 'rgba(226, 149, 59, 0.2)' : 'transparent',
+                                      color: isSelected ? 'var(--saffron-ember)' : 'var(--text-tweed-dim)',
+                                      cursor: 'pointer',
+                                      fontWeight: isSelected ? 700 : 500,
+                                    }}
+                                  >
+                                    {mins === 25 ? '🍅 25m Pomodoro' : mins === 45 ? '⚡ 45m Focus (Default)' : '🧠 60m Deep Work'}
+                                  </button>
+                                );
+                              })}
                             </div>
 
                             {/* Sprint blocks chips */}
