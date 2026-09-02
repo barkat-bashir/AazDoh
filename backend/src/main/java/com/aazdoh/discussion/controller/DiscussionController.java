@@ -37,9 +37,11 @@ public class DiscussionController {
     @GetMapping
     @Operation(summary = "Get full discussion thread for a commitment")
     public ResponseEntity<ApiResponse<DiscussionResponse>> getDiscussion(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable("commitmentId") UUID commitmentId
     ) {
-        DiscussionResponse response = discussionService.getOrCreateDiscussion(commitmentId);
+        UUID currentUserId = userDetails != null ? userDetails.getId() : null;
+        DiscussionResponse response = discussionService.getOrCreateDiscussion(commitmentId, currentUserId);
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 

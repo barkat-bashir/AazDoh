@@ -34,6 +34,7 @@ public class PartnershipService {
     private final CommitmentRepository commitmentRepository;
     private final com.aazdoh.ai.context.AccountabilityContextBuilder contextBuilder;
     private final com.aazdoh.ai.client.AccountabilityAiClient aiClient;
+    private final com.aazdoh.discussion.repository.DiscussionMessageRepository discussionMessageRepository;
 
     public PartnershipService(
             PartnershipRepository partnershipRepository,
@@ -41,7 +42,8 @@ public class PartnershipService {
             UserService userService,
             CommitmentRepository commitmentRepository,
             com.aazdoh.ai.context.AccountabilityContextBuilder contextBuilder,
-            com.aazdoh.ai.client.AccountabilityAiClient aiClient
+            com.aazdoh.ai.client.AccountabilityAiClient aiClient,
+            com.aazdoh.discussion.repository.DiscussionMessageRepository discussionMessageRepository
     ) {
         this.partnershipRepository = partnershipRepository;
         this.userRepository = userRepository;
@@ -49,6 +51,7 @@ public class PartnershipService {
         this.commitmentRepository = commitmentRepository;
         this.contextBuilder = contextBuilder;
         this.aiClient = aiClient;
+        this.discussionMessageRepository = discussionMessageRepository;
     }
 
     @Transactional
@@ -190,6 +193,8 @@ public class PartnershipService {
                 .map(CommitmentResponse::fromEntity)
                 .collect(Collectors.toList());
 
+        populateDiscussionStats(dtoList, currentUserId);
+
         PartnerDailyOverviewDto overview = new PartnerDailyOverviewDto(partner.getId(), partner.getFullName(), targetDate, dtoList);
 
         // Compute live AI Brief for partner
@@ -229,5 +234,29 @@ public class PartnershipService {
     private AccountabilityPartnership findPartnership(UUID partnershipId) {
         return partnershipRepository.findById(partnershipId)
                 .orElseThrow(() -> new ResourceNotFoundException("Partnership not found with id: " + partnershipId));
+    }
+
+    private void populateDiscussionStats(List<CommitmentResponse> responses, UUID currentUserId) {
+        if (responses == null || responses.isEmpty() || currentUserId == null) {
+            return;
+        }
+        List<UUID> ids = responses.stream().map(CommitmentResponse::getId).collect(Collectors.toList());
+        List<Object[]> stats = discussionMessageRepository.getStatsForCommitments(ids, currentUserId);
+        java.util.Map<UUID, Object[]> statsMap = new java.util.HashMap<>();
+        for (Object[] row : stats) {
+            statsMap.put((UUID) row[0], row);
+        }
+        for (CommitmentResponse resp : responses) {
+            Object[] row = statsMap.get(resp.getId());
+            if (row != null) {
+                long total = ((Number) row[1]).longValue();
+                long unread = row[2] != null ? ((Number) row[2]).longValue() : 0L;
+                resp.setDiscussionMessageCount((int) total);
+                resp.setHasUnreadDiscussion(unread > 0);
+            } else {
+                resp.setDiscussionMessageCount(0);
+                resp.setHasUnreadDiscussion(false);
+            }
+        }
     }
 }

@@ -25,10 +25,16 @@ public class CommitmentService {
 
     private final CommitmentRepository commitmentRepository;
     private final UserService userService;
+    private final com.aazdoh.discussion.repository.DiscussionMessageRepository discussionMessageRepository;
 
-    public CommitmentService(CommitmentRepository commitmentRepository, UserService userService) {
+    public CommitmentService(
+            CommitmentRepository commitmentRepository,
+            UserService userService,
+            com.aazdoh.discussion.repository.DiscussionMessageRepository discussionMessageRepository
+    ) {
         this.commitmentRepository = commitmentRepository;
         this.userService = userService;
+        this.discussionMessageRepository = discussionMessageRepository;
     }
 
     @Transactional
@@ -54,7 +60,9 @@ public class CommitmentService {
 
     public List<CommitmentResponse> getTodayCommitments(UUID userId, LocalDate date) {
         List<Commitment> list = commitmentRepository.findByUserIdAndCommitmentDate(userId, date);
-        return list.stream().map(this::mapToResponse).collect(Collectors.toList());
+        List<CommitmentResponse> responses = list.stream().map(this::mapToResponse).collect(Collectors.toList());
+        populateDiscussionStats(responses, userId);
+        return responses;
     }
 
     public List<CommitmentResponse> getCommitmentsByRange(UUID userId, LocalDate startDate, LocalDate endDate) {
@@ -179,5 +187,29 @@ public class CommitmentService {
             }
         }
         return res;
+    }
+
+    private void populateDiscussionStats(List<CommitmentResponse> responses, UUID currentUserId) {
+        if (responses == null || responses.isEmpty() || currentUserId == null) {
+            return;
+        }
+        List<UUID> ids = responses.stream().map(CommitmentResponse::getId).collect(Collectors.toList());
+        List<Object[]> stats = discussionMessageRepository.getStatsForCommitments(ids, currentUserId);
+        java.util.Map<UUID, Object[]> statsMap = new java.util.HashMap<>();
+        for (Object[] row : stats) {
+            statsMap.put((UUID) row[0], row);
+        }
+        for (CommitmentResponse resp : responses) {
+            Object[] row = statsMap.get(resp.getId());
+            if (row != null) {
+                long total = ((Number) row[1]).longValue();
+                long unread = row[2] != null ? ((Number) row[2]).longValue() : 0L;
+                resp.setDiscussionMessageCount((int) total);
+                resp.setHasUnreadDiscussion(unread > 0);
+            } else {
+                resp.setDiscussionMessageCount(0);
+                resp.setHasUnreadDiscussion(false);
+            }
+        }
     }
 }
