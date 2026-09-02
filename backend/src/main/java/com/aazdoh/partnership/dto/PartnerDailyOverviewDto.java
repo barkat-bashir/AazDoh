@@ -22,6 +22,7 @@ public class PartnerDailyOverviewDto {
     private String aiDiagnosticSummary;
     private double plannedHours;
     private double capacityHours;
+    private boolean isOneWaySponsor;
 
     public PartnerDailyOverviewDto() {
     }
@@ -130,5 +131,13 @@ public class PartnerDailyOverviewDto {
 
     public void setCapacityHours(double capacityHours) {
         this.capacityHours = capacityHours;
+    }
+
+    public boolean isOneWaySponsor() {
+        return isOneWaySponsor;
+    }
+
+    public void setOneWaySponsor(boolean oneWaySponsor) {
+        isOneWaySponsor = oneWaySponsor;
     }
 }

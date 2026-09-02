@@ -30,13 +30,42 @@ public class AccountabilityPartnership extends BaseEntity {
     @Column(nullable = false, length = 20)
     private PartnershipStatus status = PartnershipStatus.PENDING;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "partnership_type", nullable = false, length = 30)
+    private PartnershipType partnershipType = PartnershipType.MUTUAL;
+
+    @Column(name = "share_partner_commitments", nullable = false)
+    private boolean sharePartnerCommitments = true;
+
     public AccountabilityPartnership() {
     }
 
     public AccountabilityPartnership(User requester, User partner) {
+        this(requester, partner, PartnershipType.MUTUAL, true);
+    }
+
+    public AccountabilityPartnership(User requester, User partner, PartnershipType partnershipType, boolean sharePartnerCommitments) {
         this.requester = requester;
         this.partner = partner;
         this.status = PartnershipStatus.PENDING;
+        this.partnershipType = partnershipType != null ? partnershipType : PartnershipType.MUTUAL;
+        this.sharePartnerCommitments = sharePartnerCommitments;
+    }
+
+    public PartnershipType getPartnershipType() {
+        return partnershipType;
+    }
+
+    public void setPartnershipType(PartnershipType partnershipType) {
+        this.partnershipType = partnershipType;
+    }
+
+    public boolean isSharePartnerCommitments() {
+        return sharePartnerCommitments;
+    }
+
+    public void setSharePartnerCommitments(boolean sharePartnerCommitments) {
+        this.sharePartnerCommitments = sharePartnerCommitments;
     }
 
     public User getRequester() {

@@ -16,6 +16,8 @@ public class PartnershipResponse {
     private String partnerName;
     private String partnerEmail;
     private PartnershipStatus status;
+    private com.aazdoh.partnership.entity.PartnershipType partnershipType;
+    private boolean sharePartnerCommitments;
     private OffsetDateTime createdAt;
 
     public PartnershipResponse() {
@@ -31,8 +33,26 @@ public class PartnershipResponse {
         res.setPartnerName(p.getPartner().getFullName());
         res.setPartnerEmail(p.getPartner().getEmail());
         res.setStatus(p.getStatus());
+        res.setPartnershipType(p.getPartnershipType() != null ? p.getPartnershipType() : com.aazdoh.partnership.entity.PartnershipType.MUTUAL);
+        res.setSharePartnerCommitments(p.isSharePartnerCommitments());
         res.setCreatedAt(p.getCreatedAt());
         return res;
+    }
+
+    public com.aazdoh.partnership.entity.PartnershipType getPartnershipType() {
+        return partnershipType;
+    }
+
+    public void setPartnershipType(com.aazdoh.partnership.entity.PartnershipType partnershipType) {
+        this.partnershipType = partnershipType;
+    }
+
+    public boolean isSharePartnerCommitments() {
+        return sharePartnerCommitments;
+    }
+
+    public void setSharePartnerCommitments(boolean sharePartnerCommitments) {
+        this.sharePartnerCommitments = sharePartnerCommitments;
     }
 
     public UUID getId() {
