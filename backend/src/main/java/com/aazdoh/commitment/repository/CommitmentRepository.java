@@ -39,6 +39,13 @@ public interface CommitmentRepository extends JpaRepository<Commitment, UUID> {
             @Param("date") LocalDate date
     );
 
+    @Query("SELECT c FROM Commitment c WHERE c.user.id = :userId AND c.visibility = com.aazdoh.commitment.entity.CommitmentVisibility.SHARED_WITH_PARTNER AND (c.targetPartnerId IS NULL OR c.targetPartnerId = :partnerId) AND c.commitmentDate = :date AND c.deletedAt IS NULL ORDER BY c.createdAt ASC")
+    List<Commitment> findSharedCommitmentsForPartner(
+            @Param("userId") UUID userId,
+            @Param("partnerId") UUID partnerId,
+            @Param("date") LocalDate date
+    );
+
     @Query("SELECT c FROM Commitment c WHERE c.user.id = :userId AND c.status = :status AND c.deletedAt IS NULL")
     List<Commitment> findByUserIdAndStatus(@Param("userId") UUID userId, @Param("status") CommitmentStatus status);
 

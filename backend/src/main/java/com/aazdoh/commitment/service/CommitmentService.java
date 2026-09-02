@@ -46,24 +46,25 @@ public class CommitmentService {
         commitment.setDeadline(request.getDeadline());
         commitment.setStatus(CommitmentStatus.PENDING);
         commitment.setVisibility(request.getVisibility());
+        commitment.setTargetPartnerId(request.getTargetPartnerId());
 
         Commitment saved = commitmentRepository.save(commitment);
-        return CommitmentResponse.fromEntity(saved);
+        return mapToResponse(saved);
     }
 
     public List<CommitmentResponse> getTodayCommitments(UUID userId, LocalDate date) {
         List<Commitment> list = commitmentRepository.findByUserIdAndCommitmentDate(userId, date);
-        return list.stream().map(CommitmentResponse::fromEntity).collect(Collectors.toList());
+        return list.stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
     public List<CommitmentResponse> getCommitmentsByRange(UUID userId, LocalDate startDate, LocalDate endDate) {
         List<Commitment> list = commitmentRepository.findByUserIdAndDateRange(userId, startDate, endDate);
-        return list.stream().map(CommitmentResponse::fromEntity).collect(Collectors.toList());
+        return list.stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
     public CommitmentResponse getCommitmentById(UUID userId, UUID commitmentId) {
         Commitment commitment = findActiveCommitment(commitmentId, userId);
-        return CommitmentResponse.fromEntity(commitment);
+        return mapToResponse(commitment);
     }
 
     @Transactional
@@ -100,9 +101,12 @@ public class CommitmentService {
         if (request.getVisibility() != null) {
             commitment.setVisibility(request.getVisibility());
         }
+        if (request.getTargetPartnerId() != null) {
+            commitment.setTargetPartnerId(request.getTargetPartnerId());
+        }
 
         Commitment updated = commitmentRepository.save(commitment);
-        return CommitmentResponse.fromEntity(updated);
+        return mapToResponse(updated);
     }
 
     @Transactional
@@ -163,5 +167,17 @@ public class CommitmentService {
 
     public List<Commitment> getRecentPostponedCommitments(UUID userId) {
         return commitmentRepository.findRecentPostponedCommitmentsWithReasons(userId);
+    }
+
+    private CommitmentResponse mapToResponse(Commitment commitment) {
+        CommitmentResponse res = CommitmentResponse.fromEntity(commitment);
+        if (commitment.getTargetPartnerId() != null) {
+            try {
+                User partner = userService.findUserById(commitment.getTargetPartnerId());
+                res.setTargetPartnerName(partner.getFullName());
+            } catch (Exception ignored) {
+            }
+        }
+        return res;
     }
 }

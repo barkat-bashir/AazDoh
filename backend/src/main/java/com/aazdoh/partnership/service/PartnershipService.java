@@ -180,9 +180,9 @@ public class PartnershipService {
             return overview;
         }
 
-        List<Commitment> sharedCommitments = commitmentRepository.findByUserIdAndVisibilityAndCommitmentDate(
+        List<Commitment> sharedCommitments = commitmentRepository.findSharedCommitmentsForPartner(
                 partnerUserId,
-                CommitmentVisibility.SHARED_WITH_PARTNER,
+                currentUserId,
                 targetDate
         );
 
