@@ -33,4 +33,13 @@ public class DiscussionNotificationController {
         UnreadSummaryDto summary = discussionService.getUnreadSummary(userDetails.getId());
         return ResponseEntity.ok(ApiResponse.ok(summary));
     }
+
+    @org.springframework.web.bind.annotation.PostMapping("/mark-all-read")
+    @Operation(summary = "Dismiss and mark all unread discussion messages as read")
+    public ResponseEntity<ApiResponse<Void>> markAllAsRead(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        discussionService.markAllAsRead(userDetails.getId());
+        return ResponseEntity.ok(ApiResponse.ok("All discussion notifications marked as read", null));
+    }
 }

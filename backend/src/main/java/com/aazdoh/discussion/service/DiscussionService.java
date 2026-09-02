@@ -88,9 +88,54 @@ public class DiscussionService {
 
     @Transactional(readOnly = true)
     public UnreadSummaryDto getUnreadSummary(UUID userId) {
-        long unreadDiscussions = discussionMessageRepository.countUnreadMessagesForUser(userId);
+        List<Object[]> unreadDetails = discussionMessageRepository.findUnreadMessageDetailsForUser(userId);
         long pendingInvites = partnershipRepository.findPendingIncomingRequests(userId).size();
-        return new UnreadSummaryDto(unreadDiscussions, pendingInvites);
+
+        long unreadToday = 0;
+        long unreadPartner = 0;
+        java.util.Set<UUID> partnerIds = new java.util.HashSet<>();
+        java.util.Set<UUID> commitmentIds = new java.util.HashSet<>();
+
+        for (Object[] row : unreadDetails) {
+            UUID commitmentId = (UUID) row[0];
+            UUID commitmentOwnerId = (UUID) row[1];
+            UUID authorId = (UUID) row[2];
+
+            commitmentIds.add(commitmentId);
+
+            if (userId.equals(commitmentOwnerId)) {
+                // Someone commented on my own task (belongs to Today tab)
+                unreadToday++;
+                partnerIds.add(authorId);
+            } else {
+                // Someone commented on a partner task (belongs to Partners tab)
+                unreadPartner++;
+                partnerIds.add(commitmentOwnerId);
+            }
+        }
+
+        long totalUnreadDiscussions = unreadDetails.size();
+
+        return new UnreadSummaryDto(
+                totalUnreadDiscussions,
+                pendingInvites,
+                unreadToday,
+                unreadPartner + pendingInvites,
+                new java.util.ArrayList<>(partnerIds),
+                new java.util.ArrayList<>(commitmentIds)
+        );
+    }
+
+    @Transactional
+    public void markAllAsRead(UUID userId) {
+        List<Object[]> unreadDetails = discussionMessageRepository.findUnreadMessageDetailsForUser(userId);
+        if (unreadDetails.isEmpty()) {
+            return;
+        }
+        List<UUID> messageIds = unreadDetails.stream()
+                .map(r -> (UUID) r[3])
+                .collect(Collectors.toList());
+        discussionMessageRepository.markMessagesAsReadByIds(messageIds, OffsetDateTime.now());
     }
 
     @Transactional(readOnly = true)

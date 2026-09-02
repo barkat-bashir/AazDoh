@@ -32,4 +32,17 @@ public interface DiscussionMessageRepository extends JpaRepository<DiscussionMes
            "WHERE m.discussion.commitment.id IN :commitmentIds " +
            "GROUP BY m.discussion.commitment.id")
     List<Object[]> getStatsForCommitments(@Param("commitmentIds") List<UUID> commitmentIds, @Param("userId") UUID userId);
+
+    @Query("SELECT m.discussion.commitment.id, m.discussion.commitment.user.id, m.author.id, m.id " +
+           "FROM DiscussionMessage m JOIN m.discussion d JOIN d.commitment c " +
+           "WHERE m.author.id != :userId AND m.readAt IS NULL " +
+           "AND (c.user.id = :userId OR c.targetPartnerId = :userId " +
+           "     OR EXISTS (SELECT 1 FROM AccountabilityPartnership ap WHERE ap.status = 'ACCEPTED' " +
+           "                AND ((ap.requester.id = :userId AND ap.partner.id = c.user.id) " +
+           "                     OR (ap.partner.id = :userId AND ap.requester.id = c.user.id))))")
+    List<Object[]> findUnreadMessageDetailsForUser(@Param("userId") UUID userId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE DiscussionMessage m SET m.readAt = :now WHERE m.id IN :messageIds")
+    int markMessagesAsReadByIds(@Param("messageIds") List<UUID> messageIds, @Param("now") OffsetDateTime now);
 }
