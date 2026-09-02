@@ -51,6 +51,11 @@ aazdoh:
   ai:
     provider: ${AI_PROVIDER:gemini}
     enabled: true
+  resend:
+    api-key: ${RESEND_API_KEY:}
+    from-email: ${RESEND_FROM_EMAIL:AazDoh <onboarding@resend.dev>}
+  app:
+    frontend-url: ${FRONTEND_URL:http://localhost:5173}
 
 # OpenAPI / Swagger
 springdoc:

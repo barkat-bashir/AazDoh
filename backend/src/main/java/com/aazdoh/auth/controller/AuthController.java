@@ -48,4 +48,18 @@ public class AuthController {
         AuthResponse response = authService.refreshToken(request);
         return ResponseEntity.ok(ApiResponse.ok("Token refreshed successfully", response));
     }
+
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Initiate password reset via email link")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody com.aazdoh.auth.dto.ForgotPasswordRequest request) {
+        authService.initiatePasswordReset(request);
+        return ResponseEntity.ok(ApiResponse.ok("If an account exists with this email, a password reset link has been sent.", null));
+    }
+
+    @PostMapping("/reset-password")
+    @Operation(summary = "Reset password using reset token")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody com.aazdoh.auth.dto.ResetPasswordRequest request) {
+        authService.completePasswordReset(request);
+        return ResponseEntity.ok(ApiResponse.ok("Password has been reset successfully. You may now sign in.", null));
+    }
 }

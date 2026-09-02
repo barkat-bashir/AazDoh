@@ -25,17 +25,23 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final com.aazdoh.auth.repository.PasswordResetTokenRepository passwordResetTokenRepository;
+    private final com.aazdoh.common.email.ResendEmailService emailService;
 
     public AuthService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
-            AuthenticationManager authenticationManager
+            AuthenticationManager authenticationManager,
+            com.aazdoh.auth.repository.PasswordResetTokenRepository passwordResetTokenRepository,
+            com.aazdoh.common.email.ResendEmailService emailService
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -118,6 +124,65 @@ public class AuthService {
             );
         } catch (Exception ex) {
             throw new UnauthorizedException("Invalid refresh token");
+        }
+    }
+
+    @Transactional
+    public void initiatePasswordReset(com.aazdoh.auth.dto.ForgotPasswordRequest request) {
+        String cleanEmail = request.getEmail().toLowerCase().trim();
+        java.util.Optional<User> userOpt = userRepository.findByEmail(cleanEmail);
+
+        if (userOpt.isEmpty()) {
+            // Security best practice: avoid user enumeration attacks by returning silently
+            return;
+        }
+
+        User user = userOpt.get();
+
+        // Delete any existing reset tokens for this user
+        passwordResetTokenRepository.deleteByUserId(user.getId());
+
+        // Generate secure random token
+        String rawToken = UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "");
+        String tokenHash = hashToken(rawToken);
+
+        java.time.OffsetDateTime expiresAt = java.time.OffsetDateTime.now().plusHours(1);
+        com.aazdoh.auth.entity.PasswordResetToken resetToken = new com.aazdoh.auth.entity.PasswordResetToken(user, tokenHash, expiresAt);
+        passwordResetTokenRepository.save(resetToken);
+
+        // Send email via Resend
+        emailService.sendPasswordResetEmail(user.getEmail(), user.getFullName(), rawToken);
+    }
+
+    @Transactional
+    public void completePasswordReset(com.aazdoh.auth.dto.ResetPasswordRequest request) {
+        String tokenHash = hashToken(request.getToken().trim());
+        com.aazdoh.auth.entity.PasswordResetToken resetToken = passwordResetTokenRepository.findByTokenHash(tokenHash)
+                .orElseThrow(() -> new BadRequestException("Invalid or expired password reset link"));
+
+        if (resetToken.isUsed() || resetToken.isExpired()) {
+            throw new BadRequestException("This password reset link has expired or has already been used");
+        }
+
+        User user = resetToken.getUser();
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        resetToken.setUsed(true);
+        passwordResetTokenRepository.save(resetToken);
+    }
+
+    private String hashToken(String token) {
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest(token.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : digest) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("Error hashing reset token", e);
         }
     }
 }
