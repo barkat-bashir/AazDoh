@@ -1,4 +1,4 @@
-const API_HOST = (import.meta.env.VITE_API_BASE_URL || '').trim();
+const API_HOST = (import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? 'https://aazdoh.onrender.com' : '')).trim();
 const BASE_URL = `${API_HOST.replace(/\/$/, '')}/api/v1`;
 
 export interface ApiResponse<T> {
