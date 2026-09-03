@@ -1,11 +1,12 @@
 import React from 'react';
-import { CalendarCheck, Users, BarChart3, Settings, Sparkles } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { CalendarCheck, Users, BarChart3 } from 'lucide-react';
 
 export type TabType = 'today' | 'partners' | 'analytics';
 
 interface NavigationProps {
-  activeTab: TabType;
-  onTabChange: (tab: TabType) => void;
+  activeTab?: TabType;
+  onTabChange?: (tab: TabType) => void;
   unreadTodayCount?: number;
   unreadPartnerCount?: number;
 }
@@ -16,22 +17,35 @@ export const Navigation: React.FC<NavigationProps> = ({
   unreadTodayCount = 0,
   unreadPartnerCount = 0,
 }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const tabs = [
-    { id: 'today' as TabType, label: 'Today', icon: CalendarCheck, badge: unreadTodayCount },
-    { id: 'partners' as TabType, label: 'Partners', icon: Users, badge: unreadPartnerCount },
-    { id: 'analytics' as TabType, label: 'Insights', icon: BarChart3 },
+    { id: 'today' as TabType, path: '/today', label: 'Today', icon: CalendarCheck, badge: unreadTodayCount },
+    { id: 'partners' as TabType, path: '/partners', label: 'Partners', icon: Users, badge: unreadPartnerCount },
+    { id: 'analytics' as TabType, path: '/insights', label: 'Insights', icon: BarChart3 },
   ];
+
+  const handleTabClick = (tab: typeof tabs[0]) => {
+    if (onTabChange) {
+      onTabChange(tab.id);
+    }
+    navigate(tab.path);
+  };
 
   return (
     <div className="app-nav-wrapper">
       <nav className="app-nav">
         {tabs.map((tab) => {
           const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
+          const isActive = activeTab
+            ? activeTab === tab.id
+            : location.pathname === tab.path || (tab.path === '/today' && (location.pathname === '/' || location.pathname === '/app'));
+
           return (
             <button
               key={tab.id}
-              onClick={() => onTabChange(tab.id)}
+              onClick={() => handleTabClick(tab)}
               style={{
                 background: isActive ? 'var(--bg-walnut-card)' : 'transparent',
                 color: isActive ? 'var(--text-kehwa-cream)' : 'var(--text-parchment-muted)',

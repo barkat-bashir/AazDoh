@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useSearchParams, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { Header } from './components/common/Header';
-import { Navigation, TabType } from './components/common/Navigation';
+import { Navigation } from './components/common/Navigation';
 import { ChinarLeavesCanvas } from './components/common/ChinarLeavesCanvas';
 import { LandingPage } from './pages/LandingPage';
 import { AuthPage } from './pages/AuthPage';
@@ -16,17 +17,93 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { discussionApi } from './api/discussionApi';
 import { useQuery } from '@tanstack/react-query';
 
-type PublicView = 'landing' | 'auth' | 'terms' | 'privacy';
+// Reset Password Handler Route
+const ResetPasswordRoute: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const token = searchParams.get('reset-token') || searchParams.get('token');
+
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return (
+    <div style={{ position: 'relative', minHeight: '100vh', background: 'var(--bg-walnut-deep)' }}>
+      <ChinarLeavesCanvas />
+      <div style={{ position: 'relative', zIndex: 10 }}>
+        <ResetPasswordPage
+          token={token}
+          onSuccess={() => {
+            navigate('/login');
+          }}
+        />
+      </div>
+    </div>
+  );
+};
+
+// Authenticated Layout Container (Header, Nav, Outlet, Modals, Footer)
+const AuthenticatedLayout: React.FC<{
+  unreadSummary: any;
+  isSettingsOpen: boolean;
+  setIsSettingsOpen: (open: boolean) => void;
+}> = ({ unreadSummary, isSettingsOpen, setIsSettingsOpen }) => {
+  const unreadTodayCount = unreadSummary?.unreadTodayMessages || 0;
+  const unreadPartnerCount = unreadSummary?.unreadPartnerMessages !== undefined
+    ? unreadSummary.unreadPartnerMessages
+    : (unreadSummary?.pendingInvitations || 0);
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-walnut-deep)', position: 'relative' }}>
+      <ChinarLeavesCanvas />
+      <Header onOpenSettings={() => setIsSettingsOpen(true)} />
+      <Navigation
+        unreadTodayCount={unreadTodayCount}
+        unreadPartnerCount={unreadPartnerCount}
+      />
+
+      <main style={{ flex: 1, paddingBottom: '60px', position: 'relative' }}>
+        <Outlet />
+      </main>
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
+
+      {/* Authenticated Footer */}
+      <footer style={{
+        borderTop: '1px solid var(--border-walnut-faint)',
+        background: 'var(--bg-walnut-deep)',
+        padding: '20px 28px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        fontSize: '0.8rem',
+        color: 'var(--text-tweed-dim)',
+        position: 'relative',
+        flexWrap: 'wrap',
+        gap: '10px',
+      }}>
+        <span>AazDoh • Commit • Do • Report • Reflect</span>
+        <div style={{ display: 'flex', gap: '16px' }}>
+          <a
+            href="https://github.com/bb-code1/AazDoh"
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: 'var(--text-parchment-muted)', textDecoration: 'none' }}
+          >
+            GitHub
+          </a>
+        </div>
+      </footer>
+    </div>
+  );
+};
 
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState<TabType>('today');
-  const [publicView, setPublicView] = useState<PublicView>('landing');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [resetToken, setResetToken] = useState<string | null>(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('reset-token') || params.get('token');
-  });
 
   // TanStack Query for unread notifications & background sync
   const { data: unreadSummary } = useQuery({
@@ -85,129 +162,72 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // Unauthenticated Views: Reset Password, Landing, Auth, Terms, Privacy
-  if (!user) {
-    if (resetToken) {
-      return (
-        <div style={{ position: 'relative', minHeight: '100vh', background: 'var(--bg-walnut-deep)' }}>
-          <ChinarLeavesCanvas />
-          <div style={{ position: 'relative', zIndex: 10 }}>
-            <ResetPasswordPage
-              token={resetToken}
-              onSuccess={() => {
-                setResetToken(null);
-                setPublicView('auth');
-                window.history.replaceState({}, document.title, window.location.pathname);
-              }}
-            />
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div style={{ position: 'relative', minHeight: '100vh', background: 'var(--bg-walnut-deep)' }}>
-        <ChinarLeavesCanvas />
-        <div style={{ position: 'relative', zIndex: 10 }}>
-          {publicView === 'landing' && (
-            <LandingPage
-              onGetStarted={() => setPublicView('auth')}
-              onSignIn={() => setPublicView('auth')}
-              onOpenTerms={() => setPublicView('terms')}
-              onOpenPrivacy={() => setPublicView('privacy')}
-            />
-          )}
-
-          {publicView === 'auth' && (
-            <div style={{ position: 'relative' }}>
-              <button
-                onClick={() => setPublicView('landing')}
-                className="btn-secondary"
-                style={{ position: 'absolute', top: '24px', left: '24px', zIndex: 20 }}
-              >
-                ← Back to Home
-              </button>
-              <AuthPage />
-            </div>
-          )}
-
-          {publicView === 'terms' && (
-            <TermsPage onBack={() => setPublicView('landing')} />
-          )}
-
-          {publicView === 'privacy' && (
-            <PrivacyPolicyPage onBack={() => setPublicView('landing')} />
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Authenticated Application Dashboard
-  const unreadTodayCount = unreadSummary?.unreadTodayMessages || 0;
-  const unreadPartnerCount = unreadSummary?.unreadPartnerMessages !== undefined
-    ? unreadSummary.unreadPartnerMessages
-    : (unreadSummary?.pendingInvitations || 0);
-
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-walnut-deep)', position: 'relative' }}>
-      <ChinarLeavesCanvas />
-      <Header onOpenSettings={() => setIsSettingsOpen(true)} />
-      <Navigation
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        unreadTodayCount={unreadTodayCount}
-        unreadPartnerCount={unreadPartnerCount}
+    <Routes>
+      {/* Public Pages */}
+      <Route
+        path="/"
+        element={user ? <Navigate to="/today" replace /> : <LandingPage />}
       />
-      
-      <main style={{ flex: 1, paddingBottom: '60px', position: 'relative' }}>
-        {activeTab === 'today' && <TodayPage />}
-        {activeTab === 'partners' && <PartnersPage />}
-        {activeTab === 'analytics' && <AnalyticsPage />}
-      </main>
-
-      <SettingsModal 
-        isOpen={isSettingsOpen} 
-        onClose={() => setIsSettingsOpen(false)} 
+      <Route
+        path="/login"
+        element={user ? <Navigate to="/today" replace /> : <AuthPage />}
+      />
+      <Route
+        path="/auth"
+        element={<Navigate to="/login" replace />}
+      />
+      <Route
+        path="/terms"
+        element={<TermsPage />}
+      />
+      <Route
+        path="/privacy"
+        element={<PrivacyPolicyPage />}
+      />
+      <Route
+        path="/reset-password"
+        element={<ResetPasswordRoute />}
       />
 
-      {/* Authenticated Footer */}
-      <footer style={{
-        borderTop: '1px solid var(--border-walnut-faint)',
-        background: 'var(--bg-walnut-deep)',
-        padding: '20px 28px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        fontSize: '0.8rem',
-        color: 'var(--text-tweed-dim)',
-        position: 'relative',
-        flexWrap: 'wrap',
-        gap: '10px',
-      }}>
-        <span>AazDoh • Commit • Do • Report • Reflect</span>
-        <div style={{ display: 'flex', gap: '16px' }}>
-          <a
-            href="https://github.com/bb-code1/AazDoh"
-            target="_blank"
-            rel="noreferrer"
-            style={{ color: 'var(--text-parchment-muted)', textDecoration: 'none' }}
-          >
-            GitHub
-          </a>
-        </div>
-      </footer>
-    </div>
+      {/* Authenticated Dashboard Routes */}
+      <Route
+        element={
+          user ? (
+            <AuthenticatedLayout
+              unreadSummary={unreadSummary}
+              isSettingsOpen={isSettingsOpen}
+              setIsSettingsOpen={setIsSettingsOpen}
+            />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      >
+        <Route path="/today" element={<TodayPage />} />
+        <Route path="/partners" element={<PartnersPage />} />
+        <Route path="/insights" element={<AnalyticsPage />} />
+        <Route path="/app" element={<Navigate to="/today" replace />} />
+      </Route>
+
+      {/* Wildcard catch-all */}
+      <Route
+        path="*"
+        element={<Navigate to={user ? '/today' : '/'} replace />}
+      />
+    </Routes>
   );
 };
 
 export const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <ToastProvider>
-        <AppContent />
-      </ToastProvider>
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <ToastProvider>
+          <AppContent />
+        </ToastProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 };
 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { authApi } from '../api/authApi';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -9,6 +10,7 @@ type AuthMode = 'login' | 'register' | 'forgot';
 export const AuthPage: React.FC = () => {
   const { login } = useAuth();
   const { showToast } = useToast();
+  const navigate = useNavigate();
 
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
@@ -54,6 +56,7 @@ export const AuthPage: React.FC = () => {
           role: res.role as any,
         });
         showToast('Welcome to AazDoh!', 'success');
+        navigate('/today', { replace: true });
       } else {
         const res = await authApi.login({
           email: email.trim(),
@@ -68,6 +71,7 @@ export const AuthPage: React.FC = () => {
           role: res.role as any,
         });
         showToast('Logged in successfully', 'success');
+        navigate('/today', { replace: true });
       }
     } catch (err: any) {
       showToast(err.message || 'Authentication failed', 'error');
@@ -83,7 +87,15 @@ export const AuthPage: React.FC = () => {
       alignItems: 'center',
       justifyContent: 'center',
       padding: 'clamp(16px, 4vw, 24px)',
+      position: 'relative',
     }}>
+      <button
+        onClick={() => navigate('/')}
+        className="btn-secondary"
+        style={{ position: 'fixed', top: '24px', left: '24px', zIndex: 20 }}
+      >
+        ← Back to Home
+      </button>
       <div style={{
         width: '100%',
         maxWidth: '440px',

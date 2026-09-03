@@ -18,11 +18,13 @@ import {
 } from 'lucide-react';
 import { BrandLogo } from '../components/common/BrandLogo';
 
+import { useNavigate } from 'react-router-dom';
+
 interface LandingPageProps {
-  onGetStarted: () => void;
-  onSignIn: () => void;
-  onOpenTerms: () => void;
-  onOpenPrivacy: () => void;
+  onGetStarted?: () => void;
+  onSignIn?: () => void;
+  onOpenTerms?: () => void;
+  onOpenPrivacy?: () => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
@@ -31,6 +33,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onOpenTerms,
   onOpenPrivacy,
 }) => {
+  const navigate = useNavigate();
+  const handleGetStarted = onGetStarted || (() => navigate('/login'));
+  const handleSignIn = onSignIn || (() => navigate('/login'));
+  const handleOpenTerms = onOpenTerms || (() => navigate('/terms'));
+  const handleOpenPrivacy = onOpenPrivacy || (() => navigate('/privacy'));
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', color: 'var(--text-kehwa-cream)' }}>
       {/* Navigation Header */}
@@ -63,7 +70,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap', justifyContent: 'center' }}>
           <button
-            onClick={onGetStarted}
+            onClick={handleGetStarted}
             className="btn-primary"
             style={{ padding: '12px 26px', fontSize: '1rem', borderRadius: 'var(--radius-md)' }}
           >
@@ -72,7 +79,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </button>
 
           <button
-            onClick={onSignIn}
+            onClick={handleSignIn}
             className="btn-secondary"
             style={{ padding: '12px 22px', fontSize: '1rem', borderRadius: 'var(--radius-md)' }}
           >
@@ -311,13 +318,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
           <div className="landing-footer-links">
             <button
-              onClick={onOpenTerms}
+              onClick={handleOpenTerms}
               style={{ background: 'none', border: 'none', color: 'var(--text-parchment-muted)', cursor: 'pointer' }}
             >
               Terms of Service
             </button>
             <button
-              onClick={onOpenPrivacy}
+              onClick={handleOpenPrivacy}
               style={{ background: 'none', border: 'none', color: 'var(--text-parchment-muted)', cursor: 'pointer' }}
             >
               Privacy Policy

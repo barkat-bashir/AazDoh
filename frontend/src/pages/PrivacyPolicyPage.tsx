@@ -1,16 +1,20 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Shield, Lock, Eye, Server, Sparkles } from 'lucide-react';
 
 interface PrivacyPolicyPageProps {
-  onBack: () => void;
+  onBack?: () => void;
 }
 
 export const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) => {
+  const navigate = useNavigate();
+  const handleBack = onBack || (() => navigate(-1));
+
   return (
     <div style={{ maxWidth: '840px', margin: '0 auto', padding: 'clamp(20px, 4vw, 40px) clamp(16px, 3vw, 24px) 60px', color: 'var(--text-kehwa-cream)' }}>
       {/* Back Button */}
       <button
-        onClick={onBack}
+        onClick={handleBack}
         className="btn-secondary"
         style={{ marginBottom: '24px', padding: '8px 14px', fontSize: '0.84rem' }}
       >
