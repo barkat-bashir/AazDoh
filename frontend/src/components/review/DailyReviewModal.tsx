@@ -23,7 +23,7 @@ export const DailyReviewModal: React.FC<DailyReviewModalProps> = ({
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [reviews, setReviews] = useState<Record<string, {
-    status: 'COMPLETED' | 'MISSED';
+    status: 'COMPLETED' | 'MISSED' | 'POSTPONED';
     failureReason?: FailureReason;
     reflection?: string;
     nextAction?: NextAction;
@@ -45,13 +45,17 @@ export const DailyReviewModal: React.FC<DailyReviewModalProps> = ({
   }
 
   const currentCommitment = commitments[currentIndex];
+  const defaultCurrentStatus = currentCommitment?.status === 'COMPLETED' 
+    ? 'COMPLETED' 
+    : (currentCommitment?.status === 'POSTPONED' ? 'POSTPONED' : 'MISSED');
+
   const currentReview = reviews[currentCommitment?.id] || {
-    status: currentCommitment?.status === 'COMPLETED' ? 'COMPLETED' : 'MISSED',
+    status: defaultCurrentStatus,
     failureReason: 'UNDERESTIMATED',
-    nextAction: 'MOVE_TO_TOMORROW',
+    nextAction: currentCommitment?.status === 'POSTPONED' ? undefined : 'MOVE_TO_TOMORROW',
   };
 
-  const handleStatusChange = (status: 'COMPLETED' | 'MISSED') => {
+  const handleStatusChange = (status: 'COMPLETED' | 'MISSED' | 'POSTPONED') => {
     setReviews(prev => ({
       ...prev,
       [currentCommitment.id]: {

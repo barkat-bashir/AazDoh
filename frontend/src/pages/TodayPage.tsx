@@ -88,9 +88,9 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
   const totalFocusMinutes = activeList.reduce((acc, c) => acc + (c.estimatedMinutes || 0), 0);
   const totalCompletedMinutes = completedList.reduce((acc, c) => acc + (c.estimatedMinutes || 0), 0);
 
-  // Check for unreviewed tasks from yesterday
+  // Check for unreviewed tasks from yesterday (excluding already reviewed, postponed, or completed tasks)
   const unreviewedYesterday = yesterdayCommitments.filter(
-    c => c.status === 'MISSED' || c.status === 'PENDING'
+    c => !c.isReviewed && c.status !== 'POSTPONED' && c.status !== 'COMPLETED' && (c.status === 'MISSED' || c.status === 'PENDING')
   );
   const unreviewedYesterdayCount = unreviewedYesterday.length;
   const showCatchUpBanner = selectedDate === todayStr && !isCatchUpDismissed && unreviewedYesterdayCount > 0;

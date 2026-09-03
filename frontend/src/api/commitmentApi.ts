@@ -25,6 +25,7 @@ export interface Commitment {
   originCommitmentId?: string;
   postponementCount?: number;
   postponeReason?: string;
+  isReviewed?: boolean;
   completedAt?: string;
   createdAt: string;
   updatedAt?: string;
