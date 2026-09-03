@@ -24,6 +24,7 @@ export interface Commitment {
   postponedFromId?: string;
   originCommitmentId?: string;
   postponementCount?: number;
+  postponeReason?: string;
   completedAt?: string;
   createdAt: string;
   updatedAt?: string;

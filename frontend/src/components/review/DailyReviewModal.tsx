@@ -225,6 +225,22 @@ export const DailyReviewModal: React.FC<DailyReviewModalProps> = ({
               Expected: {currentCommitment.expectedOutcome}
             </p>
           )}
+          {currentCommitment.status === 'POSTPONED' && (
+            <div style={{
+              marginTop: '8px',
+              padding: '6px 10px',
+              borderRadius: 'var(--radius-sm)',
+              background: 'rgba(226, 149, 59, 0.12)',
+              border: '1px solid rgba(226, 149, 59, 0.3)',
+              fontSize: '0.78rem',
+              color: 'var(--saffron-ember)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}>
+              <span>📅 Rescheduled earlier today: {currentCommitment.postponeReason ? `"${currentCommitment.postponeReason}"` : 'Moved to future date'}</span>
+            </div>
+          )}
         </div>
 
         {/* Question: Did you do it? */}

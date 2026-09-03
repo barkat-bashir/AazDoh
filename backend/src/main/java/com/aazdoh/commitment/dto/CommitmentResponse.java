@@ -30,6 +30,7 @@ public class CommitmentResponse {
     private UUID postponedFromId;
     private UUID originCommitmentId;
     private int postponementCount;
+    private String postponeReason;
     private OffsetDateTime completedAt;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
@@ -55,6 +56,7 @@ public class CommitmentResponse {
         response.setPostponedFromId(commitment.getPostponedFromId());
         response.setOriginCommitmentId(commitment.getOriginCommitmentId());
         response.setPostponementCount(commitment.getPostponementCount());
+        response.setPostponeReason(commitment.getPostponeReason());
         response.setCompletedAt(commitment.getCompletedAt());
         response.setCreatedAt(commitment.getCreatedAt());
         response.setUpdatedAt(commitment.getUpdatedAt());
@@ -211,6 +213,14 @@ public class CommitmentResponse {
 
     public void setPostponementCount(int postponementCount) {
         this.postponementCount = postponementCount;
+    }
+
+    public String getPostponeReason() {
+        return postponeReason;
+    }
+
+    public void setPostponeReason(String postponeReason) {
+        this.postponeReason = postponeReason;
     }
 
     public OffsetDateTime getCompletedAt() {

@@ -59,7 +59,7 @@ public class ReviewService {
         commitmentRepository.save(commitment);
         CommitmentReview savedReview = reviewRepository.save(review);
 
-        // Handle next action (e.g. Move to tomorrow / reschedule)
+        // Handle next action (e.g. Move to tomorrow / reschedule) with strict idempotency
         if (request.getNextAction() != null) {
             LocalDate targetDate = null;
             if (request.getNextAction() == NextAction.MOVE_TO_TOMORROW) {
@@ -69,19 +69,37 @@ public class ReviewService {
             }
 
             if (targetDate != null) {
-                Commitment nextCommitment = new Commitment();
-                nextCommitment.setUser(commitment.getUser());
-                nextCommitment.setTitle(commitment.getTitle());
-                nextCommitment.setDescription(commitment.getDescription());
-                nextCommitment.setExpectedOutcome(commitment.getExpectedOutcome());
-                nextCommitment.setEstimatedMinutes(commitment.getEstimatedMinutes());
-                nextCommitment.setPriority(commitment.getPriority());
-                nextCommitment.setCommitmentDate(targetDate);
-                nextCommitment.setVisibility(commitment.getVisibility());
-                nextCommitment.setStatus(CommitmentStatus.PENDING);
-                nextCommitment.setPostponedFromId(commitment.getId());
+                // Idempotent: Update existing downstream copy if already postponed earlier, or create new
+                var existingCopyOpt = commitmentRepository.findNextPendingPostponedCopy(commitment.getId());
+                if (existingCopyOpt.isPresent()) {
+                    Commitment existingCopy = existingCopyOpt.get();
+                    existingCopy.setCommitmentDate(targetDate);
+                    commitmentRepository.save(existingCopy);
+                } else {
+                    Commitment nextCommitment = new Commitment();
+                    nextCommitment.setUser(commitment.getUser());
+                    nextCommitment.setTitle(commitment.getTitle());
+                    nextCommitment.setDescription(commitment.getDescription());
+                    nextCommitment.setExpectedOutcome(commitment.getExpectedOutcome());
+                    nextCommitment.setEstimatedMinutes(commitment.getEstimatedMinutes());
+                    nextCommitment.setPriority(commitment.getPriority());
+                    nextCommitment.setCommitmentDate(targetDate);
+                    nextCommitment.setVisibility(commitment.getVisibility());
+                    nextCommitment.setStatus(CommitmentStatus.PENDING);
+                    nextCommitment.setPostponedFromId(commitment.getId());
 
-                commitmentRepository.save(nextCommitment);
+                    UUID rootOriginId = commitment.getOriginCommitmentId() != null ? commitment.getOriginCommitmentId() : commitment.getId();
+                    nextCommitment.setOriginCommitmentId(rootOriginId);
+                    nextCommitment.setPostponementCount(commitment.getPostponementCount() + 1);
+
+                    commitmentRepository.save(nextCommitment);
+                }
+            } else if (request.getNextAction() == NextAction.DROP || request.getStatus() == CommitmentStatus.COMPLETED) {
+                // Clean up any lingering downstream copy if dropped or completed
+                commitmentRepository.findNextPendingPostponedCopy(commitment.getId()).ifPresent(existing -> {
+                    existing.setDeletedAt(OffsetDateTime.now());
+                    commitmentRepository.save(existing);
+                });
             }
         }
 
