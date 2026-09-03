@@ -10,12 +10,25 @@ import { CommitmentDiscussionModal } from '../components/partnership/CommitmentD
 import { PlanStressTestModal } from '../components/ai/PlanStressTestModal';
 import { aiApi, PlanStressTestResponse } from '../api/aiApi';
 import { useToast } from '../context/ToastContext';
-import { CalendarCheck, Plus, Sparkles, ArrowRight } from 'lucide-react';
+import { 
+  CalendarCheck, 
+  Plus, 
+  Sparkles, 
+  Zap, 
+  CheckCircle2, 
+  CalendarClock, 
+  AlertTriangle,
+  ChevronDown,
+  ChevronRight,
+  Trophy
+} from 'lucide-react';
 import { discussionApi } from '../api/discussionApi';
 
 interface TodayPageProps {
   onOpenAi?: () => void;
 }
+
+type TaskFilter = 'all' | 'active' | 'completed' | 'postponed' | 'missed';
 
 export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
   const { showToast } = useToast();
@@ -31,6 +44,9 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
   const yesterdayStr = getYesterdayStr();
 
   const [selectedDate, setSelectedDate] = useState(todayStr);
+  const [activeFilter, setActiveFilter] = useState<TaskFilter>('all');
+  const [isCompletedCollapsed, setIsCompletedCollapsed] = useState(false);
+  const [isPostponedCollapsed, setIsPostponedCollapsed] = useState(false);
   const [isCatchUpDismissed, setIsCatchUpDismissed] = useState(false);
   const [reviewDate, setReviewDate] = useState<string>(todayStr);
 
@@ -68,7 +84,16 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
     queryClient.invalidateQueries({ queryKey: ['unreadSummary'] });
   };
 
-  // Check for unreviewed tasks from yesterday (MISSED or PENDING past midnight)
+  // Categorize commitments for smart visual grouping
+  const activeList = commitments.filter(c => c.status === 'PENDING' || c.status === 'IN_PROGRESS');
+  const completedList = commitments.filter(c => c.status === 'COMPLETED');
+  const postponedList = commitments.filter(c => c.status === 'POSTPONED');
+  const missedList = commitments.filter(c => c.status === 'MISSED');
+
+  const totalFocusMinutes = activeList.reduce((acc, c) => acc + (c.estimatedMinutes || 0), 0);
+  const totalCompletedMinutes = completedList.reduce((acc, c) => acc + (c.estimatedMinutes || 0), 0);
+
+  // Check for unreviewed tasks from yesterday
   const unreviewedYesterday = yesterdayCommitments.filter(
     c => c.status === 'MISSED' || c.status === 'PENDING'
   );
@@ -123,8 +148,22 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
     ? commitments 
     : (reviewDate === yesterdayStr ? yesterdayCommitments : commitments);
 
+  const renderCard = (commitment: Commitment) => {
+    const isUnread = !!commitment.hasUnreadDiscussion || !!(unreadSummary?.unreadCommitmentIds?.includes(commitment.id));
+    const enriched = isUnread ? { ...commitment, hasUnreadDiscussion: true } : commitment;
+    return (
+      <CommitmentCard
+        key={commitment.id}
+        commitment={enriched}
+        onRefresh={refreshCommitments}
+        onOpenDiscussion={(c) => setDiscussionCommitment(c)}
+        onPostponeClick={(c) => setPostponingCommitment(c)}
+      />
+    );
+  };
+
   return (
-    <div className="page-container">
+    <div className="page-container" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Progress and Action Header */}
       <DailyProgressHeader
         commitments={commitments}
@@ -182,13 +221,137 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
         </div>
       )}
 
-      {/* Commitment List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {/* 🏷️ Smart Filter Pills */}
+      {commitments.length > 0 && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          overflowX: 'auto',
+          paddingBottom: '2px',
+        }}>
+          <button
+            onClick={() => setActiveFilter('all')}
+            style={{
+              padding: '6px 14px',
+              fontSize: '0.82rem',
+              fontWeight: activeFilter === 'all' ? 700 : 500,
+              borderRadius: '20px',
+              cursor: 'pointer',
+              background: activeFilter === 'all' ? 'var(--bg-walnut-card)' : 'transparent',
+              color: activeFilter === 'all' ? 'var(--text-kehwa-cream)' : 'var(--text-parchment-muted)',
+              border: `1px solid ${activeFilter === 'all' ? 'var(--border-copper-subtle)' : 'var(--border-walnut-faint)'}`,
+              transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            All ({commitments.length})
+          </button>
+
+          <button
+            onClick={() => setActiveFilter('active')}
+            style={{
+              padding: '6px 14px',
+              fontSize: '0.82rem',
+              fontWeight: activeFilter === 'active' ? 700 : 500,
+              borderRadius: '20px',
+              cursor: 'pointer',
+              background: activeFilter === 'active' ? 'rgba(226, 149, 59, 0.18)' : 'transparent',
+              color: activeFilter === 'active' ? 'var(--saffron-ember)' : 'var(--text-parchment-muted)',
+              border: `1px solid ${activeFilter === 'active' ? 'var(--saffron-ember)' : 'var(--border-walnut-faint)'}`,
+              transition: 'all 0.15s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <Zap size={13} />
+            <span>Active Focus ({activeList.length})</span>
+          </button>
+
+          {completedList.length > 0 && (
+            <button
+              onClick={() => setActiveFilter('completed')}
+              style={{
+                padding: '6px 14px',
+                fontSize: '0.82rem',
+                fontWeight: activeFilter === 'completed' ? 700 : 500,
+                borderRadius: '20px',
+                cursor: 'pointer',
+                background: activeFilter === 'completed' ? 'rgba(46, 125, 82, 0.2)' : 'transparent',
+                color: activeFilter === 'completed' ? '#4ADE80' : 'var(--text-parchment-muted)',
+                border: `1px solid ${activeFilter === 'completed' ? 'var(--pine-emerald)' : 'var(--border-walnut-faint)'}`,
+                transition: 'all 0.15s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <CheckCircle2 size={13} />
+              <span>Kept ({completedList.length})</span>
+            </button>
+          )}
+
+          {postponedList.length > 0 && (
+            <button
+              onClick={() => setActiveFilter('postponed')}
+              style={{
+                padding: '6px 14px',
+                fontSize: '0.82rem',
+                fontWeight: activeFilter === 'postponed' ? 700 : 500,
+                borderRadius: '20px',
+                cursor: 'pointer',
+                background: activeFilter === 'postponed' ? 'rgba(192, 83, 48, 0.18)' : 'transparent',
+                color: activeFilter === 'postponed' ? 'var(--chinar-rust)' : 'var(--text-parchment-muted)',
+                border: `1px solid ${activeFilter === 'postponed' ? 'var(--chinar-rust)' : 'var(--border-walnut-faint)'}`,
+                transition: 'all 0.15s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <CalendarClock size={13} />
+              <span>Rescheduled ({postponedList.length})</span>
+            </button>
+          )}
+
+          {missedList.length > 0 && (
+            <button
+              onClick={() => setActiveFilter('missed')}
+              style={{
+                padding: '6px 14px',
+                fontSize: '0.82rem',
+                fontWeight: activeFilter === 'missed' ? 700 : 500,
+                borderRadius: '20px',
+                cursor: 'pointer',
+                background: activeFilter === 'missed' ? 'rgba(184, 58, 58, 0.2)' : 'transparent',
+                color: activeFilter === 'missed' ? '#F87171' : 'var(--text-parchment-muted)',
+                border: `1px solid ${activeFilter === 'missed' ? 'var(--crimson-rose)' : 'var(--border-walnut-faint)'}`,
+                transition: 'all 0.15s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <AlertTriangle size={13} />
+              <span>Missed ({missedList.length})</span>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Main Commitment List / Sections */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
         {loading ? (
           <p style={{ textAlign: 'center', color: 'var(--text-tweed-dim)', padding: '40px 0' }}>
             Loading commitments...
           </p>
         ) : commitments.length === 0 ? (
+          /* Empty State */
           <div className="harud-card" style={{ padding: 'clamp(36px, 7vw, 52px) 20px', textAlign: 'center', color: 'var(--text-tweed-dim)' }}>
             <div style={{
               width: '56px',
@@ -218,20 +381,185 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
               <span>Create First Commitment</span>
             </button>
           </div>
+        ) : activeFilter === 'all' ? (
+          /* ⚡ ALL VIEW: Smart Sectioned Layout */
+          <>
+            {/* 1. Active Focus Section */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '2px 4px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Zap size={16} color="var(--saffron-ember)" />
+                  <h3 style={{ fontSize: '0.88rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-kehwa-cream)', margin: 0 }}>
+                    Active Focus ({activeList.length})
+                  </h3>
+                </div>
+                {activeList.length > 0 && (
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-tweed-dim)', fontWeight: 600 }}>
+                    ~{(totalFocusMinutes / 60).toFixed(1)} hrs planned
+                  </span>
+                )}
+              </div>
+
+              {activeList.length === 0 ? (
+                /* Daily Victory State */
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(46, 125, 82, 0.12), rgba(226, 149, 59, 0.08))',
+                  border: '1px solid rgba(46, 125, 82, 0.35)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '20px',
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '12px',
+                    background: 'rgba(46, 125, 82, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#4ADE80',
+                  }}>
+                    <Trophy size={20} />
+                  </div>
+                  <strong style={{ fontSize: '0.98rem', color: '#4ADE80' }}>
+                    Active Focus Clear!
+                  </strong>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-parchment-muted)', margin: 0, maxWidth: '340px' }}>
+                    All scheduled focus commitments for today are completed or resolved. Excellent operational integrity!
+                  </p>
+                </div>
+              ) : (
+                activeList.map(renderCard)
+              )}
+            </div>
+
+            {/* 2. Completed Today (Collapsible Drawer) */}
+            {completedList.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsCompletedCollapsed(prev => !prev)}
+                  style={{
+                    background: 'var(--bg-walnut-surface)',
+                    border: '1px solid var(--border-walnut-faint)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '10px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    color: 'var(--text-kehwa-cream)',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <CheckCircle2 size={16} color="#4ADE80" />
+                    <span style={{ fontSize: '0.84rem', fontWeight: 700 }}>
+                      Kept Today ({completedList.length} of {commitments.length})
+                    </span>
+                    <span style={{ fontSize: '0.76rem', color: 'var(--text-tweed-dim)', marginLeft: '4px' }}>
+                      • ~{(totalCompletedMinutes / 60).toFixed(1)} hrs logged
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', color: 'var(--text-tweed-dim)' }}>
+                    <span>{isCompletedCollapsed ? 'Show' : 'Hide'}</span>
+                    {isCompletedCollapsed ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
+                  </div>
+                </button>
+
+                {!isCompletedCollapsed && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {completedList.map(renderCard)}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 3. Rescheduled to Future (Collapsible Drawer) */}
+            {postponedList.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsPostponedCollapsed(prev => !prev)}
+                  style={{
+                    background: 'rgba(192, 83, 48, 0.08)',
+                    border: '1px dashed rgba(192, 83, 48, 0.3)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '10px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    color: 'var(--text-kehwa-cream)',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <CalendarClock size={16} color="var(--saffron-ember)" />
+                    <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--saffron-ember)' }}>
+                      Rescheduled to Future ({postponedList.length})
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', color: 'var(--text-tweed-dim)' }}>
+                    <span>{isPostponedCollapsed ? 'Show' : 'Hide'}</span>
+                    {isPostponedCollapsed ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
+                  </div>
+                </button>
+
+                {!isPostponedCollapsed && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {postponedList.map(renderCard)}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 4. Missed Commitments (if any) */}
+            {missedList.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '2px 4px' }}>
+                  <AlertTriangle size={15} color="var(--crimson-rose)" />
+                  <span style={{ fontSize: '0.82rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#F87171' }}>
+                    Missed Commitments ({missedList.length})
+                  </span>
+                </div>
+                {missedList.map(renderCard)}
+              </div>
+            )}
+          </>
         ) : (
-          commitments.map((commitment) => {
-            const isUnread = !!commitment.hasUnreadDiscussion || !!(unreadSummary?.unreadCommitmentIds?.includes(commitment.id));
-            const enriched = isUnread ? { ...commitment, hasUnreadDiscussion: true } : commitment;
-            return (
-              <CommitmentCard
-                key={commitment.id}
-                commitment={enriched}
-                onRefresh={refreshCommitments}
-                onOpenDiscussion={(c) => setDiscussionCommitment(c)}
-                onPostponeClick={(c) => setPostponingCommitment(c)}
-              />
-            );
-          })
+          /* Specific Filter View */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {activeFilter === 'active' && (
+              activeList.length === 0 
+                ? <p style={{ textAlign: 'center', color: 'var(--text-tweed-dim)', padding: '30px 0' }}>No active commitments remaining.</p>
+                : activeList.map(renderCard)
+            )}
+            {activeFilter === 'completed' && (
+              completedList.length === 0 
+                ? <p style={{ textAlign: 'center', color: 'var(--text-tweed-dim)', padding: '30px 0' }}>No completed commitments yet.</p>
+                : completedList.map(renderCard)
+            )}
+            {activeFilter === 'postponed' && (
+              postponedList.length === 0 
+                ? <p style={{ textAlign: 'center', color: 'var(--text-tweed-dim)', padding: '30px 0' }}>No rescheduled commitments for this date.</p>
+                : postponedList.map(renderCard)
+            )}
+            {activeFilter === 'missed' && (
+              missedList.length === 0 
+                ? <p style={{ textAlign: 'center', color: 'var(--text-tweed-dim)', padding: '30px 0' }}>No missed commitments.</p>
+                : missedList.map(renderCard)
+            )}
+          </div>
         )}
       </div>
 
