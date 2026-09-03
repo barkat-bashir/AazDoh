@@ -105,6 +105,16 @@ public class CommitmentController {
         return ResponseEntity.ok(ApiResponse.ok("Commitment marked as completed", response));
     }
 
+    @PostMapping("/{id}/reopen")
+    @Operation(summary = "Reopen a postponed commitment back to pending active state")
+    public ResponseEntity<ApiResponse<CommitmentResponse>> reopenCommitment(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable("id") UUID id
+    ) {
+        CommitmentResponse response = commitmentService.reopenCommitment(userDetails.getId(), id);
+        return ResponseEntity.ok(ApiResponse.ok("Commitment reopened for today", response));
+    }
+
     @PostMapping("/{id}/postpone")
     @Operation(summary = "Postpone a commitment to a future date")
     public ResponseEntity<ApiResponse<CommitmentResponse>> postponeCommitment(

@@ -63,4 +63,7 @@ public interface CommitmentRepository extends JpaRepository<Commitment, UUID> {
 
     @Query("SELECT c FROM Commitment c WHERE c.user.id = :userId AND c.postponeReason IS NOT NULL AND c.deletedAt IS NULL ORDER BY c.commitmentDate DESC")
     List<Commitment> findRecentPostponedCommitmentsWithReasons(@Param("userId") UUID userId);
+
+    @Query("SELECT c FROM Commitment c WHERE c.postponedFromId = :originalId AND c.status = 'PENDING' AND c.deletedAt IS NULL")
+    Optional<Commitment> findNextPendingPostponedCopy(@Param("originalId") UUID originalId);
 }

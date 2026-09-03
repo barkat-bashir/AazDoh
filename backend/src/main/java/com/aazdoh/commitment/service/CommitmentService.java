@@ -133,6 +133,30 @@ public class CommitmentService {
         Commitment commitment = findActiveCommitment(commitmentId, userId);
         commitment.setStatus(CommitmentStatus.COMPLETED);
         commitment.setCompletedAt(OffsetDateTime.now());
+
+        // If this was previously postponed, clean up any downstream future copy
+        commitmentRepository.findNextPendingPostponedCopy(commitment.getId()).ifPresent(next -> {
+            next.setDeletedAt(OffsetDateTime.now());
+            commitmentRepository.save(next);
+        });
+
+        Commitment updated = commitmentRepository.save(commitment);
+        return CommitmentResponse.fromEntity(updated);
+    }
+
+    @Transactional
+    public CommitmentResponse reopenCommitment(UUID userId, UUID commitmentId) {
+        Commitment commitment = findActiveCommitment(commitmentId, userId);
+        commitment.setStatus(CommitmentStatus.PENDING);
+        commitment.setCompletedAt(null);
+        commitment.setPostponeReason(null);
+
+        // Clean up downstream future copy if this was previously postponed
+        commitmentRepository.findNextPendingPostponedCopy(commitment.getId()).ifPresent(next -> {
+            next.setDeletedAt(OffsetDateTime.now());
+            commitmentRepository.save(next);
+        });
+
         Commitment updated = commitmentRepository.save(commitment);
         return CommitmentResponse.fromEntity(updated);
     }
