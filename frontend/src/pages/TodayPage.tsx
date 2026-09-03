@@ -10,7 +10,7 @@ import { CommitmentDiscussionModal } from '../components/partnership/CommitmentD
 import { PlanStressTestModal } from '../components/ai/PlanStressTestModal';
 import { aiApi, PlanStressTestResponse } from '../api/aiApi';
 import { useToast } from '../context/ToastContext';
-import { CalendarCheck, Plus } from 'lucide-react';
+import { CalendarCheck, Plus, Sparkles, ArrowRight } from 'lucide-react';
 import { discussionApi } from '../api/discussionApi';
 
 interface TodayPageProps {
@@ -22,7 +22,17 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
   const queryClient = useQueryClient();
   const todayStr = new Date().toISOString().split('T')[0];
 
+  const getYesterdayStr = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().split('T')[0];
+  };
+
+  const yesterdayStr = getYesterdayStr();
+
   const [selectedDate, setSelectedDate] = useState(todayStr);
+  const [isCatchUpDismissed, setIsCatchUpDismissed] = useState(false);
+  const [reviewDate, setReviewDate] = useState<string>(todayStr);
 
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -35,10 +45,17 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
   const [stressTestData, setStressTestData] = useState<PlanStressTestResponse | null>(null);
   const [isStressTestLoading, setIsStressTestLoading] = useState(false);
 
-  // TanStack Query: in-memory caching (0ms tab switching)
+  // TanStack Query: in-memory caching for active date
   const { data: commitments = [], isLoading: loading } = useQuery({
     queryKey: ['commitments', selectedDate],
     queryFn: () => commitmentApi.getToday(selectedDate),
+  });
+
+  // Query yesterday's commitments for the morning catch-up check
+  const { data: yesterdayCommitments = [] } = useQuery({
+    queryKey: ['commitments', yesterdayStr],
+    queryFn: () => commitmentApi.getToday(yesterdayStr),
+    enabled: selectedDate === todayStr && !isCatchUpDismissed,
   });
 
   const { data: unreadSummary } = useQuery({
@@ -49,6 +66,23 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
   const refreshCommitments = () => {
     queryClient.invalidateQueries({ queryKey: ['commitments'] });
     queryClient.invalidateQueries({ queryKey: ['unreadSummary'] });
+  };
+
+  // Check for unreviewed tasks from yesterday (MISSED or PENDING past midnight)
+  const unreviewedYesterday = yesterdayCommitments.filter(
+    c => c.status === 'MISSED' || c.status === 'PENDING'
+  );
+  const unreviewedYesterdayCount = unreviewedYesterday.length;
+  const showCatchUpBanner = selectedDate === todayStr && !isCatchUpDismissed && unreviewedYesterdayCount > 0;
+
+  const handleStartCatchUp = () => {
+    setReviewDate(yesterdayStr);
+    setIsReviewModalOpen(true);
+  };
+
+  const handleOpenStandardReview = () => {
+    setReviewDate(selectedDate);
+    setIsReviewModalOpen(true);
   };
 
   const handleRunFeasibilityCheck = async (
@@ -85,6 +119,10 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
     }
   };
 
+  const activeReviewCommitments = reviewDate === selectedDate 
+    ? commitments 
+    : (reviewDate === yesterdayStr ? yesterdayCommitments : commitments);
+
   return (
     <div className="page-container">
       {/* Progress and Action Header */}
@@ -93,9 +131,56 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
         selectedDate={selectedDate}
         onDateChange={setSelectedDate}
         onOpenAddModal={() => setIsAddModalOpen(true)}
-        onOpenReviewModal={() => setIsReviewModalOpen(true)}
+        onOpenReviewModal={handleOpenStandardReview}
         onOpenAiReview={() => handleRunFeasibilityCheck(undefined, undefined, true)}
       />
+
+      {/* 🌅 Morning Accountability Catch-Up Banner */}
+      {showCatchUpBanner && (
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(226, 149, 59, 0.16), rgba(192, 83, 48, 0.1))',
+          border: '1.5px solid rgba(226, 149, 59, 0.42)',
+          borderRadius: 'var(--radius-md)',
+          padding: '14px 18px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '14px',
+          flexWrap: 'wrap',
+          boxShadow: '0 4px 16px rgba(226, 149, 59, 0.12)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '1.5rem' }}>🌅</span>
+            <div>
+              <strong style={{ fontSize: '0.92rem', color: 'var(--saffron-ember)', display: 'block' }}>
+                Yesterday's Accountability Catch-Up
+              </strong>
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-parchment-muted)' }}>
+                You have <strong>{unreviewedYesterdayCount} unreviewed commitment{unreviewedYesterdayCount > 1 ? 's' : ''}</strong> from yesterday. A 30-second review keeps your metrics, partner accountability, and streak intact!
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={handleStartCatchUp}
+              className="btn-primary"
+              style={{ padding: '8px 14px', fontSize: '0.84rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Sparkles size={14} />
+              <span>⚡ Quick 30s Catch-Up</span>
+            </button>
+            <button
+              onClick={() => setIsCatchUpDismissed(true)}
+              className="btn-secondary"
+              style={{ padding: '8px 12px', fontSize: '0.84rem' }}
+              title="Dismiss and focus on today"
+            >
+              Skip
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Commitment List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -169,9 +254,12 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
       />
 
       <DailyReviewModal
-        commitments={commitments}
+        commitments={activeReviewCommitments}
         isOpen={isReviewModalOpen}
-        onClose={() => setIsReviewModalOpen(false)}
+        onClose={() => {
+          setIsReviewModalOpen(false);
+          refreshCommitments();
+        }}
         onSuccess={refreshCommitments}
       />
 
@@ -194,3 +282,5 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
     </div>
   );
 };
+
+export default TodayPage;
