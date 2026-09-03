@@ -31,6 +31,7 @@ public class CommitmentResponse {
     private UUID originCommitmentId;
     private int postponementCount;
     private String postponeReason;
+    private boolean isReviewed;
     private OffsetDateTime completedAt;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
@@ -245,5 +246,13 @@ public class CommitmentResponse {
 
     public void setUpdatedAt(OffsetDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public boolean isReviewed() {
+        return isReviewed;
+    }
+
+    public void setReviewed(boolean reviewed) {
+        isReviewed = reviewed;
     }
 }

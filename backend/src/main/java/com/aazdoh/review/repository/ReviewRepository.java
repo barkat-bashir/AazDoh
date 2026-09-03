@@ -29,4 +29,7 @@ public interface ReviewRepository extends JpaRepository<CommitmentReview, UUID> 
 
     @Query("SELECT r.failureReason, COUNT(r) FROM CommitmentReview r WHERE r.commitment.user.id = :userId AND r.failureReason IS NOT NULL GROUP BY r.failureReason ORDER BY COUNT(r) DESC")
     List<Object[]> countFailureReasonsByUserId(@Param("userId") UUID userId);
+
+    @Query("SELECT r.commitment.id FROM CommitmentReview r WHERE r.commitment.user.id = :userId AND r.commitment.commitmentDate = :date")
+    java.util.Set<UUID> findReviewedCommitmentIdsByUserIdAndDate(@Param("userId") UUID userId, @Param("date") LocalDate date);
 }

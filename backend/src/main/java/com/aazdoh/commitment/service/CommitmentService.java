@@ -29,17 +29,20 @@ public class CommitmentService {
     private final UserService userService;
     private final com.aazdoh.user.repository.UserRepository userRepository;
     private final com.aazdoh.discussion.repository.DiscussionMessageRepository discussionMessageRepository;
+    private final com.aazdoh.review.repository.ReviewRepository reviewRepository;
 
     public CommitmentService(
             CommitmentRepository commitmentRepository,
             UserService userService,
             com.aazdoh.user.repository.UserRepository userRepository,
-            com.aazdoh.discussion.repository.DiscussionMessageRepository discussionMessageRepository
+            com.aazdoh.discussion.repository.DiscussionMessageRepository discussionMessageRepository,
+            com.aazdoh.review.repository.ReviewRepository reviewRepository
     ) {
         this.commitmentRepository = commitmentRepository;
         this.userService = userService;
         this.userRepository = userRepository;
         this.discussionMessageRepository = discussionMessageRepository;
+        this.reviewRepository = reviewRepository;
     }
 
     @Transactional
@@ -70,6 +73,16 @@ public class CommitmentService {
                 .map(c -> mapToResponse(c, partnerNameMap))
                 .collect(Collectors.toList());
         populateDiscussionStats(responses, userId);
+
+        java.util.Set<UUID> reviewedIds = reviewRepository.findReviewedCommitmentIdsByUserIdAndDate(userId, date);
+        if (reviewedIds != null && !reviewedIds.isEmpty()) {
+            for (CommitmentResponse res : responses) {
+                if (reviewedIds.contains(res.getId())) {
+                    res.setReviewed(true);
+                }
+            }
+        }
+
         return responses;
     }
 
