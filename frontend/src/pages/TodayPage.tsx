@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { discussionApi } from '../api/discussionApi';
 
+import { getLocalTodayStr, getLocalYesterdayStr } from '../utils/dateUtils';
+
 interface TodayPageProps {
   onOpenAi?: () => void;
 }
@@ -33,15 +35,8 @@ type TaskFilter = 'all' | 'active' | 'completed' | 'postponed' | 'missed';
 export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
-  const todayStr = new Date().toISOString().split('T')[0];
-
-  const getYesterdayStr = () => {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    return d.toISOString().split('T')[0];
-  };
-
-  const yesterdayStr = getYesterdayStr();
+  const todayStr = getLocalTodayStr();
+  const yesterdayStr = getLocalYesterdayStr();
 
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [activeFilter, setActiveFilter] = useState<TaskFilter>('all');

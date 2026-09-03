@@ -2,6 +2,8 @@ import React, { useRef } from 'react';
 import { Commitment } from '../../api/commitmentApi';
 import { Plus, CheckSquare, Sparkles, Flame, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 
+import { getLocalTodayStr, getLocalYesterdayStr, formatLocalDate, parseLocalDate } from '../../utils/dateUtils';
+
 interface DailyProgressHeaderProps {
   commitments: Commitment[];
   selectedDate: string;
@@ -31,47 +33,32 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
   const totalHours = (totalMinutes / 60).toFixed(1);
   const completedHours = (completedMinutes / 60).toFixed(1);
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalTodayStr();
+  const yesterdayStr = getLocalYesterdayStr();
   const isToday = selectedDate === todayStr;
 
   // Format date display label nicely
   const getFormattedDateLabel = () => {
     try {
-      const parts = selectedDate.split('-');
-      if (parts.length === 3) {
-        const dateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-        const formatted = new Intl.DateTimeFormat('en-US', {
-          weekday: 'short',
-          month: 'short',
-          day: 'numeric',
-        }).format(dateObj);
+      const dateObj = parseLocalDate(selectedDate);
+      const formatted = new Intl.DateTimeFormat('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+      }).format(dateObj);
 
-        if (isToday) return `Today, ${formatted}`;
-        
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        if (selectedDate === yesterday.toISOString().split('T')[0]) {
-          return `Yesterday, ${formatted}`;
-        }
-
-        return formatted;
-      }
+      if (isToday) return `Today, ${formatted}`;
+      if (selectedDate === yesterdayStr) return `Yesterday, ${formatted}`;
+      return formatted;
     } catch {
-      // Fallback
+      return selectedDate;
     }
-    return selectedDate;
   };
 
   const shiftDate = (days: number) => {
-    const parts = selectedDate.split('-');
-    if (parts.length === 3) {
-      const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-      d.setDate(d.getDate() + days);
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      onDateChange(`${y}-${m}-${day}`);
-    }
+    const d = parseLocalDate(selectedDate);
+    d.setDate(d.getDate() + days);
+    onDateChange(formatLocalDate(d));
   };
 
   return (

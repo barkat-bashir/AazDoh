@@ -12,6 +12,7 @@ import {
   Sparkles,
   Check
 } from 'lucide-react';
+import { getLocalTomorrowStr, getLocalDateInDaysStr, getLocalNextWeekendStr } from '../../utils/dateUtils';
 
 interface PostponeCommitmentModalProps {
   commitment: Commitment | null;
@@ -36,29 +37,9 @@ export const PostponeCommitmentModal: React.FC<PostponeCommitmentModalProps> = (
 }) => {
   const { showToast } = useToast();
 
-  const getTomorrowStr = () => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    return d.toISOString().split('T')[0];
-  };
-
-  const getInTwoDaysStr = () => {
-    const d = new Date();
-    d.setDate(d.getDate() + 2);
-    return d.toISOString().split('T')[0];
-  };
-
-  const getNextWeekendStr = () => {
-    const d = new Date();
-    const day = d.getDay();
-    const diff = day === 6 ? 1 : 6 - day; // Saturday
-    d.setDate(d.getDate() + diff);
-    return d.toISOString().split('T')[0];
-  };
-
-  const tomorrowStr = getTomorrowStr();
-  const inTwoDaysStr = getInTwoDaysStr();
-  const weekendStr = getNextWeekendStr();
+  const tomorrowStr = getLocalTomorrowStr();
+  const inTwoDaysStr = getLocalDateInDaysStr(2);
+  const weekendStr = getLocalNextWeekendStr();
 
   const [newDate, setNewDate] = useState(tomorrowStr);
   const [selectedReasonId, setSelectedReasonId] = useState<string>('time');
@@ -70,7 +51,7 @@ export const PostponeCommitmentModal: React.FC<PostponeCommitmentModalProps> = (
   // State Hygiene: Reset all states cleanly whenever modal opens or commitment changes
   useEffect(() => {
     if (isOpen && commitment) {
-      setNewDate(getTomorrowStr());
+      setNewDate(getLocalTomorrowStr());
       setSelectedReasonId('time');
       setCustomReason('');
       setShowCustomDate(false);

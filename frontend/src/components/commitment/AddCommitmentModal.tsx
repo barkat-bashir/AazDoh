@@ -5,6 +5,7 @@ import { partnershipApi } from '../../api/partnershipApi';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { Sparkles, Clock, Shield, Flame, Users, Lock, Check, User as UserIcon } from 'lucide-react';
+import { getLocalTodayStr } from '../../utils/dateUtils';
 
 interface AddCommitmentModalProps {
   isOpen: boolean;
@@ -70,7 +71,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
 
     try {
       setLoading(true);
-      const targetDate = selectedDate || new Date().toISOString().split('T')[0];
+      const targetDate = selectedDate || getLocalTodayStr();
       await commitmentApi.create({
         title: title.trim(),
         expectedOutcome: expectedOutcome.trim() || undefined,
