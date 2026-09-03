@@ -92,6 +92,11 @@ export const commitmentApi = {
       body: JSON.stringify(data),
     }),
 
+  reopen: (id: string) =>
+    request<Commitment>(`/commitments/${id}/reopen`, {
+      method: 'POST',
+    }),
+
   delete: (id: string) =>
     request<void>(`/commitments/${id}`, {
       method: 'DELETE',

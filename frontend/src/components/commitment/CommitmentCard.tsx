@@ -10,7 +10,8 @@ import {
   Trash2, 
   Eye, 
   EyeOff, 
-  AlertTriangle 
+  AlertTriangle,
+  RotateCcw
 } from 'lucide-react';
 
 interface CommitmentCardProps {
@@ -44,6 +45,19 @@ export const CommitmentCard: React.FC<CommitmentCardProps> = ({
       onRefresh();
     } catch (err: any) {
       showToast(err.message || 'Failed to update commitment status', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReopen = async () => {
+    try {
+      setLoading(true);
+      await commitmentApi.reopen(commitment.id);
+      showToast('Commitment reopened for today!', 'success');
+      onRefresh();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to reopen commitment', 'error');
     } finally {
       setLoading(false);
     }
@@ -100,17 +114,17 @@ export const CommitmentCard: React.FC<CommitmentCardProps> = ({
         {/* Toggle Complete Checkbox */}
         <button
           onClick={handleToggleComplete}
-          disabled={loading || isPostponed}
+          disabled={loading}
           style={{
             background: 'none',
             border: 'none',
-            color: isCompleted ? '#4ADE80' : 'var(--text-tweed-dim)',
-            cursor: isPostponed ? 'not-allowed' : 'pointer',
+            color: isCompleted ? '#4ADE80' : isPostponed ? 'var(--saffron-ember)' : 'var(--text-tweed-dim)',
+            cursor: loading ? 'wait' : 'pointer',
             padding: '2px',
             marginTop: '2px',
             transition: 'var(--transition-smooth)',
           }}
-          title={isCompleted ? 'Mark as pending' : 'Mark as completed'}
+          title={isCompleted ? 'Mark as pending' : isPostponed ? 'Complete today (cancel postpone)' : 'Mark as completed'}
         >
           {isCompleted ? (
             <CheckCircle size={24} color="#4ADE80" />
@@ -243,6 +257,26 @@ export const CommitmentCard: React.FC<CommitmentCardProps> = ({
                 >
                   <CalendarClock size={14} />
                   <span>Postpone</span>
+                </button>
+              )}
+
+              {isPostponed && (
+                <button
+                  onClick={handleReopen}
+                  disabled={loading}
+                  className="btn-outline"
+                  style={{
+                    borderColor: 'var(--saffron-ember)',
+                    color: 'var(--saffron-ember)',
+                    background: 'rgba(226, 149, 59, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                  }}
+                  title="Reopen and work on this commitment today"
+                >
+                  <RotateCcw size={13} />
+                  <span>Reopen for Today</span>
                 </button>
               )}
 
