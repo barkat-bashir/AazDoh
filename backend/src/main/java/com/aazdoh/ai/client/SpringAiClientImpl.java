@@ -193,10 +193,10 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
 
         // Compute Base Risk Score
         double ratio = plannedHours / capacityHours;
-        int calculatedRisk = (int) Math.min(Math.max((ratio - 0.7) * 90.0, 15.0), 95.0);
-        if (!context.getRepeatedlyPostponedTitles().isEmpty()) {
-            calculatedRisk = Math.min(calculatedRisk + 15, 95);
-        }
+        int baseRisk = (int) Math.min(Math.max((ratio - 0.7) * 90.0, 15.0), 95.0);
+        int calculatedRisk = !context.getRepeatedlyPostponedTitles().isEmpty()
+                ? Math.min(baseRisk + 15, 95)
+                : baseRisk;
 
         response.setRiskScore(calculatedRisk);
         if (calculatedRisk >= 75) {
