@@ -40,11 +40,11 @@ public class AccountabilityContextBuilder {
         LocalDate today = LocalDate.now();
         LocalDate sevenDaysAgo = today.minusDays(7);
 
-        long total7Days = commitmentRepository.countTotalCommitmentsInRange(userId, sevenDaysAgo, today);
-        long completed7Days = commitmentRepository.countCompletedCommitmentsInRange(userId, sevenDaysAgo, today);
+        List<Commitment> recentCommitments = commitmentRepository.findByUserIdAndDateRange(userId, sevenDaysAgo, today);
+        long total7Days = recentCommitments.size();
+        long completed7Days = recentCommitments.stream().filter(c -> c.getStatus() == CommitmentStatus.COMPLETED).count();
         double completionRate = total7Days > 0 ? ((double) completed7Days / total7Days) * 100.0 : 0.0;
 
-        List<Commitment> recentCommitments = commitmentRepository.findByUserIdAndDateRange(userId, sevenDaysAgo, today);
         double totalCompletedMinutes = recentCommitments.stream()
                 .filter(c -> c.getStatus() == CommitmentStatus.COMPLETED)
                 .mapToInt(Commitment::getEstimatedMinutes)

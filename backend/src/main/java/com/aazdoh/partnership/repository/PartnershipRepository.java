@@ -25,4 +25,6 @@ public interface PartnershipRepository extends JpaRepository<AccountabilityPartn
 
     @Query("SELECT p FROM AccountabilityPartnership p JOIN FETCH p.requester JOIN FETCH p.partner WHERE p.requester.id = :userId AND p.status = 'PENDING'")
     List<AccountabilityPartnership> findPendingOutgoingRequests(@Param("userId") UUID userId);
+
+    long countByPartnerIdAndStatus(UUID partnerId, PartnershipStatus status);
 }

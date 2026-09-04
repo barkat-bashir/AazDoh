@@ -89,7 +89,7 @@ public class DiscussionService {
     @Transactional(readOnly = true)
     public UnreadSummaryDto getUnreadSummary(UUID userId) {
         List<Object[]> unreadDetails = discussionMessageRepository.findUnreadMessageDetailsForUser(userId);
-        long pendingInvites = partnershipRepository.findPendingIncomingRequests(userId).size();
+        long pendingInvites = partnershipRepository.countByPartnerIdAndStatus(userId, com.aazdoh.partnership.entity.PartnershipStatus.PENDING);
 
         long unreadToday = 0;
         long unreadPartner = 0;

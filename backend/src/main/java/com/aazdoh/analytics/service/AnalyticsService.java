@@ -8,6 +8,7 @@ import com.aazdoh.commitment.repository.CommitmentRepository;
 import com.aazdoh.review.entity.FailureReason;
 import com.aazdoh.review.repository.ReviewRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -25,6 +26,7 @@ public class AnalyticsService {
         this.reviewRepository = reviewRepository;
     }
 
+    @Transactional(readOnly = true)
     public AccountabilityStatsResponse getAccountabilitySummary(UUID userId, int days) {
         int targetDays = days > 0 ? days : 30;
         LocalDate endDate = LocalDate.now();

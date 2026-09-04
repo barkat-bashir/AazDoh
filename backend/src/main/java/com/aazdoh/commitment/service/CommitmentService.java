@@ -66,6 +66,7 @@ public class CommitmentService {
         return mapToResponse(saved);
     }
 
+    @Transactional(readOnly = true)
     public List<CommitmentResponse> getTodayCommitments(UUID userId, LocalDate date) {
         List<Commitment> list = commitmentRepository.findByUserIdAndCommitmentDate(userId, date);
         Map<UUID, String> partnerNameMap = getPartnerNameMap(list);
@@ -86,6 +87,7 @@ public class CommitmentService {
         return responses;
     }
 
+    @Transactional(readOnly = true)
     public List<CommitmentResponse> getCommitmentsByRange(UUID userId, LocalDate startDate, LocalDate endDate) {
         List<Commitment> list = commitmentRepository.findByUserIdAndDateRange(userId, startDate, endDate);
         Map<UUID, String> partnerNameMap = getPartnerNameMap(list);
@@ -94,6 +96,7 @@ public class CommitmentService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public CommitmentResponse getCommitmentById(UUID userId, UUID commitmentId) {
         Commitment commitment = findActiveCommitment(commitmentId, userId);
         return mapToResponse(commitment);
@@ -216,11 +219,13 @@ public class CommitmentService {
         commitmentRepository.save(commitment);
     }
 
+    @Transactional(readOnly = true)
     public Commitment findActiveCommitment(UUID commitmentId, UUID userId) {
         return commitmentRepository.findActiveByIdAndUserId(commitmentId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Commitment not found with id: " + commitmentId));
     }
 
+    @Transactional(readOnly = true)
     public List<Commitment> getRecentPostponedCommitments(UUID userId) {
         return commitmentRepository.findRecentPostponedCommitmentsWithReasons(userId);
     }
