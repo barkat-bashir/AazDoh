@@ -12,6 +12,7 @@ export interface Partnership {
   status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'TERMINATED';
   partnershipType?: 'MUTUAL' | 'ONE_WAY_SPONSOR';
   sharePartnerCommitments?: boolean;
+  shareRequesterCommitments?: boolean;
   createdAt: string;
 }
 
@@ -61,7 +62,7 @@ export const partnershipApi = {
       method: 'DELETE',
     }),
 
-  update: (id: string, data: { partnershipType?: 'MUTUAL' | 'ONE_WAY_SPONSOR'; sharePartnerCommitments?: boolean }) =>
+  update: (id: string, data: { shareMyCommitments?: boolean; partnershipType?: 'MUTUAL' | 'ONE_WAY_SPONSOR' }) =>
     request<Partnership>(`/partnerships/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),

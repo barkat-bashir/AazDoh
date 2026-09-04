@@ -88,12 +88,14 @@ public class PartnershipService {
         PartnershipType type = request.getPartnershipType() != null 
                 ? request.getPartnershipType() 
                 : PartnershipType.MUTUAL;
+        boolean shareRequesterCommitments = true;
         boolean sharePartnerCommitments = (type == PartnershipType.MUTUAL);
 
         AccountabilityPartnership partnership = new AccountabilityPartnership(
                 requester, 
                 partner, 
                 type, 
+                shareRequesterCommitments,
                 sharePartnerCommitments
         );
         AccountabilityPartnership saved = partnershipRepository.save(partnership);
@@ -112,6 +114,9 @@ public class PartnershipService {
         partnership.setStatus(PartnershipStatus.ACCEPTED);
         if (acceptRequest != null && acceptRequest.getShareMyCommitments() != null) {
             partnership.setSharePartnerCommitments(acceptRequest.getShareMyCommitments());
+            if (!acceptRequest.getShareMyCommitments()) {
+                partnership.setPartnershipType(PartnershipType.ONE_WAY_SPONSOR);
+            }
         }
         AccountabilityPartnership saved = partnershipRepository.save(partnership);
         return PartnershipResponse.fromEntity(saved);
@@ -146,7 +151,10 @@ public class PartnershipService {
     public PartnershipResponse updatePartnership(UUID userId, UUID partnershipId, UpdatePartnershipRequest request) {
         AccountabilityPartnership partnership = findPartnership(partnershipId);
 
-        if (!partnership.getRequester().getId().equals(userId) && !partnership.getPartner().getId().equals(userId)) {
+        boolean isRequester = partnership.getRequester().getId().equals(userId);
+        boolean isPartner = partnership.getPartner().getId().equals(userId);
+
+        if (!isRequester && !isPartner) {
             throw new ForbiddenException("You are not a participant in this partnership");
         }
 
@@ -154,12 +162,20 @@ public class PartnershipService {
             throw new BadRequestException("Cannot modify a partnership with status: " + partnership.getStatus());
         }
 
-        if (request.getPartnershipType() != null) {
-            partnership.setPartnershipType(request.getPartnershipType());
+        // Sovereign privacy: Each participant can only toggle their own outward task sharing
+        if (request.getShareMyCommitments() != null) {
+            if (isRequester) {
+                partnership.setShareRequesterCommitments(request.getShareMyCommitments());
+            } else {
+                partnership.setSharePartnerCommitments(request.getShareMyCommitments());
+            }
         }
 
-        if (request.getSharePartnerCommitments() != null) {
-            partnership.setSharePartnerCommitments(request.getSharePartnerCommitments());
+        // Reconcile partnership type based on both parties' sovereign privacy choices
+        if (partnership.isShareRequesterCommitments() && partnership.isSharePartnerCommitments()) {
+            partnership.setPartnershipType(PartnershipType.MUTUAL);
+        } else {
+            partnership.setPartnershipType(PartnershipType.ONE_WAY_SPONSOR);
         }
 
         AccountabilityPartnership saved = partnershipRepository.save(partnership);
@@ -211,14 +227,16 @@ public class PartnershipService {
             }
         }
 
-        // Privacy enforcement: If partner is an asymmetric sponsor/observer, their personal commitments are hidden from requester
-        boolean isPartnerPrivateSponsor = currentUserId.equals(partnership.getRequester().getId()) 
-                && !partnership.isSharePartnerCommitments();
+        // Privacy enforcement: If partner does not share their commitments with current user, hide them
+        boolean isRequester = currentUserId.equals(partnership.getRequester().getId());
+        boolean isPartnerPrivateSponsor = isRequester 
+                ? !partnership.isSharePartnerCommitments() 
+                : !partnership.isShareRequesterCommitments();
 
         if (isPartnerPrivateSponsor) {
             PartnerDailyOverviewDto overview = new PartnerDailyOverviewDto(partner.getId(), partner.getFullName(), targetDate, java.util.Collections.emptyList());
             overview.setOneWaySponsor(true);
-            overview.setAiDiagnosticSummary(partner.getFullName() + " is serving as your 1-Way Accountability Sponsor. Their personal commitments remain private.");
+            overview.setAiDiagnosticSummary(partner.getFullName() + " has private commitments enabled. Only your commitments are visible to them.");
             return overview;
         }
 

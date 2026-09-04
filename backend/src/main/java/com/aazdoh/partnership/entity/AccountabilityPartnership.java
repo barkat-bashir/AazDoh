@@ -37,19 +37,35 @@ public class AccountabilityPartnership extends BaseEntity {
     @Column(name = "share_partner_commitments", nullable = false)
     private boolean sharePartnerCommitments = true;
 
+    @Column(name = "share_requester_commitments", nullable = false)
+    private boolean shareRequesterCommitments = true;
+
     public AccountabilityPartnership() {
     }
 
     public AccountabilityPartnership(User requester, User partner) {
-        this(requester, partner, PartnershipType.MUTUAL, true);
+        this(requester, partner, PartnershipType.MUTUAL, true, true);
     }
 
     public AccountabilityPartnership(User requester, User partner, PartnershipType partnershipType, boolean sharePartnerCommitments) {
+        this(requester, partner, partnershipType, true, sharePartnerCommitments);
+    }
+
+    public AccountabilityPartnership(User requester, User partner, PartnershipType partnershipType, boolean shareRequesterCommitments, boolean sharePartnerCommitments) {
         this.requester = requester;
         this.partner = partner;
         this.status = PartnershipStatus.PENDING;
         this.partnershipType = partnershipType != null ? partnershipType : PartnershipType.MUTUAL;
+        this.shareRequesterCommitments = shareRequesterCommitments;
         this.sharePartnerCommitments = sharePartnerCommitments;
+    }
+
+    public boolean isShareRequesterCommitments() {
+        return shareRequesterCommitments;
+    }
+
+    public void setShareRequesterCommitments(boolean shareRequesterCommitments) {
+        this.shareRequesterCommitments = shareRequesterCommitments;
     }
 
     public PartnershipType getPartnershipType() {

@@ -19,6 +19,7 @@ public class PartnershipResponse {
     private PartnershipStatus status;
     private PartnershipType partnershipType;
     private boolean sharePartnerCommitments;
+    private boolean shareRequesterCommitments;
     private OffsetDateTime createdAt;
 
     public PartnershipResponse() {
@@ -36,8 +37,17 @@ public class PartnershipResponse {
         res.setStatus(p.getStatus());
         res.setPartnershipType(p.getPartnershipType() != null ? p.getPartnershipType() : PartnershipType.MUTUAL);
         res.setSharePartnerCommitments(p.isSharePartnerCommitments());
+        res.setShareRequesterCommitments(p.isShareRequesterCommitments());
         res.setCreatedAt(p.getCreatedAt());
         return res;
+    }
+
+    public boolean isShareRequesterCommitments() {
+        return shareRequesterCommitments;
+    }
+
+    public void setShareRequesterCommitments(boolean shareRequesterCommitments) {
+        this.shareRequesterCommitments = shareRequesterCommitments;
     }
 
     public PartnershipType getPartnershipType() {

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
 import { Partnership, partnershipApi } from '../../api/partnershipApi';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { Settings, Users, ShieldCheck, Eye, EyeOff, Trash2, AlertTriangle, Check } from 'lucide-react';
+import { Users, ShieldCheck, Eye, EyeOff, Trash2, AlertTriangle, Check, Info } from 'lucide-react';
 
 interface ManagePartnershipModalProps {
   isOpen: boolean;
@@ -19,35 +20,46 @@ export const ManagePartnershipModal: React.FC<ManagePartnershipModalProps> = ({
   onSuccess,
   onTerminate,
 }) => {
+  const { user } = useAuth();
   const { showToast } = useToast();
-  const [partnershipType, setPartnershipType] = useState<'MUTUAL' | 'ONE_WAY_SPONSOR'>('MUTUAL');
-  const [sharePartnerCommitments, setSharePartnerCommitments] = useState(true);
+  const [shareMyCommitments, setShareMyCommitments] = useState(true);
   const [loading, setLoading] = useState(false);
   const [showConfirmTerminate, setShowConfirmTerminate] = useState(false);
   const [terminating, setTerminating] = useState(false);
 
+  const isRequester = user?.id === partnership?.requesterId;
+  const partnerDisplayName = partnership
+    ? (isRequester ? partnership.partnerName : partnership.requesterName)
+    : '';
+  const partnerDisplayEmail = partnership
+    ? (isRequester ? partnership.partnerEmail : partnership.requesterEmail)
+    : '';
+
+  // Current partner's outward sharing status
+  const isPartnerSharing = partnership
+    ? (isRequester ? partnership.sharePartnerCommitments !== false : partnership.shareRequesterCommitments !== false)
+    : true;
+
   useEffect(() => {
-    if (partnership) {
-      setPartnershipType(partnership.partnershipType || 'MUTUAL');
-      setSharePartnerCommitments(partnership.sharePartnerCommitments !== false);
+    if (partnership && user) {
+      const mySharing = isRequester
+        ? partnership.shareRequesterCommitments !== false
+        : partnership.sharePartnerCommitments !== false;
+      setShareMyCommitments(mySharing);
       setShowConfirmTerminate(false);
     }
-  }, [partnership, isOpen]);
+  }, [partnership, user, isOpen]);
 
   if (!partnership) return null;
-
-  const partnerDisplayName = partnership.partnerName || partnership.requesterName;
-  const partnerDisplayEmail = partnership.partnerEmail || partnership.requesterEmail;
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setLoading(true);
       await partnershipApi.update(partnership.id, {
-        partnershipType,
-        sharePartnerCommitments,
+        shareMyCommitments,
       });
-      showToast('Partnership settings updated successfully!', 'success');
+      showToast('Partnership privacy settings updated!', 'success');
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -70,6 +82,8 @@ export const ManagePartnershipModal: React.FC<ManagePartnershipModalProps> = ({
       setTerminating(false);
     }
   };
+
+  const willBeMutual = shareMyCommitments && isPartnerSharing;
 
   return (
     <Modal
@@ -102,76 +116,39 @@ export const ManagePartnershipModal: React.FC<ManagePartnershipModalProps> = ({
             fontSize: '11px',
             padding: '3px 8px',
             borderRadius: '4px',
-            background: partnership.status === 'ACCEPTED' ? 'rgba(74, 222, 128, 0.15)' : 'rgba(226, 149, 59, 0.15)',
-            color: partnership.status === 'ACCEPTED' ? '#4ADE80' : 'var(--saffron-ember)',
+            background: willBeMutual ? 'rgba(74, 222, 128, 0.15)' : 'rgba(226, 149, 59, 0.15)',
+            color: willBeMutual ? '#4ADE80' : 'var(--saffron-ember)',
             fontWeight: 700,
-            textTransform: 'uppercase',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
           }}>
-            {partnership.status}
+            {willBeMutual ? <Users size={12} /> : <ShieldCheck size={12} />}
+            <span>{willBeMutual ? 'Mutual Sparring' : '1-Way Sponsor'}</span>
           </span>
         </div>
 
-        {/* Partnership Mode Selection */}
-        <div>
-          <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '8px' }}>
-            Partnership Mode
-          </label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            {/* Mutual Mode */}
-            <button
-              type="button"
-              onClick={() => setPartnershipType('MUTUAL')}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                padding: '12px',
-                borderRadius: '8px',
-                background: partnershipType === 'MUTUAL' ? 'rgba(74, 222, 128, 0.08)' : 'rgba(255, 255, 255, 0.02)',
-                border: partnershipType === 'MUTUAL' ? '1.5px solid #4ADE80' : '1px solid var(--border-walnut-faint)',
-                cursor: 'pointer',
-                textAlign: 'left',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: partnershipType === 'MUTUAL' ? '#4ADE80' : 'var(--text-kehwa-cream)', fontWeight: 700, fontSize: '0.86rem', marginBottom: '4px' }}>
-                <Users size={16} />
-                <span>Mutual Sparring</span>
-              </div>
-              <p style={{ fontSize: '0.72rem', color: 'var(--text-tweed-dim)', margin: 0, lineHeight: 1.4 }}>
-                Both partners see and hold each other accountable to daily tasks.
-              </p>
-            </button>
-
-            {/* 1-Way Sponsor Mode */}
-            <button
-              type="button"
-              onClick={() => setPartnershipType('ONE_WAY_SPONSOR')}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                padding: '12px',
-                borderRadius: '8px',
-                background: partnershipType === 'ONE_WAY_SPONSOR' ? 'rgba(226, 149, 59, 0.08)' : 'rgba(255, 255, 255, 0.02)',
-                border: partnershipType === 'ONE_WAY_SPONSOR' ? '1.5px solid var(--saffron-ember)' : '1px solid var(--border-walnut-faint)',
-                cursor: 'pointer',
-                textAlign: 'left',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: partnershipType === 'ONE_WAY_SPONSOR' ? 'var(--saffron-ember)' : 'var(--text-kehwa-cream)', fontWeight: 700, fontSize: '0.86rem', marginBottom: '4px' }}>
-                <ShieldCheck size={16} />
-                <span>1-Way Sponsor</span>
-              </div>
-              <p style={{ fontSize: '0.72rem', color: 'var(--text-tweed-dim)', margin: 0, lineHeight: 1.4 }}>
-                One-way mentorship / oversight without reciprocal task sharing.
-              </p>
-            </button>
+        {/* Partner Status Card */}
+        <div style={{
+          padding: '12px 14px',
+          background: isPartnerSharing ? 'rgba(74, 222, 128, 0.05)' : 'rgba(226, 149, 59, 0.06)',
+          border: `1px solid ${isPartnerSharing ? 'rgba(74, 222, 128, 0.2)' : 'rgba(226, 149, 59, 0.25)'}`,
+          borderRadius: 'var(--radius-sm)',
+          fontSize: '0.8rem',
+          lineHeight: '1.45',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: isPartnerSharing ? '#4ADE80' : 'var(--saffron-ember)', marginBottom: '4px' }}>
+            <Info size={14} />
+            <span>{partnerDisplayName}'s Sharing Status:</span>
           </div>
+          <p style={{ margin: 0, color: 'var(--text-kehwa-cream)' }}>
+            {isPartnerSharing
+              ? `${partnerDisplayName} is sharing their daily task list with you.`
+              : `${partnerDisplayName} has private schedule enabled (serving as 1-Way Sponsor). Only they can inspect your tasks.`}
+          </p>
         </div>
 
-        {/* Visibility & Commitment Sharing Toggle */}
+        {/* Sovereign Visibility: Share My Commitments Toggle */}
         <div style={{
           padding: '14px',
           background: 'rgba(255, 255, 255, 0.02)',
@@ -180,28 +157,33 @@ export const ManagePartnershipModal: React.FC<ManagePartnershipModalProps> = ({
         }}>
           <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              {sharePartnerCommitments ? (
+              {shareMyCommitments ? (
                 <Eye size={18} color="#4ADE80" />
               ) : (
                 <EyeOff size={18} color="var(--text-tweed-dim)" />
               )}
               <div>
                 <div style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-kehwa-cream)' }}>
-                  Share Commitments
+                  Share My Daily Commitments
                 </div>
                 <div style={{ fontSize: '0.74rem', color: 'var(--text-tweed-dim)', marginTop: '2px' }}>
-                  Allow {partnerDisplayName} to see your daily shared commitments
+                  Allow {partnerDisplayName} to view and discuss your daily task progress
                 </div>
               </div>
             </div>
             <input
               type="checkbox"
-              checked={sharePartnerCommitments}
-              onChange={(e) => setSharePartnerCommitments(e.target.checked)}
+              checked={shareMyCommitments}
+              onChange={(e) => setShareMyCommitments(e.target.checked)}
               style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: 'var(--saffron-ember)' }}
             />
           </label>
         </div>
+
+        {/* Privacy Note */}
+        <p style={{ fontSize: '0.74rem', color: 'var(--text-tweed-dim)', margin: 0, lineHeight: 1.4 }}>
+          💡 <strong>Sovereign Privacy:</strong> You control your own daily schedule visibility. Partnerships automatically operate in <em>Mutual Sparring</em> mode when both partners share commitments.
+        </p>
 
         {/* Danger Zone: Terminate Partnership */}
         <div style={{

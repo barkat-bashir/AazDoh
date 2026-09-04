@@ -5,14 +5,15 @@ import com.aazdoh.partnership.entity.PartnershipType;
 public class UpdatePartnershipRequest {
 
     private PartnershipType partnershipType;
+    private Boolean shareMyCommitments;
     private Boolean sharePartnerCommitments;
 
     public UpdatePartnershipRequest() {
     }
 
-    public UpdatePartnershipRequest(PartnershipType partnershipType, Boolean sharePartnerCommitments) {
+    public UpdatePartnershipRequest(PartnershipType partnershipType, Boolean shareMyCommitments) {
         this.partnershipType = partnershipType;
-        this.sharePartnerCommitments = sharePartnerCommitments;
+        this.shareMyCommitments = shareMyCommitments;
     }
 
     public PartnershipType getPartnershipType() {
@@ -21,6 +22,14 @@ public class UpdatePartnershipRequest {
 
     public void setPartnershipType(PartnershipType partnershipType) {
         this.partnershipType = partnershipType;
+    }
+
+    public Boolean getShareMyCommitments() {
+        return shareMyCommitments != null ? shareMyCommitments : sharePartnerCommitments;
+    }
+
+    public void setShareMyCommitments(Boolean shareMyCommitments) {
+        this.shareMyCommitments = shareMyCommitments;
     }
 
     public Boolean getSharePartnerCommitments() {
