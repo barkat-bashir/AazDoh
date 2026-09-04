@@ -1,9 +1,14 @@
 package com.aazdoh.auth.service;
 
 import com.aazdoh.auth.dto.AuthResponse;
+import com.aazdoh.auth.dto.ForgotPasswordRequest;
 import com.aazdoh.auth.dto.LoginRequest;
 import com.aazdoh.auth.dto.RefreshTokenRequest;
 import com.aazdoh.auth.dto.RegisterRequest;
+import com.aazdoh.auth.dto.ResetPasswordRequest;
+import com.aazdoh.auth.entity.PasswordResetToken;
+import com.aazdoh.auth.repository.PasswordResetTokenRepository;
+import com.aazdoh.common.email.ResendEmailService;
 import com.aazdoh.common.exception.BadRequestException;
 import com.aazdoh.common.exception.UnauthorizedException;
 import com.aazdoh.user.entity.AiPersona;
@@ -16,6 +21,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -25,16 +32,16 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
-    private final com.aazdoh.auth.repository.PasswordResetTokenRepository passwordResetTokenRepository;
-    private final com.aazdoh.common.email.ResendEmailService emailService;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final ResendEmailService emailService;
 
     public AuthService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
             AuthenticationManager authenticationManager,
-            com.aazdoh.auth.repository.PasswordResetTokenRepository passwordResetTokenRepository,
-            com.aazdoh.common.email.ResendEmailService emailService
+            PasswordResetTokenRepository passwordResetTokenRepository,
+            ResendEmailService emailService
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
@@ -128,9 +135,9 @@ public class AuthService {
     }
 
     @Transactional
-    public void initiatePasswordReset(com.aazdoh.auth.dto.ForgotPasswordRequest request) {
+    public void initiatePasswordReset(ForgotPasswordRequest request) {
         String cleanEmail = request.getEmail().toLowerCase().trim();
-        java.util.Optional<User> userOpt = userRepository.findByEmail(cleanEmail);
+        Optional<User> userOpt = userRepository.findByEmail(cleanEmail);
 
         if (userOpt.isEmpty()) {
             // Security best practice: avoid user enumeration attacks by returning silently
@@ -146,8 +153,8 @@ public class AuthService {
         String rawToken = UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "");
         String tokenHash = hashToken(rawToken);
 
-        java.time.OffsetDateTime expiresAt = java.time.OffsetDateTime.now().plusHours(1);
-        com.aazdoh.auth.entity.PasswordResetToken resetToken = new com.aazdoh.auth.entity.PasswordResetToken(user, tokenHash, expiresAt);
+        OffsetDateTime expiresAt = OffsetDateTime.now().plusHours(1);
+        PasswordResetToken resetToken = new PasswordResetToken(user, tokenHash, expiresAt);
         passwordResetTokenRepository.save(resetToken);
 
         // Send email via Resend
@@ -155,9 +162,9 @@ public class AuthService {
     }
 
     @Transactional
-    public void completePasswordReset(com.aazdoh.auth.dto.ResetPasswordRequest request) {
+    public void completePasswordReset(ResetPasswordRequest request) {
         String tokenHash = hashToken(request.getToken().trim());
-        com.aazdoh.auth.entity.PasswordResetToken resetToken = passwordResetTokenRepository.findByTokenHash(tokenHash)
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByTokenHash(tokenHash)
                 .orElseThrow(() -> new BadRequestException("Invalid or expired password reset link"));
 
         if (resetToken.isUsed() || resetToken.isExpired()) {

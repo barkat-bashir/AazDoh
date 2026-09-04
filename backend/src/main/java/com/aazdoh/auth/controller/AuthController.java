@@ -1,9 +1,11 @@
 package com.aazdoh.auth.controller;
 
 import com.aazdoh.auth.dto.AuthResponse;
+import com.aazdoh.auth.dto.ForgotPasswordRequest;
 import com.aazdoh.auth.dto.LoginRequest;
 import com.aazdoh.auth.dto.RefreshTokenRequest;
 import com.aazdoh.auth.dto.RegisterRequest;
+import com.aazdoh.auth.dto.ResetPasswordRequest;
 import com.aazdoh.auth.service.AuthService;
 import com.aazdoh.common.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -51,14 +53,14 @@ public class AuthController {
 
     @PostMapping("/forgot-password")
     @Operation(summary = "Initiate password reset via email link")
-    public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody com.aazdoh.auth.dto.ForgotPasswordRequest request) {
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         authService.initiatePasswordReset(request);
         return ResponseEntity.ok(ApiResponse.ok("If an account exists with this email, a password reset link has been sent.", null));
     }
 
     @PostMapping("/reset-password")
     @Operation(summary = "Reset password using reset token")
-    public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody com.aazdoh.auth.dto.ResetPasswordRequest request) {
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.completePasswordReset(request);
         return ResponseEntity.ok(ApiResponse.ok("Password has been reset successfully. You may now sign in.", null));
     }
