@@ -22,7 +22,7 @@ interface CommitmentCardProps {
   onReviewClick?: (commitment: Commitment) => void;
 }
 
-export const CommitmentCard: React.FC<CommitmentCardProps> = ({
+const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
   commitment,
   onRefresh,
   onOpenDiscussion,
@@ -311,3 +311,5 @@ export const CommitmentCard: React.FC<CommitmentCardProps> = ({
     </div>
   );
 };
+
+export const CommitmentCard = React.memo(CommitmentCardComponent);

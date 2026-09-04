@@ -18,7 +18,7 @@ interface LeafParticle {
   swayOffset: number;
 }
 
-export const ChinarLeavesCanvas: React.FC = () => {
+const ChinarLeavesCanvasComponent: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -187,3 +187,5 @@ export const ChinarLeavesCanvas: React.FC = () => {
     />
   );
 };
+
+export const ChinarLeavesCanvas = React.memo(ChinarLeavesCanvasComponent);

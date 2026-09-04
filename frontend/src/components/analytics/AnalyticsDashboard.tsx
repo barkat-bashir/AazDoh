@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { analyticsApi, AccountabilityStats } from '../../api/analyticsApi';
 import { aiApi, AiFeedbackResponse } from '../../api/aiApi';
 import { useToast } from '../../context/ToastContext';
@@ -6,39 +7,23 @@ import { BarChart3, TrendingUp, Clock, CheckCircle2, XCircle, AlertTriangle, Fla
 
 export const AnalyticsDashboard: React.FC = () => {
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const [days, setDays] = useState(30);
-  const [stats, setStats] = useState<AccountabilityStats | null>(null);
-  const [insights, setInsights] = useState<AiFeedbackResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadingInsights, setLoadingInsights] = useState(false);
 
-  useEffect(() => {
-    loadStats(days);
-    loadInsights();
-  }, [days]);
+  const { data: stats = null, isLoading: loading } = useQuery<AccountabilityStats | null>({
+    queryKey: ['analytics', days],
+    queryFn: () => analyticsApi.getSummary(days),
+    staleTime: 1000 * 60 * 3, // 3 minutes fresh cache
+  });
 
-  const loadStats = async (d: number) => {
-    try {
-      setLoading(true);
-      const res = await analyticsApi.getSummary(d);
-      setStats(res);
-    } catch (err: any) {
-      showToast('Could not load analytics summary', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: insights = null, isLoading: loadingInsights, refetch: refetchInsights } = useQuery<AiFeedbackResponse | null>({
+    queryKey: ['aiInsights'],
+    queryFn: () => aiApi.getInsights(),
+    staleTime: 1000 * 60 * 5, // 5 minutes fresh cache
+  });
 
-  const loadInsights = async () => {
-    try {
-      setLoadingInsights(true);
-      const res = await aiApi.getInsights();
-      setInsights(res);
-    } catch (err: any) {
-      // Non-critical if insights fail
-    } finally {
-      setLoadingInsights(false);
-    }
+  const loadInsights = () => {
+    refetchInsights();
   };
 
   const getReasonLabel = (reason: string) => {

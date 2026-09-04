@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Commitment, commitmentApi } from '../api/commitmentApi';
 import { DailyProgressHeader } from '../components/commitment/DailyProgressHeader';
@@ -75,36 +75,36 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
     staleTime: 1000 * 30,
   });
 
-  const refreshCommitments = () => {
+  const refreshCommitments = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['commitments'] });
     queryClient.invalidateQueries({ queryKey: ['unreadSummary'] });
-  };
+  }, [queryClient]);
 
-  // Categorize commitments for smart visual grouping
-  const activeList = commitments.filter(c => c.status === 'PENDING' || c.status === 'IN_PROGRESS');
-  const completedList = commitments.filter(c => c.status === 'COMPLETED');
-  const postponedList = commitments.filter(c => c.status === 'POSTPONED');
-  const missedList = commitments.filter(c => c.status === 'MISSED');
+  // Categorize commitments for smart visual grouping (memoized)
+  const activeList = useMemo(() => commitments.filter(c => c.status === 'PENDING' || c.status === 'IN_PROGRESS'), [commitments]);
+  const completedList = useMemo(() => commitments.filter(c => c.status === 'COMPLETED'), [commitments]);
+  const postponedList = useMemo(() => commitments.filter(c => c.status === 'POSTPONED'), [commitments]);
+  const missedList = useMemo(() => commitments.filter(c => c.status === 'MISSED'), [commitments]);
 
-  const totalFocusMinutes = activeList.reduce((acc, c) => acc + (c.estimatedMinutes || 0), 0);
-  const totalCompletedMinutes = completedList.reduce((acc, c) => acc + (c.estimatedMinutes || 0), 0);
+  const totalFocusMinutes = useMemo(() => activeList.reduce((acc, c) => acc + (c.estimatedMinutes || 0), 0), [activeList]);
+  const totalCompletedMinutes = useMemo(() => completedList.reduce((acc, c) => acc + (c.estimatedMinutes || 0), 0), [completedList]);
 
   // Check for unreviewed tasks from yesterday (excluding already reviewed, postponed, or completed tasks)
-  const unreviewedYesterday = yesterdayCommitments.filter(
+  const unreviewedYesterday = useMemo(() => yesterdayCommitments.filter(
     c => !c.isReviewed && c.status !== 'POSTPONED' && c.status !== 'COMPLETED' && (c.status === 'MISSED' || c.status === 'PENDING')
-  );
+  ), [yesterdayCommitments]);
   const unreviewedYesterdayCount = unreviewedYesterday.length;
   const showCatchUpBanner = selectedDate === todayStr && !isCatchUpDismissed && unreviewedYesterdayCount > 0;
 
-  const handleStartCatchUp = () => {
+  const handleStartCatchUp = useCallback(() => {
     setReviewDate(yesterdayStr);
     setIsReviewModalOpen(true);
-  };
+  }, [yesterdayStr]);
 
-  const handleOpenStandardReview = () => {
+  const handleOpenStandardReview = useCallback(() => {
     setReviewDate(selectedDate);
     setIsReviewModalOpen(true);
-  };
+  }, [selectedDate]);
 
   const handleRunFeasibilityCheck = async (
     defenseText?: string, 
@@ -140,23 +140,34 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
     }
   };
 
-  const activeReviewCommitments = reviewDate === selectedDate 
-    ? commitments 
-    : (reviewDate === yesterdayStr ? yesterdayCommitments : commitments);
+  const activeReviewCommitments = useMemo(() => {
+    return reviewDate === selectedDate 
+      ? commitments 
+      : (reviewDate === yesterdayStr ? yesterdayCommitments : commitments);
+  }, [reviewDate, selectedDate, commitments, yesterdayStr, yesterdayCommitments]);
 
-  const renderCard = (commitment: Commitment) => {
-    const isUnread = !!commitment.hasUnreadDiscussion || !!(unreadSummary?.unreadCommitmentIds?.includes(commitment.id));
+  const handleOpenDiscussion = useCallback((c: Commitment) => {
+    setDiscussionCommitment(c);
+  }, []);
+
+  const handlePostponeClick = useCallback((c: Commitment) => {
+    setPostponingCommitment(c);
+  }, []);
+
+  const unreadCommitmentIds = unreadSummary?.unreadCommitmentIds;
+  const renderCard = useCallback((commitment: Commitment) => {
+    const isUnread = !!commitment.hasUnreadDiscussion || !!(unreadCommitmentIds?.includes(commitment.id));
     const enriched = isUnread ? { ...commitment, hasUnreadDiscussion: true } : commitment;
     return (
       <CommitmentCard
         key={commitment.id}
         commitment={enriched}
         onRefresh={refreshCommitments}
-        onOpenDiscussion={(c) => setDiscussionCommitment(c)}
-        onPostponeClick={(c) => setPostponingCommitment(c)}
+        onOpenDiscussion={handleOpenDiscussion}
+        onPostponeClick={handlePostponeClick}
       />
     );
-  };
+  }, [unreadCommitmentIds, refreshCommitments, handleOpenDiscussion, handlePostponeClick]);
 
   return (
     <div className="page-container" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
