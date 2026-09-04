@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { authApi } from '../api/authApi';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Flame, Sparkles, Shield, Users, ArrowRight } from 'lucide-react';
+import { Flame, Sparkles, Shield, Users, ArrowRight, AlertCircle } from 'lucide-react';
 
 type AuthMode = 'login' | 'register' | 'forgot';
 
@@ -19,10 +19,18 @@ export const AuthPage: React.FC = () => {
   const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata');
   const [loading, setLoading] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const switchMode = (mode: AuthMode) => {
+    setAuthMode(mode);
+    setErrorMessage(null);
+    setForgotSent(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
+    setErrorMessage(null);
 
     try {
       setLoading(true);
@@ -38,7 +46,9 @@ export const AuthPage: React.FC = () => {
 
       if (authMode === 'register') {
         if (!fullName.trim()) {
-          showToast('Full name is required', 'error');
+          const msg = 'Full name is required';
+          setErrorMessage(msg);
+          showToast(msg, 'error');
           return;
         }
         const res = await authApi.register({
@@ -74,7 +84,9 @@ export const AuthPage: React.FC = () => {
         navigate('/today', { replace: true });
       }
     } catch (err: any) {
-      showToast(err.message || 'Authentication failed', 'error');
+      const msg = err.message || 'Authentication failed. Please check your credentials.';
+      setErrorMessage(msg);
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -153,7 +165,7 @@ export const AuthPage: React.FC = () => {
             </p>
             <button
               type="button"
-              onClick={() => { setAuthMode('login'); setForgotSent(false); }}
+              onClick={() => switchMode('login')}
               className="btn-secondary"
               style={{ marginTop: '16px', width: '100%', justifyContent: 'center', fontSize: '0.84rem' }}
             >
@@ -162,6 +174,24 @@ export const AuthPage: React.FC = () => {
           </div>
         ) : (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {errorMessage && (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.14)',
+                border: '1px solid rgba(239, 68, 68, 0.4)',
+                borderRadius: 'var(--radius-md)',
+                padding: '12px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                color: '#FCA5A5',
+                fontSize: '0.86rem',
+                lineHeight: 1.4,
+              }}>
+                <AlertCircle size={18} color="#F87171" style={{ flexShrink: 0 }} />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
             {authMode === 'register' && (
               <div>
                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '6px' }}>
@@ -172,7 +202,7 @@ export const AuthPage: React.FC = () => {
                   className="input-field"
                   placeholder="Barkat Ali"
                   value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                  onChange={(e) => { setFullName(e.target.value); setErrorMessage(null); }}
                   required={authMode === 'register'}
                 />
               </div>
@@ -187,7 +217,7 @@ export const AuthPage: React.FC = () => {
                 className="input-field"
                 placeholder="you@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); setErrorMessage(null); }}
                 required
               />
             </div>
@@ -201,7 +231,7 @@ export const AuthPage: React.FC = () => {
                   {authMode === 'login' && (
                     <button
                       type="button"
-                      onClick={() => { setAuthMode('forgot'); setForgotSent(false); }}
+                      onClick={() => switchMode('forgot')}
                       style={{ background: 'none', border: 'none', color: 'var(--saffron-ember)', fontSize: '0.78rem', cursor: 'pointer', padding: 0 }}
                     >
                       Forgot password?
@@ -213,7 +243,7 @@ export const AuthPage: React.FC = () => {
                   className="input-field"
                   placeholder="••••••••"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => { setPassword(e.target.value); setErrorMessage(null); }}
                   required
                 />
               </div>
@@ -228,7 +258,7 @@ export const AuthPage: React.FC = () => {
                   type="text"
                   className="input-field"
                   value={timezone}
-                  onChange={(e) => setTimezone(e.target.value)}
+                  onChange={(e) => { setTimezone(e.target.value); setErrorMessage(null); }}
                 />
               </div>
             )}
@@ -258,7 +288,7 @@ export const AuthPage: React.FC = () => {
           {authMode === 'forgot' ? (
             <button
               type="button"
-              onClick={() => { setAuthMode('login'); setForgotSent(false); }}
+              onClick={() => switchMode('login')}
               style={{ background: 'none', border: 'none', color: 'var(--saffron-ember)', fontWeight: 600, cursor: 'pointer' }}
             >
               ← Back to Sign In
@@ -268,7 +298,7 @@ export const AuthPage: React.FC = () => {
               Already have an account?{' '}
               <button
                 type="button"
-                onClick={() => setAuthMode('login')}
+                onClick={() => switchMode('login')}
                 style={{ background: 'none', border: 'none', color: 'var(--saffron-ember)', fontWeight: 600, cursor: 'pointer' }}
               >
                 Sign In
@@ -279,7 +309,7 @@ export const AuthPage: React.FC = () => {
               Don't have an account?{' '}
               <button
                 type="button"
-                onClick={() => setAuthMode('register')}
+                onClick={() => switchMode('register')}
                 style={{ background: 'none', border: 'none', color: 'var(--saffron-ember)', fontWeight: 600, cursor: 'pointer' }}
               >
                 Register

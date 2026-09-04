@@ -34,13 +34,27 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
       headers,
     });
 
+    const isAuthEndpoint = endpoint.includes('/auth/');
+
     if (response.status === 401) {
-      localStorage.removeItem('aazdoh_token');
-      localStorage.removeItem('aazdoh_user');
-      if (!window.location.pathname.includes('/auth')) {
-        window.location.href = '/';
+      const errData: ApiResponse<any> = await response.json().catch(() => ({
+        success: false,
+        message: 'Invalid email or password',
+        data: null,
+        timestamp: new Date().toISOString(),
+      }));
+
+      if (!isAuthEndpoint) {
+        localStorage.removeItem('aazdoh_token');
+        localStorage.removeItem('aazdoh_user');
+        const currentPath = window.location.pathname;
+        if (currentPath !== '/login' && currentPath !== '/reset-password' && currentPath !== '/') {
+          window.location.href = '/login';
+        }
+        throw new ApiError('Session expired. Please log in again.', 401);
       }
-      throw new ApiError('Session expired. Please log in again.', 401);
+
+      throw new ApiError(errData.message || 'Invalid email or password', 401);
     }
 
     const data: ApiResponse<T> = await response.json().catch(() => ({
