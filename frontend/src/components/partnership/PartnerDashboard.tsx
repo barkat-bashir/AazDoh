@@ -46,6 +46,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
     queryKey: ['unreadSummary'],
     queryFn: () => discussionApi.getUnreadSummary(),
     enabled: !!user,
+    staleTime: 1000 * 30,
   });
 
   const { data: partners = [], isLoading: loadingPartners } = useQuery({

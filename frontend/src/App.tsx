@@ -110,8 +110,9 @@ const AppContent: React.FC = () => {
     queryKey: ['unreadSummary'],
     queryFn: () => discussionApi.getUnreadSummary(),
     enabled: !!user,
-    refetchInterval: 10000,
-    staleTime: 0,
+    staleTime: 1000 * 30, // 30 seconds fresh cache
+    refetchInterval: 1000 * 60, // 60s quiet background sync
+    refetchIntervalInBackground: false,
   });
 
   const unreadCount = unreadSummary?.totalUnreadNotifications || 0;

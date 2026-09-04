@@ -72,6 +72,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
   const { data: unreadSummary } = useQuery({
     queryKey: ['unreadSummary'],
     queryFn: () => discussionApi.getUnreadSummary(),
+    staleTime: 1000 * 30,
   });
 
   const refreshCommitments = () => {
