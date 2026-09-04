@@ -1,17 +1,26 @@
 package com.aazdoh.partnership.service;
 
+import com.aazdoh.ai.client.AccountabilityAiClient;
+import com.aazdoh.ai.context.AccountabilityContextBuilder;
+import com.aazdoh.ai.context.UserAccountabilityContextDto;
+import com.aazdoh.ai.dto.PlanStressTestResponse;
+import com.aazdoh.ai.entity.AiStressTestSnapshot;
+import com.aazdoh.ai.repository.AiStressTestSnapshotRepository;
+import com.aazdoh.ai.service.AiAccountabilityService;
 import com.aazdoh.commitment.dto.CommitmentResponse;
 import com.aazdoh.commitment.entity.Commitment;
-import com.aazdoh.commitment.entity.CommitmentVisibility;
 import com.aazdoh.commitment.repository.CommitmentRepository;
 import com.aazdoh.common.exception.BadRequestException;
 import com.aazdoh.common.exception.ForbiddenException;
 import com.aazdoh.common.exception.ResourceNotFoundException;
+import com.aazdoh.discussion.repository.DiscussionMessageRepository;
+import com.aazdoh.partnership.dto.AcceptPartnershipRequest;
 import com.aazdoh.partnership.dto.InvitePartnerRequest;
 import com.aazdoh.partnership.dto.PartnerDailyOverviewDto;
 import com.aazdoh.partnership.dto.PartnershipResponse;
 import com.aazdoh.partnership.entity.AccountabilityPartnership;
 import com.aazdoh.partnership.entity.PartnershipStatus;
+import com.aazdoh.partnership.entity.PartnershipType;
 import com.aazdoh.partnership.repository.PartnershipRepository;
 import com.aazdoh.user.entity.User;
 import com.aazdoh.user.repository.UserRepository;
@@ -20,7 +29,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -32,20 +43,20 @@ public class PartnershipService {
     private final UserRepository userRepository;
     private final UserService userService;
     private final CommitmentRepository commitmentRepository;
-    private final com.aazdoh.ai.context.AccountabilityContextBuilder contextBuilder;
-    private final com.aazdoh.ai.client.AccountabilityAiClient aiClient;
-    private final com.aazdoh.discussion.repository.DiscussionMessageRepository discussionMessageRepository;
-    private final com.aazdoh.ai.repository.AiStressTestSnapshotRepository aiSnapshotRepository;
+    private final AccountabilityContextBuilder contextBuilder;
+    private final AccountabilityAiClient aiClient;
+    private final DiscussionMessageRepository discussionMessageRepository;
+    private final AiStressTestSnapshotRepository aiSnapshotRepository;
 
     public PartnershipService(
             PartnershipRepository partnershipRepository,
             UserRepository userRepository,
             UserService userService,
             CommitmentRepository commitmentRepository,
-            com.aazdoh.ai.context.AccountabilityContextBuilder contextBuilder,
-            com.aazdoh.ai.client.AccountabilityAiClient aiClient,
-            com.aazdoh.discussion.repository.DiscussionMessageRepository discussionMessageRepository,
-            com.aazdoh.ai.repository.AiStressTestSnapshotRepository aiSnapshotRepository
+            AccountabilityContextBuilder contextBuilder,
+            AccountabilityAiClient aiClient,
+            DiscussionMessageRepository discussionMessageRepository,
+            AiStressTestSnapshotRepository aiSnapshotRepository
     ) {
         this.partnershipRepository = partnershipRepository;
         this.userRepository = userRepository;
@@ -73,10 +84,10 @@ public class PartnershipService {
             throw new BadRequestException("An active partnership or pending invitation already exists with this user");
         }
 
-        com.aazdoh.partnership.entity.PartnershipType type = request.getPartnershipType() != null 
+        PartnershipType type = request.getPartnershipType() != null 
                 ? request.getPartnershipType() 
-                : com.aazdoh.partnership.entity.PartnershipType.MUTUAL;
-        boolean sharePartnerCommitments = (type == com.aazdoh.partnership.entity.PartnershipType.MUTUAL);
+                : PartnershipType.MUTUAL;
+        boolean sharePartnerCommitments = (type == PartnershipType.MUTUAL);
 
         AccountabilityPartnership partnership = new AccountabilityPartnership(
                 requester, 
@@ -90,7 +101,7 @@ public class PartnershipService {
     }
 
     @Transactional
-    public PartnershipResponse acceptInvitation(UUID userId, UUID partnershipId, com.aazdoh.partnership.dto.AcceptPartnershipRequest acceptRequest) {
+    public PartnershipResponse acceptInvitation(UUID userId, UUID partnershipId, AcceptPartnershipRequest acceptRequest) {
         AccountabilityPartnership partnership = findPartnership(partnershipId);
 
         if (!partnership.getPartner().getId().equals(userId)) {
@@ -210,12 +221,12 @@ public class PartnershipService {
         }
 
         // Fast Snapshot Cache lookup (0ms latency, zero LLM calls)
-        String planHash = com.aazdoh.ai.service.AiAccountabilityService.computePlanHash(dtoList);
-        java.util.Optional<com.aazdoh.ai.entity.AiStressTestSnapshot> cachedSnapshot =
+        String planHash = AiAccountabilityService.computePlanHash(dtoList);
+        Optional<AiStressTestSnapshot> cachedSnapshot =
                 aiSnapshotRepository.findFirstByUserIdAndCommitmentDateAndPlanHash(partnerUserId, targetDate, planHash);
 
         if (cachedSnapshot.isPresent()) {
-            com.aazdoh.ai.entity.AiStressTestSnapshot snapshot = cachedSnapshot.get();
+            AiStressTestSnapshot snapshot = cachedSnapshot.get();
             overview.setAiRiskScore(snapshot.getRiskScore());
             overview.setAiRiskLevel(snapshot.getRiskLevel());
             overview.setAiDiagnosticSummary(snapshot.getDiagnosticSummary());
@@ -226,8 +237,8 @@ public class PartnershipService {
 
         // Compute live AI Brief only on cache miss
         try {
-            com.aazdoh.ai.context.UserAccountabilityContextDto context = contextBuilder.buildContext(partnerUserId);
-            com.aazdoh.ai.dto.PlanStressTestResponse stressTest = aiClient.stressTestPlan(
+            UserAccountabilityContextDto context = contextBuilder.buildContext(partnerUserId);
+            PlanStressTestResponse stressTest = aiClient.stressTestPlan(
                     context,
                     dtoList,
                     null,
@@ -244,7 +255,7 @@ public class PartnershipService {
 
                 // Persist snapshot so subsequent views are instant (<2ms)
                 try {
-                    com.aazdoh.ai.entity.AiStressTestSnapshot snapshot = new com.aazdoh.ai.entity.AiStressTestSnapshot();
+                    AiStressTestSnapshot snapshot = new AiStressTestSnapshot();
                     snapshot.setUser(partner);
                     snapshot.setCommitmentDate(targetDate);
                     snapshot.setPlanHash(planHash);

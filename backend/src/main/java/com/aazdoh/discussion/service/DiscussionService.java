@@ -12,6 +12,7 @@ import com.aazdoh.discussion.entity.Discussion;
 import com.aazdoh.discussion.entity.DiscussionMessage;
 import com.aazdoh.discussion.repository.DiscussionMessageRepository;
 import com.aazdoh.discussion.repository.DiscussionRepository;
+import com.aazdoh.partnership.entity.PartnershipStatus;
 import com.aazdoh.partnership.repository.PartnershipRepository;
 import com.aazdoh.user.entity.User;
 import com.aazdoh.user.service.UserService;
@@ -21,8 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -89,12 +92,12 @@ public class DiscussionService {
     @Transactional(readOnly = true)
     public UnreadSummaryDto getUnreadSummary(UUID userId) {
         List<Object[]> unreadDetails = discussionMessageRepository.findUnreadMessageDetailsForUser(userId);
-        long pendingInvites = partnershipRepository.countByPartnerIdAndStatus(userId, com.aazdoh.partnership.entity.PartnershipStatus.PENDING);
+        long pendingInvites = partnershipRepository.countByPartnerIdAndStatus(userId, PartnershipStatus.PENDING);
 
         long unreadToday = 0;
         long unreadPartner = 0;
-        java.util.Set<UUID> partnerIds = new java.util.HashSet<>();
-        java.util.Set<UUID> commitmentIds = new java.util.HashSet<>();
+        Set<UUID> partnerIds = new HashSet<>();
+        Set<UUID> commitmentIds = new HashSet<>();
 
         for (Object[] row : unreadDetails) {
             UUID commitmentId = (UUID) row[0];

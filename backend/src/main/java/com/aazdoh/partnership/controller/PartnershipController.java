@@ -2,6 +2,7 @@ package com.aazdoh.partnership.controller;
 
 import com.aazdoh.auth.service.CustomUserDetails;
 import com.aazdoh.common.response.ApiResponse;
+import com.aazdoh.partnership.dto.AcceptPartnershipRequest;
 import com.aazdoh.partnership.dto.InvitePartnerRequest;
 import com.aazdoh.partnership.dto.PartnerDailyOverviewDto;
 import com.aazdoh.partnership.dto.PartnershipResponse;
@@ -55,7 +56,7 @@ public class PartnershipController {
     public ResponseEntity<ApiResponse<PartnershipResponse>> acceptInvitation(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable("id") UUID partnershipId,
-            @RequestBody(required = false) com.aazdoh.partnership.dto.AcceptPartnershipRequest request
+            @RequestBody(required = false) AcceptPartnershipRequest request
     ) {
         PartnershipResponse response = partnershipService.acceptInvitation(userDetails.getId(), partnershipId, request);
         return ResponseEntity.ok(ApiResponse.ok("Partnership accepted", response));

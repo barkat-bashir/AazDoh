@@ -2,6 +2,7 @@ package com.aazdoh.partnership.dto;
 
 import com.aazdoh.partnership.entity.AccountabilityPartnership;
 import com.aazdoh.partnership.entity.PartnershipStatus;
+import com.aazdoh.partnership.entity.PartnershipType;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -16,7 +17,7 @@ public class PartnershipResponse {
     private String partnerName;
     private String partnerEmail;
     private PartnershipStatus status;
-    private com.aazdoh.partnership.entity.PartnershipType partnershipType;
+    private PartnershipType partnershipType;
     private boolean sharePartnerCommitments;
     private OffsetDateTime createdAt;
 
@@ -33,17 +34,17 @@ public class PartnershipResponse {
         res.setPartnerName(p.getPartner().getFullName());
         res.setPartnerEmail(p.getPartner().getEmail());
         res.setStatus(p.getStatus());
-        res.setPartnershipType(p.getPartnershipType() != null ? p.getPartnershipType() : com.aazdoh.partnership.entity.PartnershipType.MUTUAL);
+        res.setPartnershipType(p.getPartnershipType() != null ? p.getPartnershipType() : PartnershipType.MUTUAL);
         res.setSharePartnerCommitments(p.isSharePartnerCommitments());
         res.setCreatedAt(p.getCreatedAt());
         return res;
     }
 
-    public com.aazdoh.partnership.entity.PartnershipType getPartnershipType() {
+    public PartnershipType getPartnershipType() {
         return partnershipType;
     }
 
-    public void setPartnershipType(com.aazdoh.partnership.entity.PartnershipType partnershipType) {
+    public void setPartnershipType(PartnershipType partnershipType) {
         this.partnershipType = partnershipType;
     }
 
