@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Partnership, PartnerDailyOverview, partnershipApi } from '../../api/partnershipApi';
 import { Commitment } from '../../api/commitmentApi';
 import { discussionApi } from '../../api/discussionApi';
+import { ManagePartnershipModal } from './ManagePartnershipModal';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { 
@@ -20,7 +21,8 @@ import {
   Coffee,
   ThumbsUp,
   History,
-  ShieldCheck
+  ShieldCheck,
+  Settings
 } from 'lucide-react';
 
 interface PartnerDashboardProps {
@@ -39,6 +41,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
   const queryClient = useQueryClient();
 
   const [selectedPartner, setSelectedPartner] = useState<Partnership | null>(null);
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [acceptShareOverrides, setAcceptShareOverrides] = useState<Record<string, boolean>>({});
 
   // TanStack Query: in-memory caching & deduplication
@@ -560,40 +563,62 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
                   </h3>
                 </div>
 
-                {/* Soft Dual-Progress Indicator */}
-                {partnerOverview.sharedCommitments.length > 0 && (
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-tweed-dim)', marginBottom: '5px' }}>
-                      {partnerOverview.sharedCommitments.filter(c => c.status === 'COMPLETED').length} of {partnerOverview.sharedCommitments.length} Finished
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <div style={{
-                        width: '84px',
-                        height: '6px',
-                        borderRadius: '3px',
-                        background: 'rgba(255, 255, 255, 0.08)',
-                        overflow: 'hidden',
-                      }}>
-                        <div style={{
-                          width: `${Math.round(partnerOverview.completionRate)}%`,
-                          height: '100%',
-                          borderRadius: '3px',
-                          background: partnerOverview.completionRate === 100
-                            ? '#4ADE80'
-                            : 'linear-gradient(90deg, var(--chinar-rust), var(--saffron-ember))',
-                          transition: 'width 0.4s ease',
-                        }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                  {/* Soft Dual-Progress Indicator */}
+                  {partnerOverview.sharedCommitments.length > 0 && (
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-tweed-dim)', marginBottom: '5px' }}>
+                        {partnerOverview.sharedCommitments.filter(c => c.status === 'COMPLETED').length} of {partnerOverview.sharedCommitments.length} Finished
                       </div>
-                      <span style={{
-                        fontSize: '0.96rem',
-                        fontWeight: 700,
-                        color: partnerOverview.completionRate === 100 ? '#4ADE80' : 'var(--text-kehwa-cream)',
-                      }}>
-                        {Math.round(partnerOverview.completionRate)}%
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{
+                          width: '84px',
+                          height: '6px',
+                          borderRadius: '3px',
+                          background: 'rgba(255, 255, 255, 0.08)',
+                          overflow: 'hidden',
+                        }}>
+                          <div style={{
+                            width: `${Math.round(partnerOverview.completionRate)}%`,
+                            height: '100%',
+                            borderRadius: '3px',
+                            background: partnerOverview.completionRate === 100
+                              ? '#4ADE80'
+                              : 'linear-gradient(90deg, var(--chinar-rust), var(--saffron-ember))',
+                            transition: 'width 0.4s ease',
+                          }} />
+                        </div>
+                        <span style={{
+                          fontSize: '0.96rem',
+                          fontWeight: 700,
+                          color: partnerOverview.completionRate === 100 ? '#4ADE80' : 'var(--text-kehwa-cream)',
+                        }}>
+                          {Math.round(partnerOverview.completionRate)}%
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+
+                  <button
+                    onClick={() => setIsManageModalOpen(true)}
+                    className="btn-secondary"
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '0.78rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      border: '1px solid var(--border-walnut-faint)',
+                      borderRadius: 'var(--radius-sm)',
+                      cursor: 'pointer',
+                    }}
+                    title="Manage partnership settings & visibility"
+                  >
+                    <Settings size={14} color="var(--saffron-ember)" />
+                    <span>Manage</span>
+                  </button>
+                </div>
               </div>
 
               {/* Commitment List */}
@@ -759,6 +784,17 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
           </div>
         )}
       </div>
+
+      <ManagePartnershipModal
+        isOpen={isManageModalOpen}
+        onClose={() => setIsManageModalOpen(false)}
+        partnership={selectedPartner}
+        onSuccess={refreshPartnerships}
+        onTerminate={() => {
+          setSelectedPartner(null);
+          refreshPartnerships();
+        }}
+      />
     </div>
   );
 };

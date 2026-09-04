@@ -18,6 +18,7 @@ import com.aazdoh.partnership.dto.AcceptPartnershipRequest;
 import com.aazdoh.partnership.dto.InvitePartnerRequest;
 import com.aazdoh.partnership.dto.PartnerDailyOverviewDto;
 import com.aazdoh.partnership.dto.PartnershipResponse;
+import com.aazdoh.partnership.dto.UpdatePartnershipRequest;
 import com.aazdoh.partnership.entity.AccountabilityPartnership;
 import com.aazdoh.partnership.entity.PartnershipStatus;
 import com.aazdoh.partnership.entity.PartnershipType;
@@ -139,6 +140,30 @@ public class PartnershipService {
 
         partnership.setStatus(PartnershipStatus.TERMINATED);
         partnershipRepository.save(partnership);
+    }
+
+    @Transactional
+    public PartnershipResponse updatePartnership(UUID userId, UUID partnershipId, UpdatePartnershipRequest request) {
+        AccountabilityPartnership partnership = findPartnership(partnershipId);
+
+        if (!partnership.getRequester().getId().equals(userId) && !partnership.getPartner().getId().equals(userId)) {
+            throw new ForbiddenException("You are not a participant in this partnership");
+        }
+
+        if (partnership.getStatus() != PartnershipStatus.ACCEPTED && partnership.getStatus() != PartnershipStatus.PENDING) {
+            throw new BadRequestException("Cannot modify a partnership with status: " + partnership.getStatus());
+        }
+
+        if (request.getPartnershipType() != null) {
+            partnership.setPartnershipType(request.getPartnershipType());
+        }
+
+        if (request.getSharePartnerCommitments() != null) {
+            partnership.setSharePartnerCommitments(request.getSharePartnerCommitments());
+        }
+
+        AccountabilityPartnership saved = partnershipRepository.save(partnership);
+        return PartnershipResponse.fromEntity(saved);
     }
 
     public List<PartnershipResponse> getActivePartnerships(UUID userId) {

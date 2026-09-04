@@ -61,6 +61,12 @@ export const partnershipApi = {
       method: 'DELETE',
     }),
 
+  update: (id: string, data: { partnershipType?: 'MUTUAL' | 'ONE_WAY_SPONSOR'; sharePartnerCommitments?: boolean }) =>
+    request<Partnership>(`/partnerships/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
   getPartnerOverview: (partnerUserId: string, date?: string) =>
     request<PartnerDailyOverview>(`/partnerships/partner/${partnerUserId}/commitments${date ? `?date=${date}` : ''}`),
 };
