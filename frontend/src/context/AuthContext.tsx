@@ -13,12 +13,18 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('aazdoh_user');
-    return saved ? JSON.parse(saved) : null;
-  });
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('aazdoh_token'));
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(() => {
+    const savedToken = localStorage.getItem('aazdoh_token');
+    const savedUser = localStorage.getItem('aazdoh_user');
+    if (!savedToken || !savedUser) return null;
+    try {
+      return JSON.parse(savedUser);
+    } catch {
+      return null;
+    }
+  });
+  const [loading, setLoading] = useState(() => !!localStorage.getItem('aazdoh_token'));
 
   useEffect(() => {
     if (token) {
@@ -32,6 +38,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         })
         .finally(() => setLoading(false));
     } else {
+      localStorage.removeItem('aazdoh_user');
+      setUser(null);
       setLoading(false);
     }
   }, [token]);

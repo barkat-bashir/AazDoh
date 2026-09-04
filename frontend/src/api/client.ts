@@ -47,11 +47,7 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
       if (!isAuthEndpoint) {
         localStorage.removeItem('aazdoh_token');
         localStorage.removeItem('aazdoh_user');
-        const currentPath = window.location.pathname;
-        if (currentPath !== '/login' && currentPath !== '/reset-password' && currentPath !== '/') {
-          window.location.href = '/login';
-        }
-        throw new ApiError('Session expired. Please log in again.', 401);
+        throw new ApiError(errData.message || 'Session expired. Please log in again.', 401);
       }
 
       throw new ApiError(errData.message || 'Invalid email or password', 401);
