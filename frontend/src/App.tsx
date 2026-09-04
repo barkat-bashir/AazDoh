@@ -87,14 +87,7 @@ const AuthenticatedLayout: React.FC<{
       }}>
         <span>AazDoh • Commit • Do • Report • Reflect</span>
         <div style={{ display: 'flex', gap: '16px' }}>
-          <a
-            href="https://github.com/bb-code1/AazDoh"
-            target="_blank"
-            rel="noreferrer"
-            style={{ color: 'var(--text-parchment-muted)', textDecoration: 'none' }}
-          >
-            GitHub
-          </a>
+          <span>© {new Date().getFullYear()} AazDoh</span>
         </div>
       </footer>
     </div>

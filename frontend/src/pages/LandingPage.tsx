@@ -13,8 +13,7 @@ import {
   Zap,
   Activity,
   History,
-  Shield,
-  Github
+  Shield
 } from 'lucide-react';
 import { BrandLogo } from '../components/common/BrandLogo';
 
@@ -329,15 +328,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             >
               Privacy Policy
             </button>
-            <a
-              href="https://github.com/bb-code1/AazDoh"
-              target="_blank"
-              rel="noreferrer"
-              style={{ color: 'var(--text-parchment-muted)', display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}
-            >
-              <Github size={16} />
-              <span>GitHub</span>
-            </a>
           </div>
         </div>
       </footer>
