@@ -4,21 +4,43 @@ import com.aazdoh.ai.client.AccountabilityAiClient;
 import com.aazdoh.ai.context.AccountabilityContextBuilder;
 import com.aazdoh.ai.context.UserAccountabilityContextDto;
 import com.aazdoh.ai.dto.AiFeedbackResponse;
+import com.aazdoh.ai.dto.ApplyOptimizedPlanRequest;
+import com.aazdoh.ai.dto.ExcuseAnalysisRequest;
+import com.aazdoh.ai.dto.ExcuseAnalysisResponse;
+import com.aazdoh.ai.dto.HistoricalExcuseReceipt;
+import com.aazdoh.ai.dto.OptimizedTaskProposal;
+import com.aazdoh.ai.dto.PlanStressTestRequest;
+import com.aazdoh.ai.dto.PlanStressTestResponse;
+import com.aazdoh.ai.dto.SplitBlockDetail;
 import com.aazdoh.ai.entity.AiInteraction;
+import com.aazdoh.ai.entity.AiStressTestSnapshot;
 import com.aazdoh.ai.repository.AiInteractionRepository;
+import com.aazdoh.ai.repository.AiStressTestSnapshotRepository;
 import com.aazdoh.commitment.dto.CommitmentResponse;
+import com.aazdoh.commitment.dto.CreateCommitmentRequest;
+import com.aazdoh.commitment.dto.PostponeCommitmentRequest;
+import com.aazdoh.commitment.dto.UpdateCommitmentRequest;
+import com.aazdoh.commitment.entity.Commitment;
+import com.aazdoh.commitment.entity.CommitmentPriority;
+import com.aazdoh.commitment.entity.CommitmentVisibility;
 import com.aazdoh.commitment.service.CommitmentService;
 import com.aazdoh.review.dto.ReviewResponse;
 import com.aazdoh.review.service.ReviewService;
 import com.aazdoh.user.entity.User;
 import com.aazdoh.user.service.UserService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -31,8 +53,8 @@ public class AiAccountabilityService {
     private final ReviewService reviewService;
     private final UserService userService;
     private final AiInteractionRepository aiInteractionRepository;
-    private final com.aazdoh.ai.repository.AiStressTestSnapshotRepository snapshotRepository;
-    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    private final AiStressTestSnapshotRepository snapshotRepository;
+    private final ObjectMapper objectMapper;
 
     public AiAccountabilityService(
             AccountabilityContextBuilder contextBuilder,
@@ -41,8 +63,8 @@ public class AiAccountabilityService {
             ReviewService reviewService,
             UserService userService,
             AiInteractionRepository aiInteractionRepository,
-            com.aazdoh.ai.repository.AiStressTestSnapshotRepository snapshotRepository,
-            com.fasterxml.jackson.databind.ObjectMapper objectMapper
+            AiStressTestSnapshotRepository snapshotRepository,
+            ObjectMapper objectMapper
     ) {
         this.contextBuilder = contextBuilder;
         this.aiClient = aiClient;
@@ -105,13 +127,13 @@ public class AiAccountabilityService {
 
     @Async
     @Transactional(readOnly = true)
-    public CompletableFuture<com.aazdoh.ai.dto.PlanStressTestResponse> stressTestPlanAsync(UUID userId, com.aazdoh.ai.dto.PlanStressTestRequest request) {
+    public CompletableFuture<PlanStressTestResponse> stressTestPlanAsync(UUID userId, PlanStressTestRequest request) {
         User user = userService.findUserById(userId);
         LocalDate targetDate = request != null && request.getDate() != null ? request.getDate() : LocalDate.now();
         List<CommitmentResponse> todaysCommitments = commitmentService.getTodayCommitments(userId, targetDate);
 
         if (todaysCommitments.isEmpty()) {
-            com.aazdoh.ai.dto.PlanStressTestResponse emptyRes = new com.aazdoh.ai.dto.PlanStressTestResponse();
+            PlanStressTestResponse emptyRes = new PlanStressTestResponse();
             emptyRes.setRiskScore(0);
             emptyRes.setRiskLevel("LOW");
             emptyRes.setDiagnosticSummary("No commitments planned for today. Add 2-3 focused priorities to run a stress-test.");
@@ -126,7 +148,7 @@ public class AiAccountabilityService {
 
         // Check snapshot cache if no defense override is active
         if ((quickDefense == null || quickDefense.isBlank()) && !overrideSprint) {
-            java.util.Optional<com.aazdoh.ai.entity.AiStressTestSnapshot> cached =
+            Optional<AiStressTestSnapshot> cached =
                     snapshotRepository.findFirstByUserIdAndCommitmentDateAndPlanHash(userId, targetDate, planHash);
             if (cached.isPresent()) {
                 return CompletableFuture.completedFuture(mapSnapshotToResponse(cached.get(), user.getAiPersona().name()));
@@ -135,7 +157,7 @@ public class AiAccountabilityService {
 
         UserAccountabilityContextDto context = contextBuilder.buildContext(userId);
 
-        com.aazdoh.ai.dto.PlanStressTestResponse response = aiClient.stressTestPlan(
+        PlanStressTestResponse response = aiClient.stressTestPlan(
                 context,
                 todaysCommitments,
                 quickDefense,
@@ -152,52 +174,52 @@ public class AiAccountabilityService {
     }
 
     @Transactional
-    public List<CommitmentResponse> applyOptimizedPlan(UUID userId, com.aazdoh.ai.dto.ApplyOptimizedPlanRequest request) {
+    public List<CommitmentResponse> applyOptimizedPlan(UUID userId, ApplyOptimizedPlanRequest request) {
         if (request == null || request.getAcceptedProposals() == null || request.getAcceptedProposals().isEmpty()) {
             return commitmentService.getTodayCommitments(userId, LocalDate.now());
         }
 
-        for (com.aazdoh.ai.dto.OptimizedTaskProposal proposal : request.getAcceptedProposals()) {
+        for (OptimizedTaskProposal proposal : request.getAcceptedProposals()) {
             if (proposal.getOriginalCommitmentId() == null) continue;
 
             if ("SHIFT_TO_TOMORROW".equalsIgnoreCase(proposal.getSuggestedAction())) {
-                com.aazdoh.commitment.dto.PostponeCommitmentRequest postponeReq = new com.aazdoh.commitment.dto.PostponeCommitmentRequest();
+                PostponeCommitmentRequest postponeReq = new PostponeCommitmentRequest();
                 postponeReq.setNewDate(LocalDate.now().plusDays(1));
                 commitmentService.postponeCommitment(userId, proposal.getOriginalCommitmentId(), postponeReq);
             } else if ("SPLIT".equalsIgnoreCase(proposal.getSuggestedAction())) {
                 CommitmentResponse orig = commitmentService.getCommitmentById(userId, proposal.getOriginalCommitmentId());
-                List<com.aazdoh.ai.dto.SplitBlockDetail> blocks = proposal.getSplitBlocks();
+                List<SplitBlockDetail> blocks = proposal.getSplitBlocks();
 
                 if (blocks != null && !blocks.isEmpty()) {
                     // 1. Update original commitment to Part 1
-                    com.aazdoh.ai.dto.SplitBlockDetail firstBlock = blocks.get(0);
-                    com.aazdoh.commitment.dto.UpdateCommitmentRequest updateReq = new com.aazdoh.commitment.dto.UpdateCommitmentRequest();
+                    SplitBlockDetail firstBlock = blocks.get(0);
+                    UpdateCommitmentRequest updateReq = new UpdateCommitmentRequest();
                     updateReq.setTitle(firstBlock.getTitle());
                     updateReq.setEstimatedMinutes(firstBlock.getMinutes());
                     commitmentService.updateCommitment(userId, proposal.getOriginalCommitmentId(), updateReq);
 
                     // 2. Automatically generate subsequent sibling blocks (Part 2, Part 3, etc.)
                     for (int bIdx = 1; bIdx < blocks.size(); bIdx++) {
-                        com.aazdoh.ai.dto.SplitBlockDetail block = blocks.get(bIdx);
+                        SplitBlockDetail block = blocks.get(bIdx);
                         LocalDate targetDate = block.isScheduleTomorrow() ? LocalDate.now().plusDays(1) : LocalDate.now();
 
-                        com.aazdoh.commitment.dto.CreateCommitmentRequest createReq = new com.aazdoh.commitment.dto.CreateCommitmentRequest();
+                        CreateCommitmentRequest createReq = new CreateCommitmentRequest();
                         createReq.setTitle(block.getTitle());
                         createReq.setEstimatedMinutes(block.getMinutes());
-                        createReq.setPriority(orig.getPriority() != null ? orig.getPriority() : com.aazdoh.commitment.entity.CommitmentPriority.MEDIUM);
-                        createReq.setVisibility(orig.getVisibility() != null ? orig.getVisibility() : com.aazdoh.commitment.entity.CommitmentVisibility.SHARED_WITH_PARTNER);
+                        createReq.setPriority(orig.getPriority() != null ? orig.getPriority() : CommitmentPriority.MEDIUM);
+                        createReq.setVisibility(orig.getVisibility() != null ? orig.getVisibility() : CommitmentVisibility.SHARED_WITH_PARTNER);
                         createReq.setCommitmentDate(targetDate);
                         createReq.setExpectedOutcome(orig.getExpectedOutcome());
                         commitmentService.createCommitment(userId, createReq);
                     }
                 } else {
-                    com.aazdoh.commitment.dto.UpdateCommitmentRequest updateReq = new com.aazdoh.commitment.dto.UpdateCommitmentRequest();
+                    UpdateCommitmentRequest updateReq = new UpdateCommitmentRequest();
                     updateReq.setTitle(proposal.getProposedTitle());
                     updateReq.setEstimatedMinutes(proposal.getProposedMinutes());
                     commitmentService.updateCommitment(userId, proposal.getOriginalCommitmentId(), updateReq);
                 }
             } else if ("TRIM".equalsIgnoreCase(proposal.getSuggestedAction())) {
-                com.aazdoh.commitment.dto.UpdateCommitmentRequest updateReq = new com.aazdoh.commitment.dto.UpdateCommitmentRequest();
+                UpdateCommitmentRequest updateReq = new UpdateCommitmentRequest();
                 updateReq.setTitle(proposal.getProposedTitle());
                 updateReq.setEstimatedMinutes(proposal.getProposedMinutes());
                 commitmentService.updateCommitment(userId, proposal.getOriginalCommitmentId(), updateReq);
@@ -209,7 +231,7 @@ public class AiAccountabilityService {
 
     @Async
     @Transactional(readOnly = true)
-    public CompletableFuture<com.aazdoh.ai.dto.ExcuseAnalysisResponse> detectExcusePatternAsync(UUID userId, com.aazdoh.ai.dto.ExcuseAnalysisRequest request) {
+    public CompletableFuture<ExcuseAnalysisResponse> detectExcusePatternAsync(UUID userId, ExcuseAnalysisRequest request) {
         User user = userService.findUserById(userId);
         UserAccountabilityContextDto context = contextBuilder.buildContext(userId);
 
@@ -222,12 +244,12 @@ public class AiAccountabilityService {
         }
 
         // Gather historical receipts from past postponements and reviews
-        List<com.aazdoh.ai.dto.HistoricalExcuseReceipt> receipts = new java.util.ArrayList<>();
-        List<com.aazdoh.commitment.entity.Commitment> pastPostponed = commitmentService.getRecentPostponedCommitments(userId);
+        List<HistoricalExcuseReceipt> receipts = new ArrayList<>();
+        List<Commitment> pastPostponed = commitmentService.getRecentPostponedCommitments(userId);
         if (pastPostponed != null) {
-            for (com.aazdoh.commitment.entity.Commitment p : pastPostponed) {
+            for (Commitment p : pastPostponed) {
                 if (p.getPostponeReason() != null && !p.getPostponeReason().isBlank()) {
-                    receipts.add(new com.aazdoh.ai.dto.HistoricalExcuseReceipt(
+                    receipts.add(new HistoricalExcuseReceipt(
                             p.getCommitmentDate(),
                             p.getTitle(),
                             p.getPostponeReason(),
@@ -237,7 +259,7 @@ public class AiAccountabilityService {
             }
         }
 
-        com.aazdoh.ai.dto.ExcuseAnalysisResponse response = aiClient.detectExcusePattern(
+        ExcuseAnalysisResponse response = aiClient.detectExcusePattern(
                 context,
                 request.getExcuseText(),
                 taskTitle,
@@ -254,7 +276,7 @@ public class AiAccountabilityService {
         }
         StringBuilder sb = new StringBuilder();
         commitments.stream()
-                .sorted(java.util.Comparator.comparing(CommitmentResponse::getId))
+                .sorted(Comparator.comparing(CommitmentResponse::getId))
                 .forEach(c -> sb.append(c.getId())
                                .append(":")
                                .append(c.getEstimatedMinutes())
@@ -262,8 +284,8 @@ public class AiAccountabilityService {
                                .append(c.getTitle())
                                .append(";"));
         try {
-            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
-            byte[] hash = md.digest(sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] hash = md.digest(sb.toString().getBytes(StandardCharsets.UTF_8));
             StringBuilder hexString = new StringBuilder();
             for (byte b : hash) {
                 String hex = Integer.toHexString(0xff & b);
@@ -276,11 +298,11 @@ public class AiAccountabilityService {
         }
     }
 
-    private void saveSnapshot(User user, LocalDate date, String planHash, com.aazdoh.ai.dto.PlanStressTestResponse response) {
+    private void saveSnapshot(User user, LocalDate date, String planHash, PlanStressTestResponse response) {
         try {
-            com.aazdoh.ai.entity.AiStressTestSnapshot snapshot = snapshotRepository
+            AiStressTestSnapshot snapshot = snapshotRepository
                     .findFirstByUserIdAndCommitmentDateAndPlanHash(user.getId(), date, planHash)
-                    .orElseGet(com.aazdoh.ai.entity.AiStressTestSnapshot::new);
+                    .orElseGet(AiStressTestSnapshot::new);
 
             snapshot.setUser(user);
             snapshot.setCommitmentDate(date);
@@ -299,8 +321,8 @@ public class AiAccountabilityService {
         }
     }
 
-    private com.aazdoh.ai.dto.PlanStressTestResponse mapSnapshotToResponse(com.aazdoh.ai.entity.AiStressTestSnapshot snapshot, String persona) {
-        com.aazdoh.ai.dto.PlanStressTestResponse res = new com.aazdoh.ai.dto.PlanStressTestResponse();
+    private PlanStressTestResponse mapSnapshotToResponse(AiStressTestSnapshot snapshot, String persona) {
+        PlanStressTestResponse res = new PlanStressTestResponse();
         res.setRiskScore(snapshot.getRiskScore());
         res.setRiskLevel(snapshot.getRiskLevel());
         res.setDiagnosticSummary(snapshot.getDiagnosticSummary());
@@ -310,9 +332,9 @@ public class AiAccountabilityService {
         res.setPersona(persona);
         if (snapshot.getProposalsJson() != null && !snapshot.getProposalsJson().isBlank()) {
             try {
-                List<com.aazdoh.ai.dto.OptimizedTaskProposal> proposals = objectMapper.readValue(
+                List<OptimizedTaskProposal> proposals = objectMapper.readValue(
                         snapshot.getProposalsJson(),
-                        objectMapper.getTypeFactory().constructCollectionType(List.class, com.aazdoh.ai.dto.OptimizedTaskProposal.class)
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, OptimizedTaskProposal.class)
                 );
                 res.setProposedOptimizations(proposals);
             } catch (Exception e) {

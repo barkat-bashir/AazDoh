@@ -1,6 +1,9 @@
 package com.aazdoh.ai.client;
 
 import com.aazdoh.ai.context.UserAccountabilityContextDto;
+import com.aazdoh.ai.dto.ExcuseAnalysisResponse;
+import com.aazdoh.ai.dto.HistoricalExcuseReceipt;
+import com.aazdoh.ai.dto.PlanStressTestResponse;
 import com.aazdoh.commitment.dto.CommitmentResponse;
 import com.aazdoh.user.entity.AiPersona;
 
@@ -14,7 +17,7 @@ public interface AccountabilityAiClient {
 
     String generateBehavioralInsights(UserAccountabilityContextDto context, AiPersona persona);
 
-    com.aazdoh.ai.dto.PlanStressTestResponse stressTestPlan(
+    PlanStressTestResponse stressTestPlan(
             UserAccountabilityContextDto context,
             List<CommitmentResponse> todaysCommitments,
             String quickDefense,
@@ -22,11 +25,11 @@ public interface AccountabilityAiClient {
             AiPersona persona
     );
 
-    com.aazdoh.ai.dto.ExcuseAnalysisResponse detectExcusePattern(
+    ExcuseAnalysisResponse detectExcusePattern(
             UserAccountabilityContextDto context,
             String currentExcuse,
             String taskTitle,
-            List<com.aazdoh.ai.dto.HistoricalExcuseReceipt> historicalReceipts,
+            List<HistoricalExcuseReceipt> historicalReceipts,
             AiPersona persona
     );
 }

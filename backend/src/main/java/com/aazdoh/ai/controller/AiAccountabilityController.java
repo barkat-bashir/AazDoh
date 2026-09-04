@@ -3,8 +3,14 @@ package com.aazdoh.ai.controller;
 import com.aazdoh.ai.dto.AiFeedbackResponse;
 import com.aazdoh.ai.dto.AiMissedReviewRequest;
 import com.aazdoh.ai.dto.AiPlanReviewRequest;
+import com.aazdoh.ai.dto.ApplyOptimizedPlanRequest;
+import com.aazdoh.ai.dto.ExcuseAnalysisRequest;
+import com.aazdoh.ai.dto.ExcuseAnalysisResponse;
+import com.aazdoh.ai.dto.PlanStressTestRequest;
+import com.aazdoh.ai.dto.PlanStressTestResponse;
 import com.aazdoh.ai.service.AiAccountabilityService;
 import com.aazdoh.auth.service.CustomUserDetails;
+import com.aazdoh.commitment.dto.CommitmentResponse;
 import com.aazdoh.common.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -18,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 @RestController
@@ -67,9 +74,9 @@ public class AiAccountabilityController {
 
     @PostMapping("/stress-test")
     @Operation(summary = "AI Chief of Staff 60-Second Plan Stress-Test with Risk Index & De-risked Proposals")
-    public CompletableFuture<ResponseEntity<ApiResponse<com.aazdoh.ai.dto.PlanStressTestResponse>>> stressTestPlan(
+    public CompletableFuture<ResponseEntity<ApiResponse<PlanStressTestResponse>>> stressTestPlan(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestBody(required = false) com.aazdoh.ai.dto.PlanStressTestRequest request
+            @RequestBody(required = false) PlanStressTestRequest request
     ) {
         return aiAccountabilityService.stressTestPlanAsync(userDetails.getId(), request)
                 .thenApply(response -> ResponseEntity.ok(ApiResponse.ok(response)));
@@ -77,19 +84,19 @@ public class AiAccountabilityController {
 
     @PostMapping("/apply-optimized-plan")
     @Operation(summary = "Apply 1-click AI optimized plan rebalancing adjustments to today's commitments")
-    public ResponseEntity<ApiResponse<java.util.List<com.aazdoh.commitment.dto.CommitmentResponse>>> applyOptimizedPlan(
+    public ResponseEntity<ApiResponse<List<CommitmentResponse>>> applyOptimizedPlan(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestBody com.aazdoh.ai.dto.ApplyOptimizedPlanRequest request
+            @RequestBody ApplyOptimizedPlanRequest request
     ) {
-        java.util.List<com.aazdoh.commitment.dto.CommitmentResponse> updated = aiAccountabilityService.applyOptimizedPlan(userDetails.getId(), request);
+        List<CommitmentResponse> updated = aiAccountabilityService.applyOptimizedPlan(userDetails.getId(), request);
         return ResponseEntity.ok(ApiResponse.ok("Optimized plan applied successfully", updated));
     }
 
     @PostMapping("/detect-excuse")
     @Operation(summary = "AI Anti-Self-Deception Mirror: Cross-reference excuses against historical receipts")
-    public CompletableFuture<ResponseEntity<ApiResponse<com.aazdoh.ai.dto.ExcuseAnalysisResponse>>> detectExcuse(
+    public CompletableFuture<ResponseEntity<ApiResponse<ExcuseAnalysisResponse>>> detectExcuse(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @Valid @RequestBody com.aazdoh.ai.dto.ExcuseAnalysisRequest request
+            @Valid @RequestBody ExcuseAnalysisRequest request
     ) {
         return aiAccountabilityService.detectExcusePatternAsync(userDetails.getId(), request)
                 .thenApply(response -> ResponseEntity.ok(ApiResponse.ok(response)));
