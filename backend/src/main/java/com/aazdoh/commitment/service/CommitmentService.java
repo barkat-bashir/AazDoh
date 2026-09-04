@@ -6,10 +6,13 @@ import com.aazdoh.commitment.dto.PostponeCommitmentRequest;
 import com.aazdoh.commitment.dto.UpdateCommitmentRequest;
 import com.aazdoh.commitment.entity.Commitment;
 import com.aazdoh.commitment.entity.CommitmentStatus;
+import com.aazdoh.commitment.repository.CommitmentRepository;
 import com.aazdoh.common.exception.BadRequestException;
 import com.aazdoh.common.exception.ResourceNotFoundException;
-import com.aazdoh.commitment.repository.CommitmentRepository;
+import com.aazdoh.discussion.repository.DiscussionMessageRepository;
+import com.aazdoh.review.repository.ReviewRepository;
 import com.aazdoh.user.entity.User;
+import com.aazdoh.user.repository.UserRepository;
 import com.aazdoh.user.service.UserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,16 +30,16 @@ public class CommitmentService {
 
     private final CommitmentRepository commitmentRepository;
     private final UserService userService;
-    private final com.aazdoh.user.repository.UserRepository userRepository;
-    private final com.aazdoh.discussion.repository.DiscussionMessageRepository discussionMessageRepository;
-    private final com.aazdoh.review.repository.ReviewRepository reviewRepository;
+    private final UserRepository userRepository;
+    private final DiscussionMessageRepository discussionMessageRepository;
+    private final ReviewRepository reviewRepository;
 
     public CommitmentService(
             CommitmentRepository commitmentRepository,
             UserService userService,
-            com.aazdoh.user.repository.UserRepository userRepository,
-            com.aazdoh.discussion.repository.DiscussionMessageRepository discussionMessageRepository,
-            com.aazdoh.review.repository.ReviewRepository reviewRepository
+            UserRepository userRepository,
+            DiscussionMessageRepository discussionMessageRepository,
+            ReviewRepository reviewRepository
     ) {
         this.commitmentRepository = commitmentRepository;
         this.userService = userService;
