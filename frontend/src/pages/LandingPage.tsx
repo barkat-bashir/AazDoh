@@ -13,7 +13,11 @@ import {
   Zap,
   Activity,
   History,
-  Shield
+  Shield,
+  BarChart3,
+  Scale,
+  Calendar,
+  Target
 } from 'lucide-react';
 import { BrandLogo } from '../components/common/BrandLogo';
 
@@ -252,6 +256,258 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
           </div>
         </div>
+      </section>
+
+      {/* Empirical Velocity & Behavioral Analytics Infinite Auto-Scroll Carousel */}
+      <section style={{
+        padding: '50px 0',
+        width: '100%',
+        overflow: 'hidden',
+        position: 'relative',
+      }}>
+        <div style={{ textAlign: 'center', marginBottom: '32px', padding: '0 24px' }}>
+          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--saffron-ember)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Empirical Telemetry
+          </span>
+          <h2 style={{ fontSize: 'clamp(1.7rem, 4vw, 2.2rem)', fontWeight: 800, marginTop: '6px', color: 'var(--text-kehwa-cream)' }}>
+            Behavioral Analytics That Actually Change How You Work
+          </h2>
+          <p style={{ color: 'var(--text-parchment-muted)', fontSize: '0.94rem', maxWidth: '650px', margin: '10px auto 0', lineHeight: 1.6 }}>
+            Traditional apps display vanity graphs. AazDoh gives you diagnostic telemetry to pinpoint where friction occurs, discover your cognitive stamina thresholds, and calibrate daily capacity.
+          </p>
+        </div>
+
+        {/* Marquee Wrapper with side gradient masks */}
+        <div style={{
+          position: 'relative',
+          width: '100%',
+          overflow: 'hidden',
+          maskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)',
+          padding: '12px 0',
+        }}>
+          <div className="analytics-marquee-track">
+            {/* Set 1 + Set 2 (for seamless infinite right-to-left loop) */}
+            {[1, 2].map((setIndex) => (
+              <React.Fragment key={setIndex}>
+                {/* Card 1: 52-Week Consistency Heatmap */}
+                <div className="harud-card analytics-marquee-card" style={{ width: '340px', minWidth: '340px', padding: '22px', display: 'flex', flexDirection: 'column', gap: '14px', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '8px',
+                      background: 'linear-gradient(135deg, var(--pine-emerald), #1A4D31)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <Calendar size={18} color="#4ADE80" />
+                    </div>
+                    <h4 style={{ fontSize: '1.05rem', margin: 0, fontWeight: 700, color: 'var(--text-kehwa-cream)' }}>
+                      Consistency Heatmap
+                    </h4>
+                  </div>
+
+                  {/* Mini Visual Preview */}
+                  <div style={{
+                    background: 'rgba(16, 12, 10, 0.6)',
+                    padding: '12px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border-walnut-faint)',
+                  }}>
+                    <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', marginBottom: '6px' }}>
+                      {[3, 4, 2, 4, 1, 0, 4, 3, 4, 2, 4, 4, 3].map((lvl, i) => (
+                        <div key={i} style={{
+                          width: '13px',
+                          height: '13px',
+                          borderRadius: '2px',
+                          background: lvl === 4 ? '#4ADE80' : lvl === 3 ? 'var(--pine-emerald)' : lvl === 2 ? 'rgba(46, 125, 82, 0.75)' : lvl === 1 ? 'rgba(46, 125, 82, 0.45)' : 'rgba(255,255,255,0.05)',
+                        }} />
+                      ))}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: '#4ADE80', fontWeight: 600, textAlign: 'center' }}>
+                      88% Consistency • Compounding Momentum
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: '0.86rem', color: 'var(--text-parchment-muted)', lineHeight: 1.55 }}>
+                    <strong style={{ color: 'var(--text-kehwa-cream)' }}>Why it matters: </strong>
+                    Eliminates fragile "all-or-nothing" streak anxiety by shifting focus to sustainable compounding momentum and long-range rhythm.
+                  </div>
+                </div>
+
+                {/* Card 2: Capacity Execution Efficiency */}
+                <div className="harud-card analytics-marquee-card" style={{ width: '340px', minWidth: '340px', padding: '22px', display: 'flex', flexDirection: 'column', gap: '14px', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '8px',
+                      background: 'linear-gradient(135deg, var(--chinar-rust), #8A3016)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <Scale size={18} color="#fff" />
+                    </div>
+                    <h4 style={{ fontSize: '1.05rem', margin: 0, fontWeight: 700, color: 'var(--text-kehwa-cream)' }}>
+                      Planning Optimism Ratio
+                    </h4>
+                  </div>
+
+                  {/* Mini Visual Preview */}
+                  <div style={{
+                    background: 'rgba(16, 12, 10, 0.6)',
+                    padding: '12px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border-walnut-faint)',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', marginBottom: '4px' }}>
+                      <span style={{ color: 'var(--text-parchment-muted)' }}>Executed 3.8h / 4.2h planned</span>
+                      <span style={{ color: '#4ADE80', fontWeight: 700 }}>90%</span>
+                    </div>
+                    <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '999px', overflow: 'hidden' }}>
+                      <div style={{ width: '90%', height: '100%', background: '#4ADE80', borderRadius: '999px' }} />
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: '0.86rem', color: 'var(--text-parchment-muted)', lineHeight: 1.55 }}>
+                    <strong style={{ color: 'var(--text-kehwa-cream)' }}>Why it matters: </strong>
+                    Compares planned load against delivered focus hours to systematically cure chronic daily overbooking and planning fallacy.
+                  </div>
+                </div>
+
+                {/* Card 3: Sprint Duration Sweet-Spot Curve */}
+                <div className="harud-card analytics-marquee-card" style={{ width: '340px', minWidth: '340px', padding: '22px', display: 'flex', flexDirection: 'column', gap: '14px', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '8px',
+                      background: 'linear-gradient(135deg, var(--saffron-ember), #965B17)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <Target size={18} color="#140E0A" />
+                    </div>
+                    <h4 style={{ fontSize: '1.05rem', margin: 0, fontWeight: 700, color: 'var(--text-kehwa-cream)' }}>
+                      Duration Sweet Spots
+                    </h4>
+                  </div>
+
+                  {/* Mini Visual Preview */}
+                  <div style={{
+                    background: 'rgba(16, 12, 10, 0.6)',
+                    padding: '12px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border-walnut-faint)',
+                    display: 'flex',
+                    justifyContent: 'space-around',
+                    textAlign: 'center',
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-parchment-muted)' }}>25m Sprint</div>
+                      <div style={{ fontSize: '0.86rem', color: '#4ADE80', fontWeight: 800 }}>94% Win</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-parchment-muted)' }}>45m Deep</div>
+                      <div style={{ fontSize: '0.86rem', color: 'var(--saffron-ember)', fontWeight: 800 }}>88% Win</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-parchment-muted)' }}>90m+ Block</div>
+                      <div style={{ fontSize: '0.86rem', color: '#F87171', fontWeight: 800 }}>52% Win</div>
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: '0.86rem', color: 'var(--text-parchment-muted)', lineHeight: 1.55 }}>
+                    <strong style={{ color: 'var(--text-kehwa-cream)' }}>Why it matters: </strong>
+                    Reveals your empirical cognitive stamina drop-off so you right-size tasks into time blocks where you complete them without stalling.
+                  </div>
+                </div>
+
+                {/* Card 4: Friction & Failure Classification */}
+                <div className="harud-card analytics-marquee-card" style={{ width: '340px', minWidth: '340px', padding: '22px', display: 'flex', flexDirection: 'column', gap: '14px', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '8px',
+                      background: 'linear-gradient(135deg, #B91C1C, #7F1D1D)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <AlertTriangle size={18} color="#fff" />
+                    </div>
+                    <h4 style={{ fontSize: '1.05rem', margin: 0, fontWeight: 700, color: 'var(--text-kehwa-cream)' }}>
+                      Friction Breakdown
+                    </h4>
+                  </div>
+
+                  {/* Mini Visual Preview */}
+                  <div style={{
+                    background: 'rgba(16, 12, 10, 0.6)',
+                    padding: '12px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border-walnut-faint)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem' }}>
+                      <span style={{ color: 'var(--text-kehwa-cream)' }}>Underestimated Scope</span>
+                      <span style={{ color: 'var(--saffron-ember)', fontWeight: 700 }}>45%</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem' }}>
+                      <span style={{ color: 'var(--text-kehwa-cream)' }}>Distraction / Drift</span>
+                      <span style={{ color: 'var(--saffron-ember)', fontWeight: 700 }}>30%</span>
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: '0.86rem', color: 'var(--text-parchment-muted)', lineHeight: 1.55 }}>
+                    <strong style={{ color: 'var(--text-kehwa-cream)' }}>Why it matters: </strong>
+                    Exposes recurring failure modes (e.g. Underestimating vs. Distraction) with historical receipts so you fix the root cause instead of feeling guilty.
+                  </div>
+                </div>
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+
+        {/* Dynamic CSS for smooth infinite right-to-left marquee scroll & hover pause */}
+        <style>{`
+          .analytics-marquee-track {
+            display: flex;
+            gap: 24px;
+            width: max-content;
+            animation: scrollAnalyticsMarquee 32s linear infinite;
+          }
+          .analytics-marquee-track:hover {
+            animation-play-state: paused;
+          }
+          .analytics-marquee-card {
+            transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+          }
+          .analytics-marquee-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--saffron-ember);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6);
+          }
+          @keyframes scrollAnalyticsMarquee {
+            0% {
+              transform: translateX(0);
+            }
+            100% {
+              transform: translateX(-50%);
+            }
+          }
+        `}</style>
       </section>
 
       {/* The 4-Step Daily Cycle */}
