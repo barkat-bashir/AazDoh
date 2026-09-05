@@ -1,6 +1,7 @@
 package com.aazdoh.analytics.controller;
 
 import com.aazdoh.analytics.dto.AccountabilityStatsResponse;
+import com.aazdoh.analytics.dto.ComprehensiveAnalyticsResponse;
 import com.aazdoh.analytics.service.AnalyticsService;
 import com.aazdoh.auth.service.CustomUserDetails;
 import com.aazdoh.common.response.ApiResponse;
@@ -33,6 +34,17 @@ public class AnalyticsController {
             @RequestParam(name = "days", defaultValue = "30") int days
     ) {
         AccountabilityStatsResponse response = analyticsService.getAccountabilitySummary(userDetails.getId(), days);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @GetMapping("/comprehensive")
+    @Operation(summary = "Get deep-dive behavioral patterns, day-of-week matrix, consistency heatmap, sprint sizing curve, and bottlenecks")
+    public ResponseEntity<ApiResponse<ComprehensiveAnalyticsResponse>> getComprehensive(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(name = "days", defaultValue = "30") int days,
+            @RequestParam(name = "heatmapDays", defaultValue = "180") int heatmapDays
+    ) {
+        ComprehensiveAnalyticsResponse response = analyticsService.getComprehensiveAnalytics(userDetails.getId(), days, heatmapDays);
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 }
