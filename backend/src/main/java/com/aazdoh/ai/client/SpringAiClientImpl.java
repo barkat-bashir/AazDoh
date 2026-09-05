@@ -189,10 +189,17 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
         response.setPlannedHours(plannedHours);
         response.setHistoricalCapacityHours(capacityHours);
 
+        // Compute Base Risk Score
+        double ratio = plannedHours / capacityHours;
+        int baseRisk = (int) Math.min(Math.max((ratio - 0.7) * 90.0, 15.0), 95.0);
+        int calculatedRisk = !context.getRepeatedlyPostponedTitles().isEmpty()
+                ? Math.min(baseRisk + 15, 95)
+                : baseRisk;
+
         // Handle Override Sprint
         if (overrideSprint) {
             response.setRiskScore(calculatedRisk > 0 ? calculatedRisk : 75);
-            response.setRiskLevel(calculatedRisk >= 75 ? "HIGH" : (calculatedRisk >= 50 ? "MODERATE" : "LOW"));
+            response.setRiskLevel(calculatedRisk >= 75 ? "CRITICAL" : (calculatedRisk >= 50 ? "HIGH" : "MODERATE"));
             response.setValidated(true);
             response.setOptimizedHours(plannedHours);
             response.setDiagnosticSummary(String.format("Sprint mode authorized. Proceeding with full %.1fh planned load. Pace yourself on high-priority items first.", plannedHours));
@@ -213,13 +220,6 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
             response.setProposedOptimizations(keepProposals);
             return response;
         }
-
-        // Compute Base Risk Score
-        double ratio = plannedHours / capacityHours;
-        int baseRisk = (int) Math.min(Math.max((ratio - 0.7) * 90.0, 15.0), 95.0);
-        int calculatedRisk = !context.getRepeatedlyPostponedTitles().isEmpty()
-                ? Math.min(baseRisk + 15, 95)
-                : baseRisk;
 
         response.setRiskScore(calculatedRisk);
         if (calculatedRisk >= 75) {
