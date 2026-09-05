@@ -7,6 +7,15 @@ export interface AiFeedbackResponse {
   timestamp: string;
 }
 
+export interface BehavioralSynthesisDto {
+  summary: string;
+  keyObservations: string[];
+  quickTweak: string;
+  rootCauseDeconstruction?: string;
+  tacticalHabits?: string[];
+  persona: string;
+}
+
 export interface SplitBlockDetail {
   blockIndex: number;
   title: string;
@@ -106,5 +115,5 @@ export const aiApi = {
       body: JSON.stringify({ commitmentId }),
     }),
 
-  getInsights: () => request<AiFeedbackResponse>('/ai/insights'),
+  getInsights: () => request<BehavioralSynthesisDto>('/ai/insights'),
 };

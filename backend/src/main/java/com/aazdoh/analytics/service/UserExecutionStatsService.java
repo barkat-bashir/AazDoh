@@ -130,4 +130,17 @@ public class UserExecutionStatsService {
             log.warn("Failed to refresh execution stats asynchronously for user {}", userId, e);
         }
     }
+
+    @Transactional
+    public void updateBehavioralSynthesis(UUID userId, String synthesisJson) {
+        try {
+            UserExecutionStats stats = statsRepository.findByUserId(userId)
+                    .orElseGet(() -> refreshStats(userId));
+            stats.setBehavioralSynthesisJson(synthesisJson);
+            stats.setLastSynthesizedAt(OffsetDateTime.now());
+            statsRepository.save(stats);
+        } catch (Exception e) {
+            log.warn("Failed to save behavioral synthesis for user {}", userId, e);
+        }
+    }
 }

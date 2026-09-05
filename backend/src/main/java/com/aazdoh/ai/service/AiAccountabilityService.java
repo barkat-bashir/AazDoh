@@ -5,6 +5,7 @@ import com.aazdoh.ai.context.AccountabilityContextBuilder;
 import com.aazdoh.ai.context.UserAccountabilityContextDto;
 import com.aazdoh.ai.dto.AiFeedbackResponse;
 import com.aazdoh.ai.dto.ApplyOptimizedPlanRequest;
+import com.aazdoh.ai.dto.BehavioralSynthesisDto;
 import com.aazdoh.ai.dto.ExcuseAnalysisRequest;
 import com.aazdoh.ai.dto.ExcuseAnalysisResponse;
 import com.aazdoh.ai.dto.HistoricalExcuseReceipt;
@@ -16,6 +17,8 @@ import com.aazdoh.ai.entity.AiInteraction;
 import com.aazdoh.ai.entity.AiStressTestSnapshot;
 import com.aazdoh.ai.repository.AiInteractionRepository;
 import com.aazdoh.ai.repository.AiStressTestSnapshotRepository;
+import com.aazdoh.analytics.entity.UserExecutionStats;
+import com.aazdoh.analytics.service.UserExecutionStatsService;
 import com.aazdoh.commitment.dto.CommitmentResponse;
 import com.aazdoh.commitment.dto.CreateCommitmentRequest;
 import com.aazdoh.commitment.dto.PostponeCommitmentRequest;
@@ -29,6 +32,8 @@ import com.aazdoh.review.service.ReviewService;
 import com.aazdoh.user.entity.User;
 import com.aazdoh.user.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -47,11 +52,14 @@ import java.util.concurrent.CompletableFuture;
 @Service
 public class AiAccountabilityService {
 
+    private static final Logger log = LoggerFactory.getLogger(AiAccountabilityService.class);
+
     private final AccountabilityContextBuilder contextBuilder;
     private final AccountabilityAiClient aiClient;
     private final CommitmentService commitmentService;
     private final ReviewService reviewService;
     private final UserService userService;
+    private final UserExecutionStatsService statsService;
     private final AiInteractionRepository aiInteractionRepository;
     private final AiStressTestSnapshotRepository snapshotRepository;
     private final ObjectMapper objectMapper;
@@ -62,6 +70,7 @@ public class AiAccountabilityService {
             CommitmentService commitmentService,
             ReviewService reviewService,
             UserService userService,
+            UserExecutionStatsService statsService,
             AiInteractionRepository aiInteractionRepository,
             AiStressTestSnapshotRepository snapshotRepository,
             ObjectMapper objectMapper
@@ -71,6 +80,7 @@ public class AiAccountabilityService {
         this.commitmentService = commitmentService;
         this.reviewService = reviewService;
         this.userService = userService;
+        this.statsService = statsService;
         this.aiInteractionRepository = aiInteractionRepository;
         this.snapshotRepository = snapshotRepository;
         this.objectMapper = objectMapper;
@@ -117,12 +127,59 @@ public class AiAccountabilityService {
     @Async
     @Transactional(readOnly = true)
     @Cacheable(value = "ai_insights", key = "#userId")
-    public CompletableFuture<AiFeedbackResponse> getBehavioralInsightsAsync(UUID userId) {
+    public CompletableFuture<BehavioralSynthesisDto> getBehavioralSynthesisAsync(UUID userId) {
+        // Fast-path: O(1) single-row read from user_execution_stats
+        UserExecutionStats stats = statsService.getOrComputeStats(userId);
+        if (stats.getBehavioralSynthesisJson() != null && !stats.getBehavioralSynthesisJson().isBlank()) {
+            try {
+                BehavioralSynthesisDto cached = objectMapper.readValue(stats.getBehavioralSynthesisJson(), BehavioralSynthesisDto.class);
+                return CompletableFuture.completedFuture(cached);
+            } catch (Exception e) {
+                log.warn("Failed to deserialize cached behavioral synthesis JSON for user {}", userId, e);
+            }
+        }
+
+        // Slow-path (first run or cache miss): compute and persist
         User user = userService.findUserById(userId);
         UserAccountabilityContextDto context = contextBuilder.buildContext(userId);
-        String feedback = aiClient.generateBehavioralInsights(context, user.getAiPersona());
+        BehavioralSynthesisDto synthesis = aiClient.generateBehavioralSynthesis(context, null, user.getAiPersona());
 
-        return CompletableFuture.completedFuture(new AiFeedbackResponse(feedback, user.getAiPersona().name()));
+        try {
+            String json = objectMapper.writeValueAsString(synthesis);
+            statsService.updateBehavioralSynthesis(userId, json);
+            aiInteractionRepository.save(new AiInteraction(user, "BEHAVIORAL_SYNTHESIS", "Behavioral Synthesis Generation", synthesis.summary()));
+        } catch (Exception e) {
+            log.warn("Failed to save newly computed behavioral synthesis for user {}", userId, e);
+        }
+
+        return CompletableFuture.completedFuture(synthesis);
+    }
+
+    @Async
+    @Transactional(readOnly = true)
+    public CompletableFuture<AiFeedbackResponse> getBehavioralInsightsAsync(UUID userId) {
+        return getBehavioralSynthesisAsync(userId).thenApply(synthesis ->
+                new AiFeedbackResponse(synthesis.summary(), synthesis.persona())
+        );
+    }
+
+    @Async
+    @Transactional
+    public void evolveBehavioralMemoryAsync(UUID userId) {
+        try {
+            User user = userService.findUserById(userId);
+            UserExecutionStats stats = statsService.getOrComputeStats(userId);
+            String priorSynthesis = stats.getBehavioralSynthesisJson();
+
+            UserAccountabilityContextDto context = contextBuilder.buildContext(userId);
+            BehavioralSynthesisDto newSynthesis = aiClient.generateBehavioralSynthesis(context, priorSynthesis, user.getAiPersona());
+
+            String json = objectMapper.writeValueAsString(newSynthesis);
+            statsService.updateBehavioralSynthesis(userId, json);
+            aiInteractionRepository.save(new AiInteraction(user, "BEHAVIORAL_MEMORY_EVOLUTION", "Delta Synthesis Evolution", newSynthesis.summary()));
+        } catch (Exception e) {
+            log.warn("Failed to evolve behavioral memory asynchronously for user {}", userId, e);
+        }
     }
 
     @Async

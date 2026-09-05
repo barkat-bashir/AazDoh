@@ -4,6 +4,7 @@ import com.aazdoh.ai.dto.AiFeedbackResponse;
 import com.aazdoh.ai.dto.AiMissedReviewRequest;
 import com.aazdoh.ai.dto.AiPlanReviewRequest;
 import com.aazdoh.ai.dto.ApplyOptimizedPlanRequest;
+import com.aazdoh.ai.dto.BehavioralSynthesisDto;
 import com.aazdoh.ai.dto.ExcuseAnalysisRequest;
 import com.aazdoh.ai.dto.ExcuseAnalysisResponse;
 import com.aazdoh.ai.dto.PlanStressTestRequest;
@@ -65,10 +66,10 @@ public class AiAccountabilityController {
 
     @GetMapping("/insights")
     @Operation(summary = "Get synthesized AI behavioral patterns and recommendations (Cached async)")
-    public CompletableFuture<ResponseEntity<ApiResponse<AiFeedbackResponse>>> getInsights(
+    public CompletableFuture<ResponseEntity<ApiResponse<BehavioralSynthesisDto>>> getInsights(
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        return aiAccountabilityService.getBehavioralInsightsAsync(userDetails.getId())
+        return aiAccountabilityService.getBehavioralSynthesisAsync(userDetails.getId())
                 .thenApply(response -> ResponseEntity.ok(ApiResponse.ok(response)));
     }
 

@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { analyticsApi, AccountabilityStats } from '../../api/analyticsApi';
-import { aiApi, AiFeedbackResponse } from '../../api/aiApi';
+import { aiApi, BehavioralSynthesisDto } from '../../api/aiApi';
 import { useToast } from '../../context/ToastContext';
-import { BarChart3, TrendingUp, Clock, CheckCircle2, XCircle, AlertTriangle, Flame, Sparkles, RefreshCw } from 'lucide-react';
+import { BarChart3, TrendingUp, Clock, CheckCircle2, AlertTriangle, Flame, Sparkles, RefreshCw, ChevronDown, ChevronUp, Zap, Target, BookOpen, Lightbulb } from 'lucide-react';
 
 export const AnalyticsDashboard: React.FC = () => {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
   const [days, setDays] = useState(30);
+  const [showDeepDive, setShowDeepDive] = useState(false);
 
   const { data: stats = null, isLoading: loading } = useQuery<AccountabilityStats | null>({
     queryKey: ['analytics', days],
@@ -16,7 +17,7 @@ export const AnalyticsDashboard: React.FC = () => {
     staleTime: 1000 * 60 * 3, // 3 minutes fresh cache
   });
 
-  const { data: insights = null, isLoading: loadingInsights, refetch: refetchInsights } = useQuery<AiFeedbackResponse | null>({
+  const { data: insights = null, isLoading: loadingInsights, refetch: refetchInsights } = useQuery<BehavioralSynthesisDto | null>({
     queryKey: ['aiInsights'],
     queryFn: () => aiApi.getInsights(),
     staleTime: 1000 * 60 * 5, // 5 minutes fresh cache
@@ -203,9 +204,9 @@ export const AnalyticsDashboard: React.FC = () => {
             )}
           </div>
 
-          {/* Behavioral Insights Card */}
+          {/* Structured Behavioral Synthesis Card (Approach A: Progressive Disclosure) */}
           <div className="harud-card" style={{ padding: '24px', border: '1px solid var(--border-copper-subtle)', background: 'linear-gradient(180deg, var(--bg-walnut-card) 0%, var(--bg-walnut-surface) 100%)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div style={{
                   width: '28px',
@@ -218,9 +219,14 @@ export const AnalyticsDashboard: React.FC = () => {
                 }}>
                   <Sparkles size={16} color="#fff" />
                 </div>
-                <h4 style={{ fontSize: '1.05rem', color: 'var(--text-kehwa-cream)', margin: 0, fontWeight: 700 }}>
-                  Behavioral Execution Synthesis
-                </h4>
+                <div>
+                  <h4 style={{ fontSize: '1.05rem', color: 'var(--text-kehwa-cream)', margin: 0, fontWeight: 700 }}>
+                    Behavioral Execution Synthesis
+                  </h4>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-tweed-dim)' }}>
+                    Instant O(1) Rollup Memory • Dual-Layer Progressive Synthesis
+                  </span>
+                </div>
               </div>
 
               <button
@@ -240,17 +246,171 @@ export const AnalyticsDashboard: React.FC = () => {
                 Synthesizing multi-day execution trends and friction patterns...
               </p>
             ) : insights ? (
-              <div style={{
-                background: 'rgba(28, 21, 16, 0.6)',
-                borderLeft: '4px solid var(--saffron-ember)',
-                padding: '14px 16px',
-                borderRadius: '0 10px 10px 0',
-                color: 'var(--text-kehwa-cream)',
-                fontSize: '0.9rem',
-                lineHeight: 1.6,
-                whiteSpace: 'pre-wrap',
-              }}>
-                {insights.feedback}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {/* 1. Executive Summary */}
+                <div style={{
+                  background: 'rgba(28, 21, 16, 0.7)',
+                  borderLeft: '4px solid var(--saffron-ember)',
+                  padding: '12px 16px',
+                  borderRadius: '0 8px 8px 0',
+                  color: 'var(--text-kehwa-cream)',
+                  fontSize: '0.92rem',
+                  fontWeight: 600,
+                  lineHeight: 1.5,
+                }}>
+                  {insights.summary}
+                </div>
+
+                {/* 2. Exactly 3 Key Observations */}
+                {insights.keyObservations && insights.keyObservations.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-parchment-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Key Empirical Observations
+                    </div>
+                    <div style={{ display: 'grid', gap: '8px' }}>
+                      {insights.keyObservations.map((obs, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '10px',
+                            padding: '8px 12px',
+                            background: 'rgba(20, 15, 12, 0.4)',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid var(--border-walnut-faint)',
+                            fontSize: '0.86rem',
+                            color: 'var(--text-kehwa-cream)',
+                            lineHeight: 1.45,
+                          }}
+                        >
+                          <span style={{
+                            minWidth: '20px',
+                            height: '20px',
+                            borderRadius: '50%',
+                            background: 'rgba(217, 119, 6, 0.18)',
+                            color: 'var(--saffron-ember)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            flexShrink: 0,
+                            marginTop: '1px',
+                          }}>
+                            {idx + 1}
+                          </span>
+                          <span>{obs}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. Quick High-Leverage Tweak */}
+                {insights.quickTweak && (
+                  <div style={{
+                    padding: '10px 14px',
+                    background: 'rgba(217, 119, 6, 0.08)',
+                    border: '1px solid rgba(217, 119, 6, 0.3)',
+                    borderRadius: 'var(--radius-sm)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                  }}>
+                    <Zap size={18} color="var(--saffron-ember)" style={{ flexShrink: 0 }} />
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-kehwa-cream)', lineHeight: 1.4 }}>
+                      <strong style={{ color: 'var(--saffron-ember)' }}>Tactical Tweak: </strong>
+                      {insights.quickTweak}
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. Progressive Disclosure Expand / Collapse Button */}
+                {(insights.rootCauseDeconstruction || (insights.tacticalHabits && insights.tacticalHabits.length > 0)) && (
+                  <div style={{ marginTop: '4px' }}>
+                    <button
+                      onClick={() => setShowDeepDive(!showDeepDive)}
+                      className="btn-secondary"
+                      style={{
+                        width: '100%',
+                        padding: '9px 14px',
+                        fontSize: '0.82rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        background: showDeepDive ? 'var(--bg-walnut-card-hover)' : 'rgba(28, 21, 16, 0.5)',
+                        border: '1px solid var(--border-copper-subtle)',
+                        borderRadius: 'var(--radius-sm)',
+                        color: 'var(--text-kehwa-cream)',
+                        cursor: 'pointer',
+                        transition: 'var(--transition-smooth)',
+                      }}
+                    >
+                      {showDeepDive ? <ChevronUp size={15} color="var(--saffron-ember)" /> : <ChevronDown size={15} color="var(--saffron-ember)" />}
+                      <span style={{ fontWeight: 600 }}>
+                        {showDeepDive ? 'Collapse Deep-Dive Deconstruction' : '🔍 View Deep-Dive Root Cause & Habit Deconstruction'}
+                      </span>
+                    </button>
+
+                    {/* Deep-Dive Deconstruction Accordion Drawer (Instant 0ms client-side toggle) */}
+                    {showDeepDive && (
+                      <div style={{
+                        marginTop: '12px',
+                        padding: '16px',
+                        background: 'rgba(16, 12, 10, 0.85)',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--border-copper-subtle)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '14px',
+                        animation: 'fadeIn 0.2s ease-in-out',
+                      }}>
+                        {/* Root Cause Deconstruction */}
+                        {insights.rootCauseDeconstruction && (
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: 'var(--saffron-ember)', fontSize: '0.84rem', fontWeight: 700 }}>
+                              <Target size={15} />
+                              <span>Root Cause Friction Mechanism</span>
+                            </div>
+                            <p style={{ fontSize: '0.86rem', color: 'var(--text-parchment-muted)', lineHeight: 1.6, margin: 0 }}>
+                              {insights.rootCauseDeconstruction}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Tactical Habit Protocols */}
+                        {insights.tacticalHabits && insights.tacticalHabits.length > 0 && (
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#4ADE80', fontSize: '0.84rem', fontWeight: 700 }}>
+                              <Lightbulb size={15} />
+                              <span>Tactical Habit Protocols</span>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              {insights.tacticalHabits.map((habit, hIdx) => (
+                                <div
+                                  key={hIdx}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'flex-start',
+                                    gap: '8px',
+                                    fontSize: '0.84rem',
+                                    color: 'var(--text-kehwa-cream)',
+                                    lineHeight: 1.45,
+                                  }}
+                                >
+                                  <span style={{ color: '#4ADE80', fontWeight: 700 }}>•</span>
+                                  <span>{habit}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <p style={{ color: 'var(--text-tweed-dim)', fontSize: '0.86rem', margin: 0 }}>

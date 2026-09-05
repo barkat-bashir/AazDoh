@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { aiApi, AiFeedbackResponse } from '../../api/aiApi';
+import { aiApi, AiFeedbackResponse, BehavioralSynthesisDto } from '../../api/aiApi';
 import { authApi } from '../../api/authApi';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { Sparkles, Compass, ShieldAlert, HeartHandshake, RefreshCw, Check, Flame } from 'lucide-react';
+import { Sparkles, Compass, ShieldAlert, HeartHandshake, RefreshCw, Check, Flame, Zap } from 'lucide-react';
 
 export const AiAccountabilityPanel: React.FC = () => {
   const { user, refreshUser } = useAuth();
   const { showToast } = useToast();
 
   const [planReview, setPlanReview] = useState<AiFeedbackResponse | null>(null);
-  const [insights, setInsights] = useState<AiFeedbackResponse | null>(null);
+  const [insights, setInsights] = useState<BehavioralSynthesisDto | null>(null);
   const [loadingPlan, setLoadingPlan] = useState(false);
   const [loadingInsights, setLoadingInsights] = useState(false);
   const [updatingPersona, setUpdatingPersona] = useState(false);
@@ -222,17 +222,47 @@ export const AiAccountabilityPanel: React.FC = () => {
         {loadingInsights ? (
           <p style={{ color: 'var(--text-tweed-dim)', padding: '16px 0' }}>Extracting patterns from your accountability memory...</p>
         ) : insights ? (
-          <div style={{
-            padding: '18px',
-            background: 'var(--bg-walnut-surface)',
-            borderRadius: 'var(--radius-sm)',
-            borderLeft: '3px solid var(--saffron-ember)',
-            fontSize: '0.92rem',
-            color: 'var(--text-kehwa-cream)',
-            lineHeight: 1.6,
-            whiteSpace: 'pre-line',
-          }}>
-            {insights.feedback}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{
+              padding: '14px 16px',
+              background: 'var(--bg-walnut-surface)',
+              borderRadius: 'var(--radius-sm)',
+              borderLeft: '3px solid var(--saffron-ember)',
+              fontSize: '0.92rem',
+              color: 'var(--text-kehwa-cream)',
+              lineHeight: 1.5,
+              fontWeight: 600,
+            }}>
+              {insights.summary}
+            </div>
+
+            {insights.keyObservations && insights.keyObservations.length > 0 && (
+              <div style={{ display: 'grid', gap: '6px' }}>
+                {insights.keyObservations.map((obs, idx) => (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '0.86rem', color: 'var(--text-kehwa-cream)' }}>
+                    <span style={{ color: 'var(--saffron-ember)', fontWeight: 700 }}>•</span>
+                    <span>{obs}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {insights.quickTweak && (
+              <div style={{
+                padding: '8px 12px',
+                background: 'rgba(217, 119, 6, 0.08)',
+                border: '1px solid rgba(217, 119, 6, 0.25)',
+                borderRadius: 'var(--radius-sm)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '0.84rem',
+                color: 'var(--text-kehwa-cream)',
+              }}>
+                <Zap size={15} color="var(--saffron-ember)" style={{ flexShrink: 0 }} />
+                <span><strong style={{ color: 'var(--saffron-ember)' }}>Tweak:</strong> {insights.quickTweak}</span>
+              </div>
+            )}
           </div>
         ) : (
           <p style={{ color: 'var(--text-tweed-dim)' }}>Complete more daily reviews to unlock deeper behavioral insights.</p>

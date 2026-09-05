@@ -43,6 +43,12 @@ public class UserExecutionStats extends BaseEntity {
     @Column(name = "repeatedly_postponed_titles_json", columnDefinition = "TEXT")
     private String repeatedlyPostponedTitlesJson;
 
+    @Column(name = "behavioral_synthesis_json", columnDefinition = "TEXT")
+    private String behavioralSynthesisJson;
+
+    @Column(name = "last_synthesized_at")
+    private OffsetDateTime lastSynthesizedAt;
+
     @Column(name = "last_computed_at")
     private OffsetDateTime lastComputedAt;
 
@@ -124,6 +130,22 @@ public class UserExecutionStats extends BaseEntity {
 
     public void setRepeatedlyPostponedTitlesJson(String repeatedlyPostponedTitlesJson) {
         this.repeatedlyPostponedTitlesJson = repeatedlyPostponedTitlesJson;
+    }
+
+    public String getBehavioralSynthesisJson() {
+        return behavioralSynthesisJson;
+    }
+
+    public void setBehavioralSynthesisJson(String behavioralSynthesisJson) {
+        this.behavioralSynthesisJson = behavioralSynthesisJson;
+    }
+
+    public OffsetDateTime getLastSynthesizedAt() {
+        return lastSynthesizedAt;
+    }
+
+    public void setLastSynthesizedAt(OffsetDateTime lastSynthesizedAt) {
+        this.lastSynthesizedAt = lastSynthesizedAt;
     }
 
     public OffsetDateTime getLastComputedAt() {

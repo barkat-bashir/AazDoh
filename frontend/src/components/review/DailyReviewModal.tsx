@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
 import { Commitment } from '../../api/commitmentApi';
 import { reviewApi, FailureReason, NextAction } from '../../api/reviewApi';
-import { aiApi, AiFeedbackResponse } from '../../api/aiApi';
+import { aiApi, BehavioralSynthesisDto } from '../../api/aiApi';
 import { useToast } from '../../context/ToastContext';
-import { CheckCircle2, XCircle, Sparkles, ArrowRight, CornerDownRight, Check } from 'lucide-react';
+import { CheckCircle2, XCircle, Sparkles, ArrowRight, CornerDownRight, Check, Zap } from 'lucide-react';
 
 interface DailyReviewModalProps {
   commitments: Commitment[];
@@ -31,7 +31,7 @@ export const DailyReviewModal: React.FC<DailyReviewModalProps> = ({
   }>>({});
 
   const [loading, setLoading] = useState(false);
-  const [aiAnalysis, setAiAnalysis] = useState<AiFeedbackResponse | null>(null);
+  const [aiAnalysis, setAiAnalysis] = useState<BehavioralSynthesisDto | null>(null);
   const [analyzingAi, setAnalyzingAi] = useState(false);
 
   useEffect(() => {
@@ -43,9 +43,10 @@ export const DailyReviewModal: React.FC<DailyReviewModalProps> = ({
   if (commitments.length === 0) {
     return (
       <Modal isOpen={isOpen} onClose={onClose} title="Daily Review">
-        <p style={{ color: 'var(--text-parchment-muted)', textAlign: 'center', padding: '20px 0' }}>
-          No unreviewed commitments needing attention.
-        </p>
+        <p style={{ color: 'var(--text-tweed-dim)' }}>No unreviewed commitments remaining for catch-up.</p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+          <button onClick={onClose} className="btn-secondary">Close</button>
+        </div>
       </Modal>
     );
   }
@@ -103,15 +104,16 @@ export const DailyReviewModal: React.FC<DailyReviewModalProps> = ({
 
   const handleNextOrFinish = async () => {
     if (currentIndex < commitments.length - 1) {
-      setCurrentIndex(currentIndex + 1);
+      setCurrentIndex(prev => prev + 1);
     } else {
-      // Submit all reviews to backend
+      // Submit all reviews
       try {
         setLoading(true);
         for (const commitment of commitments) {
           const rev = reviews[commitment.id] || {
             status: commitment.status === 'COMPLETED' ? 'COMPLETED' : 'MISSED',
             failureReason: 'UNDERESTIMATED',
+            reflection: 'Executed as planned.',
             nextAction: 'MOVE_TO_TOMORROW',
           };
 
@@ -152,8 +154,8 @@ export const DailyReviewModal: React.FC<DailyReviewModalProps> = ({
           onSuccess();
           onClose();
         }}
-        title="Daily Review Complete • AI Reflection"
-        subtitle="Observations synthesized from your day's review"
+        title="Daily Review Complete • Behavioral Synthesis"
+        subtitle="O(1) Structured Telemetry & Execution Memory"
       >
         <div style={{
           background: 'linear-gradient(135deg, rgba(192, 83, 48, 0.12), rgba(226, 149, 59, 0.08))',
@@ -163,14 +165,52 @@ export const DailyReviewModal: React.FC<DailyReviewModalProps> = ({
           color: 'var(--text-kehwa-cream)',
           lineHeight: 1.6,
           fontSize: '0.94rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '14px',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: 'var(--saffron-ember)', fontWeight: 700 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--saffron-ember)', fontWeight: 700 }}>
             <Sparkles size={18} />
-            <span>AI Agent Analysis ({aiAnalysis.persona} Persona)</span>
+            <span>AI Challenger Synthesis ({aiAnalysis.persona} Persona)</span>
           </div>
-          <div style={{ whiteSpace: 'pre-line' }}>
-            {aiAnalysis.feedback}
+
+          <div style={{
+            background: 'rgba(20, 15, 12, 0.5)',
+            padding: '12px 14px',
+            borderRadius: 'var(--radius-sm)',
+            borderLeft: '3px solid var(--saffron-ember)',
+            fontWeight: 600,
+            fontSize: '0.92rem',
+          }}>
+            {aiAnalysis.summary}
           </div>
+
+          {aiAnalysis.keyObservations && aiAnalysis.keyObservations.length > 0 && (
+            <div style={{ display: 'grid', gap: '6px' }}>
+              {aiAnalysis.keyObservations.map((obs, idx) => (
+                <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '0.86rem' }}>
+                  <span style={{ color: 'var(--saffron-ember)', fontWeight: 700 }}>•</span>
+                  <span>{obs}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {aiAnalysis.quickTweak && (
+            <div style={{
+              padding: '8px 12px',
+              background: 'rgba(217, 119, 6, 0.08)',
+              border: '1px solid rgba(217, 119, 6, 0.25)',
+              borderRadius: 'var(--radius-sm)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '0.84rem',
+            }}>
+              <Zap size={15} color="var(--saffron-ember)" style={{ flexShrink: 0 }} />
+              <span><strong style={{ color: 'var(--saffron-ember)' }}>Tactical Tweak:</strong> {aiAnalysis.quickTweak}</span>
+            </div>
+          )}
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>

@@ -7,6 +7,8 @@ import com.aazdoh.ai.dto.PlanStressTestResponse;
 import com.aazdoh.commitment.dto.CommitmentResponse;
 import com.aazdoh.user.entity.AiPersona;
 
+import com.aazdoh.ai.dto.BehavioralSynthesisDto;
+
 import java.util.List;
 
 public interface AccountabilityAiClient {
@@ -16,6 +18,8 @@ public interface AccountabilityAiClient {
     String analyzeMissedCommitment(UserAccountabilityContextDto context, CommitmentResponse commitment, String reason, String reflection, AiPersona persona);
 
     String generateBehavioralInsights(UserAccountabilityContextDto context, AiPersona persona);
+
+    BehavioralSynthesisDto generateBehavioralSynthesis(UserAccountabilityContextDto context, String priorSynthesis, AiPersona persona);
 
     PlanStressTestResponse stressTestPlan(
             UserAccountabilityContextDto context,
