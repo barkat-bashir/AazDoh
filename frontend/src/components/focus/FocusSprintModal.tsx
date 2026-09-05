@@ -40,6 +40,7 @@ export const FocusSprintModal: React.FC<FocusSprintModalProps> = ({ onCommitment
     resume,
     reset,
     addMinutes,
+    subtractMinutes,
     setCadence,
     addDistractionNote,
     removeDistractionNote,
@@ -90,7 +91,7 @@ export const FocusSprintModal: React.FC<FocusSprintModalProps> = ({ onCommitment
       <div 
         className="modal-content"
         style={{
-          maxWidth: '560px',
+          maxWidth: '580px',
           width: '94%',
           maxHeight: '92vh',
           overflowY: 'auto',
@@ -121,14 +122,9 @@ export const FocusSprintModal: React.FC<FocusSprintModalProps> = ({ onCommitment
               {isBreak ? <Coffee size={16} /> : <Zap size={16} />}
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: 'var(--text-kehwa-cream)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {activeCommitment ? activeCommitment.title : isBreak ? 'Rest & Recharge' : 'Quick Focus Sprint'}
-                </h3>
-              </div>
-              <p style={{ margin: '2px 0 0 0', fontSize: '0.74rem', color: 'var(--text-parchment-muted)' }}>
-                {isBreak ? 'Step away from the screen • Hydrate' : (activeCommitment ? `Tethered to commitment (${activeCommitment.estimatedMinutes}m target)` : 'Deep single-task focus session')}
-              </p>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: 'var(--text-kehwa-cream)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {activeCommitment ? activeCommitment.title : isBreak ? 'Rest & Recharge' : 'Quick Focus Sprint'}
+              </h3>
             </div>
           </div>
 
@@ -152,8 +148,37 @@ export const FocusSprintModal: React.FC<FocusSprintModalProps> = ({ onCommitment
           </div>
         </div>
 
-        {/* Circular Progress & Ambient Digital Countdown */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px 0' }}>
+        {/* Circular Progress Cockpit with Flanked Presets Spanning Along the Circle */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '20px',
+          padding: '12px 0',
+          flexWrap: 'wrap'
+        }}>
+          {/* Left Flank Presets */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', alignItems: 'flex-end' }}>
+            <button
+              onClick={() => setCadence(25, 'FOCUS')}
+              className={`btn-pill ${mode === 'FOCUS' && Math.round(totalDurationSeconds / 60) === 25 ? 'active' : ''}`}
+              style={{ padding: '8px 14px', fontSize: '0.80rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Zap size={13} />
+              <span>25m Sprint</span>
+            </button>
+
+            <button
+              onClick={() => setCadence(60, 'FOCUS')}
+              className={`btn-pill ${mode === 'FOCUS' && Math.round(totalDurationSeconds / 60) === 60 ? 'active' : ''}`}
+              style={{ padding: '8px 14px', fontSize: '0.80rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Zap size={13} />
+              <span>60m Block</span>
+            </button>
+          </div>
+
+          {/* Center Circular Countdown Dial */}
           <div style={{
             position: 'relative',
             width: '210px',
@@ -169,6 +194,7 @@ export const FocusSprintModal: React.FC<FocusSprintModalProps> = ({ onCommitment
               ? (isBreak ? '0 0 35px rgba(74, 222, 128, 0.25)' : '0 0 35px rgba(226, 149, 59, 0.25)')
               : 'none',
             transition: 'box-shadow 0.4s ease',
+            flexShrink: 0
           }}>
             {/* Ambient Progress Ring (SVG) */}
             <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
@@ -220,6 +246,27 @@ export const FocusSprintModal: React.FC<FocusSprintModalProps> = ({ onCommitment
             }}>
               {isCompleted ? '✓ SPRINT COMPLETE' : isRunning ? (isBreak ? '☕ RECHARGING' : '⚡ DEEP FOCUS') : 'PAUSED'}
             </span>
+          </div>
+
+          {/* Right Flank Presets */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', alignItems: 'flex-start' }}>
+            <button
+              onClick={() => setCadence(45, 'FOCUS')}
+              className={`btn-pill ${mode === 'FOCUS' && Math.round(totalDurationSeconds / 60) === 45 ? 'active' : ''}`}
+              style={{ padding: '8px 14px', fontSize: '0.80rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Zap size={13} />
+              <span>45m Deep</span>
+            </button>
+
+            <button
+              onClick={() => setCadence(5, 'SHORT_BREAK')}
+              className={`btn-pill ${mode === 'SHORT_BREAK' && Math.round(totalDurationSeconds / 60) === 5 ? 'active' : ''}`}
+              style={{ padding: '8px 14px', fontSize: '0.80rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Coffee size={13} />
+              <span>5m Break</span>
+            </button>
           </div>
         </div>
 
@@ -281,45 +328,41 @@ export const FocusSprintModal: React.FC<FocusSprintModalProps> = ({ onCommitment
           </div>
         )}
 
-        {/* Cadence Preset Selector */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          {[
-            { label: '25m Sprint', mins: 25, mode: 'FOCUS' as const },
-            { label: '45m Deep', mins: 45, mode: 'FOCUS' as const },
-            { label: '60m Block', mins: 60, mode: 'FOCUS' as const },
-            { label: '5m Break', mins: 5, mode: 'SHORT_BREAK' as const },
-          ].map((preset) => {
-            const isSelected = mode === preset.mode && Math.round(totalDurationSeconds / 60) === preset.mins;
-            return (
-              <button
-                key={preset.label}
-                onClick={() => setCadence(preset.mins, preset.mode)}
-                className={`btn-pill ${isSelected ? 'active' : ''}`}
-                style={{ padding: '5px 12px', fontSize: '0.78rem' }}
-              >
-                {preset.mode === 'SHORT_BREAK' ? <Coffee size={12} /> : <Zap size={12} />}
-                <span>{preset.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Primary Controls: Play / Pause / Reset / +5m */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+        {/* Primary Controls: Reset / -5m / Play-Pause / +5m */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
           <button
             onClick={reset}
             className="btn-secondary"
-            style={{ width: '40px', height: '40px', borderRadius: '50%', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ width: '38px', height: '38px', borderRadius: '50%', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             title="Reset timer"
           >
-            <RotateCcw size={16} />
+            <RotateCcw size={15} />
+          </button>
+
+          <button
+            onClick={() => subtractMinutes(5)}
+            className="btn-secondary"
+            style={{
+              padding: '8px 14px',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              border: '1px solid var(--border-copper-subtle)',
+              borderRadius: 'var(--radius-full)'
+            }}
+            title="Subtract 5 minutes"
+          >
+            <Minus size={13} />
+            <span>5m</span>
           </button>
 
           <button
             onClick={isRunning ? pause : resume}
             className="btn-primary"
             style={{
-              padding: '10px 28px',
+              padding: '10px 26px',
               fontSize: '0.94rem',
               fontWeight: 700,
               display: 'flex',
@@ -336,10 +379,20 @@ export const FocusSprintModal: React.FC<FocusSprintModalProps> = ({ onCommitment
           <button
             onClick={() => addMinutes(5)}
             className="btn-secondary"
-            style={{ width: '40px', height: '40px', borderRadius: '50%', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            title="Extend by +5 minutes"
+            style={{
+              padding: '8px 14px',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              border: '1px solid var(--border-copper-subtle)',
+              borderRadius: 'var(--radius-full)'
+            }}
+            title="Add 5 minutes"
           >
-            <Plus size={16} />
+            <Plus size={13} />
+            <span>5m</span>
           </button>
         </div>
 

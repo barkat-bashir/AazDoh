@@ -20,6 +20,7 @@ interface FocusTimerContextType {
   resume: () => void;
   reset: () => void;
   addMinutes: (mins: number) => void;
+  subtractMinutes: (mins: number) => void;
   setCadence: (mins: number, targetMode?: FocusMode) => void;
   addDistractionNote: (note: string) => void;
   removeDistractionNote: (index: number) => void;
@@ -156,6 +157,12 @@ export const FocusTimerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setIsCompleted(false);
   }, []);
 
+  const subtractMinutes = useCallback((mins: number) => {
+    const deductSecs = mins * 60;
+    setTimeLeftSeconds((prev) => Math.max(60, prev - deductSecs));
+    setTotalDurationSeconds((prev) => Math.max(60, prev - deductSecs));
+  }, []);
+
   const setCadence = useCallback((mins: number, targetMode: FocusMode = 'FOCUS') => {
     const secs = mins * 60;
     setMode(targetMode);
@@ -212,6 +219,7 @@ export const FocusTimerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         resume,
         reset,
         addMinutes,
+        subtractMinutes,
         setCadence,
         addDistractionNote,
         removeDistractionNote,
