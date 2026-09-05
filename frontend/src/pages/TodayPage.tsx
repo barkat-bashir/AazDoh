@@ -143,8 +143,8 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
   const activeReviewCommitments = useMemo(() => {
     return reviewDate === selectedDate 
       ? commitments 
-      : (reviewDate === yesterdayStr ? yesterdayCommitments : commitments);
-  }, [reviewDate, selectedDate, commitments, yesterdayStr, yesterdayCommitments]);
+      : (reviewDate === yesterdayStr ? unreviewedYesterday : commitments);
+  }, [reviewDate, selectedDate, commitments, yesterdayStr, unreviewedYesterday]);
 
   const handleOpenDiscussion = useCallback((c: Commitment) => {
     setDiscussionCommitment(c);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
 import { Commitment } from '../../api/commitmentApi';
 import { reviewApi, FailureReason, NextAction } from '../../api/reviewApi';
@@ -34,11 +34,17 @@ export const DailyReviewModal: React.FC<DailyReviewModalProps> = ({
   const [aiAnalysis, setAiAnalysis] = useState<AiFeedbackResponse | null>(null);
   const [analyzingAi, setAnalyzingAi] = useState(false);
 
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentIndex(0);
+    }
+  }, [isOpen, commitments]);
+
   if (commitments.length === 0) {
     return (
       <Modal isOpen={isOpen} onClose={onClose} title="Daily Review">
         <p style={{ color: 'var(--text-parchment-muted)', textAlign: 'center', padding: '20px 0' }}>
-          No commitments found for today to review.
+          No unreviewed commitments needing attention.
         </p>
       </Modal>
     );

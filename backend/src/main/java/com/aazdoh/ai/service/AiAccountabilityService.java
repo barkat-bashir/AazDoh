@@ -183,14 +183,37 @@ public class AiAccountabilityService {
             if (proposal.getOriginalCommitmentId() == null) continue;
 
             if ("SHIFT_TO_TOMORROW".equalsIgnoreCase(proposal.getSuggestedAction())) {
+                CommitmentResponse orig = commitmentService.getCommitmentById(userId, proposal.getOriginalCommitmentId());
+                LocalDate baseDate = orig.getCommitmentDate() != null ? orig.getCommitmentDate() : LocalDate.now();
                 PostponeCommitmentRequest postponeReq = new PostponeCommitmentRequest();
-                postponeReq.setNewDate(LocalDate.now().plusDays(1));
+                postponeReq.setNewDate(baseDate.plusDays(1));
                 commitmentService.postponeCommitment(userId, proposal.getOriginalCommitmentId(), postponeReq);
             } else if ("SPLIT".equalsIgnoreCase(proposal.getSuggestedAction())) {
                 CommitmentResponse orig = commitmentService.getCommitmentById(userId, proposal.getOriginalCommitmentId());
                 List<SplitBlockDetail> blocks = proposal.getSplitBlocks();
+                LocalDate baseDate = orig.getCommitmentDate() != null ? orig.getCommitmentDate() : LocalDate.now();
 
-                if (blocks != null && !blocks.isEmpty()) {
+                // If blocks is null or empty, dynamically compute split blocks so tasks are NEVER dropped or trimmed
+                if (blocks == null || blocks.isEmpty()) {
+                    blocks = new ArrayList<>();
+                    int totalMinutes = orig.getEstimatedMinutes() > 0 ? orig.getEstimatedMinutes() : (proposal.getCurrentMinutes() > 0 ? proposal.getCurrentMinutes() : 60);
+                    int chunkSize = proposal.getProposedMinutes() > 0 ? proposal.getProposedMinutes() : 45;
+                    int remaining = totalMinutes;
+                    int partNum = 1;
+                    while (remaining > 0) {
+                        int size = Math.min(remaining, chunkSize);
+                        blocks.add(new SplitBlockDetail(
+                                partNum,
+                                "Part " + partNum + ": " + orig.getTitle(),
+                                size,
+                                false
+                        ));
+                        remaining -= size;
+                        partNum++;
+                    }
+                }
+
+                if (!blocks.isEmpty()) {
                     // 1. Update original commitment to Part 1
                     SplitBlockDetail firstBlock = blocks.get(0);
                     UpdateCommitmentRequest updateReq = new UpdateCommitmentRequest();
@@ -201,22 +224,19 @@ public class AiAccountabilityService {
                     // 2. Automatically generate subsequent sibling blocks (Part 2, Part 3, etc.)
                     for (int bIdx = 1; bIdx < blocks.size(); bIdx++) {
                         SplitBlockDetail block = blocks.get(bIdx);
-                        LocalDate targetDate = block.isScheduleTomorrow() ? LocalDate.now().plusDays(1) : LocalDate.now();
+                        LocalDate targetDate = block.isScheduleTomorrow() ? baseDate.plusDays(1) : baseDate;
 
                         CreateCommitmentRequest createReq = new CreateCommitmentRequest();
                         createReq.setTitle(block.getTitle());
+                        createReq.setDescription(orig.getDescription());
                         createReq.setEstimatedMinutes(block.getMinutes());
                         createReq.setPriority(orig.getPriority() != null ? orig.getPriority() : CommitmentPriority.MEDIUM);
                         createReq.setVisibility(orig.getVisibility() != null ? orig.getVisibility() : CommitmentVisibility.SHARED_WITH_PARTNER);
+                        createReq.setTargetPartnerId(orig.getTargetPartnerId());
                         createReq.setCommitmentDate(targetDate);
                         createReq.setExpectedOutcome(orig.getExpectedOutcome());
                         commitmentService.createCommitment(userId, createReq);
                     }
-                } else {
-                    UpdateCommitmentRequest updateReq = new UpdateCommitmentRequest();
-                    updateReq.setTitle(proposal.getProposedTitle());
-                    updateReq.setEstimatedMinutes(proposal.getProposedMinutes());
-                    commitmentService.updateCommitment(userId, proposal.getOriginalCommitmentId(), updateReq);
                 }
             } else if ("TRIM".equalsIgnoreCase(proposal.getSuggestedAction())) {
                 UpdateCommitmentRequest updateReq = new UpdateCommitmentRequest();
