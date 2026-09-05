@@ -4,22 +4,20 @@ import {
   Sparkles, 
   CheckCircle2, 
   ArrowRight, 
-  Clock, 
-  CalendarClock, 
-  Flame, 
   Send, 
   X, 
-  AlertTriangle,
-  ChevronRight,
-  TrendingDown,
-  Lock,
-  Timer,
-  Brain,
-  Moon,
-  Calendar,
-  Zap
+  TrendingDown, 
+  Lock, 
+  Timer, 
+  Brain, 
+  Moon, 
+  Calendar, 
+  Zap,
+  MessageSquarePlus,
+  Check
 } from 'lucide-react';
 import { PlanStressTestResponse, OptimizedTaskProposal, aiApi } from '../../api/aiApi';
+import { useToast } from '../../context/ToastContext';
 
 interface PlanStressTestModalProps {
   isOpen: boolean;
@@ -38,10 +36,10 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
   onPlanApplied,
   onReStressTest,
 }) => {
+  const { showToast } = useToast();
   const [showDefenseInput, setShowDefenseInput] = useState(false);
   const [defenseText, setDefenseText] = useState('');
   const [isApplying, setIsApplying] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [proposals, setProposals] = useState<OptimizedTaskProposal[]>([]);
 
   React.useEffect(() => {
@@ -82,7 +80,7 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
       const copy = [...prev];
       const target = { ...copy[proposalIdx] };
       const totalMinutes = target.currentMinutes;
-      const willScheduleTomorrow = target.splitBlocks?.[1]?.scheduleTomorrow ?? false; // Default to Today
+      const willScheduleTomorrow = target.splitBlocks?.[1]?.scheduleTomorrow ?? false;
 
       const newBlocks: { blockIndex: number; title: string; minutes: number; scheduleTomorrow: boolean }[] = [];
       let remaining = totalMinutes;
@@ -117,11 +115,13 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
         acceptedProposals: toApply,
       });
       setIsApplying(false);
+      showToast('Plan optimized and scheduled!', 'success');
       onPlanApplied();
       onClose();
     } catch (err) {
       console.error('Failed to apply optimized plan', err);
       setIsApplying(false);
+      showToast('Could not apply plan adjustments', 'error');
     }
   };
 
@@ -133,8 +133,9 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
     setDefenseText('');
   };
 
-  const handleOverrideSprint = () => {
-    onReStressTest(undefined, true);
+  const handleKeepOriginal = () => {
+    showToast(`Proceeding with your original ${data?.plannedHours || ''}h plan. Have a focused day!`, 'info');
+    onClose();
   };
 
   const getRiskColor = (level: string) => {
@@ -145,21 +146,27 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
       case 'MODERATE':
         return 'var(--saffron-ember)';
       default:
-        return '#48bb78';
+        return '#4ADE80';
     }
   };
+
+  const currentProposals = proposals.length > 0 ? proposals : (data?.proposedOptimizations || []);
+  const hasOptimizations = currentProposals.some(p => 
+    p.suggestedAction === 'TRIM' || p.suggestedAction === 'SPLIT' || p.suggestedAction === 'SHIFT_TO_TOMORROW'
+  );
 
   return (
     <div className="modal-backdrop" style={{ zIndex: 99999 }}>
       <div 
         className="modal-content" 
         style={{ 
-          maxWidth: '940px', 
+          maxWidth: '920px', 
           width: '96%',
           maxHeight: '90vh',
           overflowY: 'auto',
           border: '1px solid rgba(226, 149, 59, 0.3)',
-          boxShadow: '0 25px 60px -15px rgba(0,0,0,0.7), 0 0 30px rgba(192, 83, 48, 0.15)'
+          boxShadow: '0 25px 60px -15px rgba(0,0,0,0.7), 0 0 30px rgba(192, 83, 48, 0.15)',
+          padding: '24px'
         }}
       >
         {/* Header */}
@@ -182,7 +189,7 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
               <Sparkles size={18} />
             </div>
             <div>
-              <h3 style={{ fontSize: 'clamp(1.05rem, 3.5vw, 1.25rem)', fontWeight: '700', margin: 0, color: 'var(--text-kehwa-cream)' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: '700', margin: 0, color: 'var(--text-kehwa-cream)' }}>
                 Plan Feasibility Check
               </h3>
               <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-tweed-dim)' }}>
@@ -221,40 +228,17 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
             </p>
           </div>
         ) : data ? (
-          <div>
-            {/* Success Overlay */}
-            {successMessage && (
-              <div 
-                style={{ 
-                  background: 'rgba(72, 187, 120, 0.15)', 
-                  border: '1px solid #48bb78', 
-                  borderRadius: '12px',
-                  padding: '16px',
-                  textAlign: 'center',
-                  color: '#48bb78',
-                  fontWeight: '600',
-                  marginBottom: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px'
-                }}
-              >
-                <CheckCircle2 size={20} />
-                <span>{successMessage}</span>
-              </div>
-            )}
-
-            {/* 2-Column Responsive Cockpit Grid */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* 2-Column Cockpit Grid */}
             <div 
               style={{ 
                 display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', 
-                gap: '22px', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', 
+                gap: '20px', 
                 alignItems: 'start' 
               }}
             >
-              {/* LEFT COLUMN: The Diagnosis & Intelligence */}
+              {/* LEFT COLUMN: Capacity & Diagnostic Intelligence */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div style={{ fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--saffron-ember)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <ShieldAlert size={14} />
@@ -266,8 +250,8 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
                   style={{ 
                     background: 'rgba(255, 255, 255, 0.03)', 
                     border: `1px solid ${getRiskColor(data.riskLevel)}40`,
-                    borderRadius: '14px',
-                    padding: '16px',
+                    borderRadius: '12px',
+                    padding: '14px 16px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -278,8 +262,8 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div 
                       style={{ 
-                        width: '48px', 
-                        height: '48px', 
+                        width: '46px', 
+                        height: '46px', 
                         borderRadius: '50%', 
                         background: `conic-gradient(${getRiskColor(data.riskLevel)} ${data.riskScore * 3.6}deg, rgba(255,255,255,0.06) 0deg)`,
                         display: 'flex',
@@ -326,15 +310,15 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
                         </span>
                       </div>
                       <div style={{ fontSize: '12px', color: 'var(--text-kehwa-cream)', marginTop: '2px', fontWeight: '500' }}>
-                        Planned: <strong style={{ color: 'var(--saffron-ember)' }}>{data.plannedHours}h</strong> • Cap: <strong>{data.historicalCapacityHours}h</strong>
+                        Planned: <strong style={{ color: 'var(--saffron-ember)' }}>{data.plannedHours}h</strong> • Recent Avg: <strong>{data.historicalCapacityHours}h</strong>
                       </div>
                     </div>
                   </div>
 
                   {data.optimizedHours < data.plannedHours && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#48bb78', fontSize: '11px', fontWeight: '600' }}>
-                      <TrendingDown size={15} />
-                      <span>Optimizes to {data.optimizedHours}h (94% win rate)</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#4ADE80', fontSize: '11px', fontWeight: '600' }}>
+                      <TrendingDown size={14} />
+                      <span>Optimizes to {data.optimizedHours}h</span>
                     </div>
                   )}
                 </div>
@@ -354,69 +338,70 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
                       : data.diagnosticSummary}"
                   </p>
                   {data.defenseFeedback && (
-                    <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: '12px', color: '#48bb78', fontWeight: '600' }}>
+                    <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: '12px', color: '#4ADE80', fontWeight: '600' }}>
                       ✓ {data.defenseFeedback}
                     </div>
                   )}
                 </div>
 
-                {/* Context Input Section */}
-                {showDefenseInput && (
-                  <form onSubmit={handleSendDefense} style={{ marginTop: '4px' }}>
-                    <label style={{ display: 'block', fontSize: '0.80rem', fontWeight: '600', color: 'var(--text-kehwa-cream)', marginBottom: '6px' }}>
-                      💬 Add context to adjust feasibility assessment:
-                    </label>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <input 
-                        type="text"
-                        className="input-field"
-                        placeholder="e.g. Starter template ready, takes 30 mins."
-                        value={defenseText}
-                        onChange={(e) => setDefenseText(e.target.value)}
-                        style={{ flex: 1, fontSize: '0.82rem' }}
-                        autoFocus
-                      />
-                      <button type="submit" className="btn-primary" style={{ padding: '0 14px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem' }}>
-                        <Send size={13} />
-                        <span>Validate</span>
-                      </button>
-                    </div>
-                  </form>
-                )}
-
-                {/* Secondary Controls Row */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: 'auto', paddingTop: '8px' }}>
-                  <button
-                    onClick={() => setShowDefenseInput(!showDefenseInput)}
-                    className="btn-secondary"
-                    style={{ padding: '9px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.80rem' }}
-                  >
-                    <span>💬 Add Context</span>
-                  </button>
-
-                  <button
-                    onClick={handleOverrideSprint}
-                    className="btn-secondary"
-                    title="Keep your original plan as-is"
-                    style={{ padding: '9px 12px', color: 'var(--text-parchment-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.80rem' }}
-                  >
-                    <Flame size={14} style={{ color: 'var(--chinar-rust)' }} />
-                    <span>Keep Original</span>
-                  </button>
+                {/* Optional Context Accordion */}
+                <div>
+                  {!showDefenseInput ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowDefenseInput(true)}
+                      className="btn-secondary"
+                      style={{ 
+                        width: '100%', 
+                        padding: '8px 12px', 
+                        fontSize: '0.78rem', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        gap: '6px' 
+                      }}
+                    >
+                      <MessageSquarePlus size={14} color="var(--saffron-ember)" />
+                      <span>Add context to re-evaluate plan</span>
+                    </button>
+                  ) : (
+                    <form onSubmit={handleSendDefense} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '0.76rem', color: 'var(--text-parchment-muted)', fontWeight: 600 }}>
+                        Explain context (e.g. "DSA task is 80% finished, only need 15m"):
+                      </label>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <input 
+                          type="text"
+                          className="input-field"
+                          placeholder="Type quick context..."
+                          value={defenseText}
+                          onChange={(e) => setDefenseText(e.target.value)}
+                          style={{ flex: 1, fontSize: '0.80rem', padding: '6px 10px' }}
+                          autoFocus
+                        />
+                        <button type="submit" className="btn-primary" style={{ padding: '0 12px', fontSize: '0.78rem' }}>
+                          <Send size={12} />
+                        </button>
+                        <button type="button" onClick={() => setShowDefenseInput(false)} className="btn-secondary" style={{ padding: '0 8px', fontSize: '0.78rem' }}>
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  )}
                 </div>
               </div>
 
-              {/* RIGHT COLUMN: The Prescription & Actions */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* RIGHT COLUMN: Recommended Plan & Adjustments */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--saffron-ember)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Sparkles size={14} />
-                  <span>Recommended Action Plan</span>
+                  <span>Action Plan Breakdown</span>
                 </div>
 
                 {/* Proposed Adjustments List */}
-                {data.proposedOptimizations && data.proposedOptimizations.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '420px', overflowY: 'auto', paddingRight: '2px' }}>
-                    {(proposals.length > 0 ? proposals : data.proposedOptimizations).map((prop: OptimizedTaskProposal, idx: number) => {
+                {currentProposals.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '380px', overflowY: 'auto', paddingRight: '4px' }}>
+                    {currentProposals.map((prop: OptimizedTaskProposal, idx: number) => {
                       const isSplit = prop.suggestedAction === 'SPLIT';
                       const isTrim = prop.suggestedAction === 'TRIM';
                       const isShift = prop.suggestedAction === 'SHIFT_TO_TOMORROW';
@@ -428,17 +413,17 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
                           key={idx}
                           style={{ 
                             background: 'var(--bg-walnut-surface)',
-                            border: '1px solid var(--border-walnut-faint)',
+                            border: `1px solid ${isShift ? 'rgba(248, 113, 113, 0.3)' : 'var(--border-walnut-faint)'}`,
                             borderRadius: 'var(--radius-sm)',
-                            padding: '12px 14px',
+                            padding: '10px 12px',
                             display: 'flex',
                             flexDirection: 'column',
-                            gap: '8px'
+                            gap: '6px'
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px', flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px', flexWrap: 'wrap' }}>
                                 {isSplit && (
                                   <span className="badge" style={{ fontSize: '10px', background: 'rgba(226, 149, 59, 0.15)', color: 'var(--saffron-ember)', border: '1px solid rgba(226, 149, 59, 0.35)', fontWeight: 700 }}>
                                     SPLIT ({prop.splitBlocks?.length || 2} SPRINTS)
@@ -450,8 +435,8 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
                                   </span>
                                 )}
                                 {isShift && (
-                                  <span className="badge badge-priority-urgent" style={{ fontSize: '10px' }}>
-                                    REBALANCED TOMORROW
+                                  <span className="badge" style={{ fontSize: '10px', background: 'rgba(248, 113, 113, 0.15)', color: '#F87171', border: '1px solid rgba(248, 113, 113, 0.3)', fontWeight: 700 }}>
+                                    REBALANCED TO TOMORROW
                                   </span>
                                 )}
                                 {isKeep && (
@@ -459,24 +444,24 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
                                     KEPT AS-IS
                                   </span>
                                 )}
-                                <strong style={{ fontSize: '0.86rem', color: 'var(--text-kehwa-cream)' }}>
+                                <strong style={{ fontSize: '0.85rem', color: 'var(--text-kehwa-cream)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   {prop.currentTitle}
                                 </strong>
                               </div>
                               
-                              <p style={{ margin: 0, fontSize: '0.76rem', color: 'var(--text-parchment-muted)' }}>
+                              <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--text-parchment-muted)', lineHeight: 1.4 }}>
                                 {prop.reasoning}
                               </p>
                             </div>
 
-                            <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: '600' }}>
-                                <span style={{ color: isShift ? 'var(--chinar-rust)' : isTrim || isSplit ? 'var(--text-tweed-dim)' : '#4ADE80', textDecoration: isTrim || isShift || isSplit ? 'line-through' : 'none' }}>
+                            <div style={{ textAlign: 'right', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: '600' }}>
+                                <span style={{ color: isShift ? '#F87171' : isTrim || isSplit ? 'var(--text-tweed-dim)' : '#4ADE80', textDecoration: isTrim || isShift || isSplit ? 'line-through' : 'none' }}>
                                   {prop.currentMinutes}m
                                 </span>
                                 {(isTrim || isSplit) && (
                                   <>
-                                    <ArrowRight size={11} style={{ color: 'var(--saffron-ember)' }} />
+                                    <ArrowRight size={10} style={{ color: 'var(--saffron-ember)' }} />
                                     <span style={{ color: 'var(--saffron-ember)' }}>{prop.proposedMinutes}m</span>
                                   </>
                                 )}
@@ -491,18 +476,19 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
                               background: 'var(--bg-walnut-card)', 
                               borderRadius: 'var(--radius-sm)', 
                               border: '1px solid var(--border-walnut-faint)',
+                              marginTop: '2px',
                             }}>
-                              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--saffron-ember)', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                  <Zap size={13} />
-                                  <span>FOCUS SPRINTS ({prop.splitBlocks!.length} BLOCKS):</span>
+                              <div style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--saffron-ember)', marginBottom: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px' }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <Zap size={12} />
+                                  <span>SPRINTS ({prop.splitBlocks!.length} BLOCKS):</span>
                                 </span>
-                                <span style={{ color: 'var(--text-tweed-dim)', fontWeight: 500, fontSize: '0.76rem' }}>Part 1 stays on Today</span>
+                                <span style={{ color: 'var(--text-tweed-dim)', fontWeight: 500, fontSize: '0.72rem' }}>Part 1 stays on Today</span>
                               </div>
 
-                              {/* Cadence Preset Pills (36px min touch target) */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
-                                <span style={{ fontSize: '0.76rem', color: 'var(--text-parchment-muted)', fontWeight: 600 }}>Cadence:</span>
+                              {/* Cadence Preset Pills */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '0.72rem', color: 'var(--text-parchment-muted)', fontWeight: 600 }}>Cadence:</span>
                                 {[25, 45, 60].map(mins => {
                                   const currentChunk = prop.splitBlocks?.[0]?.minutes || 45;
                                   const isSelected = currentChunk === mins || (![25, 45, 60].includes(currentChunk) && mins === 45);
@@ -512,19 +498,19 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
                                       type="button"
                                       onClick={() => handleRecalculateChunkSize(idx, mins)}
                                       className={`btn-pill ${isSelected ? 'active' : ''}`}
-                                      style={{ padding: '5px 10px', fontSize: '0.78rem', minHeight: '32px' }}
+                                      style={{ padding: '3px 8px', fontSize: '0.74rem' }}
                                     >
-                                      {mins === 25 && <Timer size={12} />}
-                                      {mins === 45 && <Zap size={12} />}
-                                      {mins === 60 && <Brain size={12} />}
-                                      <span>{mins === 25 ? '25m Pomodoro' : mins === 45 ? '45m Standard' : '60m Deep'}</span>
+                                      {mins === 25 && <Timer size={11} />}
+                                      {mins === 45 && <Zap size={11} />}
+                                      {mins === 60 && <Brain size={11} />}
+                                      <span>{mins === 25 ? '25m' : mins === 45 ? '45m' : '60m'}</span>
                                     </button>
                                   );
                                 })}
                               </div>
 
                               {/* Sprint blocks chips */}
-                              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '8px' }}>
                                 {prop.splitBlocks!.map((b, bIdx) => {
                                   const isTomorrow = b.scheduleTomorrow && bIdx > 0;
                                   return (
@@ -532,17 +518,19 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
                                       key={bIdx}
                                       className="sprint-chip"
                                       style={{
+                                        fontSize: '0.72rem',
+                                        padding: '2px 6px',
                                         background: bIdx === 0 
                                           ? 'rgba(74, 222, 128, 0.15)' 
                                           : isTomorrow 
-                                            ? 'rgba(192, 83, 48, 0.18)' 
+                                            ? 'rgba(248, 113, 113, 0.18)' 
                                             : 'rgba(226, 149, 59, 0.16)',
                                         color: bIdx === 0 
                                           ? '#4ADE80' 
                                           : isTomorrow 
-                                            ? 'var(--chinar-rust)' 
+                                            ? '#F87171' 
                                             : 'var(--saffron-ember)',
-                                        border: `1px solid ${bIdx === 0 ? 'rgba(74, 222, 128, 0.35)' : isTomorrow ? 'rgba(192, 83, 48, 0.4)' : 'rgba(226, 149, 59, 0.4)'}`,
+                                        border: `1px solid ${bIdx === 0 ? 'rgba(74, 222, 128, 0.35)' : isTomorrow ? 'rgba(248, 113, 113, 0.35)' : 'rgba(226, 149, 59, 0.4)'}`,
                                       }}
                                     >
                                       <strong>{b.title}</strong>: {b.minutes}m {bIdx === 0 ? '(Today)' : isTomorrow ? '(Tomorrow)' : '(Today)'}
@@ -551,26 +539,26 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
                                 })}
                               </div>
 
-                              {/* Destination toggle for Part 2+ (Defaults to Today) */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                <span style={{ fontSize: '0.76rem', color: 'var(--text-parchment-muted)', fontWeight: 600 }}>Schedule parts:</span>
+                              {/* Destination toggle for Part 2+ */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '0.72rem', color: 'var(--text-parchment-muted)', fontWeight: 600 }}>Part 2+:</span>
                                 <button
                                   type="button"
                                   onClick={() => handleToggleSplitSchedule(idx, false)}
                                   className={`btn-pill ${!prop.splitBlocks![1]?.scheduleTomorrow ? 'active' : ''}`}
-                                  style={{ padding: '5px 12px', fontSize: '0.78rem', minHeight: '32px' }}
+                                  style={{ padding: '3px 8px', fontSize: '0.72rem' }}
                                 >
-                                  <Calendar size={13} />
-                                  <span>Keep on Today</span>
+                                  <Calendar size={11} />
+                                  <span>Keep Today</span>
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => handleToggleSplitSchedule(idx, true)}
                                   className={`btn-pill ${prop.splitBlocks![1]?.scheduleTomorrow ? 'active' : ''}`}
-                                  style={{ padding: '5px 12px', fontSize: '0.78rem', minHeight: '32px' }}
+                                  style={{ padding: '3px 8px', fontSize: '0.72rem' }}
                                 >
-                                  <Moon size={13} />
-                                  <span>Move to Tomorrow</span>
+                                  <Moon size={11} />
+                                  <span>Move Tomorrow</span>
                                 </button>
                               </div>
                             </div>
@@ -579,63 +567,80 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
                       );
                     })}
                   </div>
+                ) : (
+                  <p style={{ color: 'var(--text-tweed-dim)', fontSize: '0.84rem' }}>No commitments to display.</p>
                 )}
-
-                {/* Primary Action Button */}
-                <div style={{ borderTop: '1px solid var(--border-walnut-faint)', paddingTop: '12px', marginTop: 'auto' }}>
-                  {data.validated ? (
-                    <button 
-                      onClick={onClose} 
-                      className="btn-primary"
-                      style={{ width: '100%', padding: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.88rem' }}
-                    >
-                      <Lock size={15} />
-                      <span>Plan Validated & Locked • Begin Execution</span>
-                    </button>
-                  ) : (
-                    data.proposedOptimizations?.some(p => p.suggestedAction === 'TRIM' || p.suggestedAction === 'SPLIT' || p.suggestedAction === 'SHIFT_TO_TOMORROW') ? (
-                      <button
-                        onClick={handleApplyOptimizations}
-                        disabled={isApplying}
-                        className="btn-primary"
-                        style={{ 
-                          width: '100%',
-                          padding: '12px 16px', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center', 
-                          gap: '8px',
-                          fontWeight: '700',
-                          fontSize: '0.88rem'
-                        }}
-                      >
-                        <Sparkles size={16} />
-                        <span>{isApplying ? 'Applying Plan...' : 'Apply Optimized Plan (1-Click)'}</span>
-                      </button>
-                    ) : (
-                      <button
-                        onClick={onClose}
-                        className="btn-primary"
-                        style={{ 
-                          width: '100%',
-                          padding: '12px 16px', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center', 
-                          gap: '8px',
-                          fontWeight: '700',
-                          fontSize: '0.88rem',
-                          background: 'linear-gradient(135deg, #2E7D52, #1B5E38)',
-                          borderColor: 'rgba(74, 222, 128, 0.4)'
-                        }}
-                      >
-                        <CheckCircle2 size={16} color="#4ADE80" />
-                        <span>Plan Looks Solid — Let's Go</span>
-                      </button>
-                    )
-                  )}
-                </div>
               </div>
+            </div>
+
+            {/* UNIFIED ACTION FOOTER */}
+            <div 
+              style={{ 
+                borderTop: '1px solid var(--border-walnut-faint)', 
+                paddingTop: '16px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}
+            >
+              {hasOptimizations ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleKeepOriginal}
+                    className="btn-secondary"
+                    style={{ 
+                      padding: '10px 18px', 
+                      fontSize: '0.86rem', 
+                      color: 'var(--text-parchment-muted)',
+                      border: '1px solid var(--border-copper-subtle)'
+                    }}
+                  >
+                    <span>Keep Original ({data.plannedHours}h)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleApplyOptimizations}
+                    disabled={isApplying}
+                    className="btn-primary"
+                    style={{ 
+                      padding: '10px 22px', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '8px',
+                      fontWeight: '700',
+                      fontSize: '0.88rem'
+                    }}
+                  >
+                    <Sparkles size={16} />
+                    <span>{isApplying ? 'Applying Plan...' : `Apply Optimized Plan (${data.optimizedHours}h)`}</span>
+                  </button>
+                </>
+              ) : (
+                <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="btn-primary"
+                    style={{ 
+                      padding: '10px 24px', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '8px',
+                      fontWeight: '700',
+                      fontSize: '0.88rem',
+                      background: 'linear-gradient(135deg, #2E7D52, #1B5E38)',
+                      borderColor: 'rgba(74, 222, 128, 0.4)'
+                    }}
+                  >
+                    <CheckCircle2 size={16} color="#4ADE80" />
+                    <span>Plan Verified • Proceed with Day</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ) : null}

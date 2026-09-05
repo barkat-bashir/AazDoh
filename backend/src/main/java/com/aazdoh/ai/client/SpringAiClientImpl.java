@@ -191,13 +191,26 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
 
         // Handle Override Sprint
         if (overrideSprint) {
-            response.setRiskScore(85);
-            response.setRiskLevel("HIGH");
+            response.setRiskScore(calculatedRisk > 0 ? calculatedRisk : 75);
+            response.setRiskLevel(calculatedRisk >= 75 ? "HIGH" : (calculatedRisk >= 50 ? "MODERATE" : "LOW"));
             response.setValidated(true);
             response.setOptimizedHours(plannedHours);
-            response.setDiagnosticSummary("⚡ High-Entropy Sprint Mode Authorized. Sovereign override acknowledged. Your Chief of Staff is monitoring your execution pace.");
-            response.setDefenseFeedback("Override accepted. Focus on high-priority milestones first.");
-            response.setProposedOptimizations(List.of());
+            response.setDiagnosticSummary(String.format("Sprint mode authorized. Proceeding with full %.1fh planned load. Pace yourself on high-priority items first.", plannedHours));
+            response.setDefenseFeedback("Original plan retained. Focus on high-priority milestones first.");
+            
+            List<OptimizedTaskProposal> keepProposals = new ArrayList<>();
+            for (CommitmentResponse task : todaysCommitments) {
+                OptimizedTaskProposal prop = new OptimizedTaskProposal();
+                prop.setOriginalCommitmentId(task.getId());
+                prop.setCurrentTitle(task.getTitle());
+                prop.setCurrentMinutes(task.getEstimatedMinutes());
+                prop.setSuggestedAction("KEEP");
+                prop.setProposedTitle(task.getTitle());
+                prop.setProposedMinutes(task.getEstimatedMinutes());
+                prop.setReasoning("Retained as originally planned per your override.");
+                keepProposals.add(prop);
+            }
+            response.setProposedOptimizations(keepProposals);
             return response;
         }
 
