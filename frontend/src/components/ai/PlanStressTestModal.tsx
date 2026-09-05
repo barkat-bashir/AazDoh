@@ -12,7 +12,12 @@ import {
   AlertTriangle,
   ChevronRight,
   TrendingDown,
-  Lock
+  Lock,
+  Timer,
+  Brain,
+  Moon,
+  Calendar,
+  Zap
 } from 'lucide-react';
 import { PlanStressTestResponse, OptimizedTaskProposal, aiApi } from '../../api/aiApi';
 
@@ -111,13 +116,9 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
       await aiApi.applyOptimizedPlan({
         acceptedProposals: toApply,
       });
-      setSuccessMessage('Optimized plan applied successfully! Your day is now de-risked.');
-      setTimeout(() => {
-        setIsApplying(false);
-        setSuccessMessage(null);
-        onPlanApplied();
-        onClose();
-      }, 1200);
+      setIsApplying(false);
+      onPlanApplied();
+      onClose();
     } catch (err) {
       console.error('Failed to apply optimized plan', err);
       setIsApplying(false);
@@ -491,14 +492,17 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
                               borderRadius: 'var(--radius-sm)', 
                               border: '1px solid var(--border-walnut-faint)',
                             }}>
-                              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--saffron-ember)', marginBottom: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px' }}>
-                                <span>⚡ FOCUS SPRINTS ({prop.splitBlocks!.length} BLOCKS):</span>
-                                <span style={{ color: 'var(--text-tweed-dim)', fontWeight: 500 }}>Part 1 stays on Today</span>
+                              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--saffron-ember)', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                  <Zap size={13} />
+                                  <span>FOCUS SPRINTS ({prop.splitBlocks!.length} BLOCKS):</span>
+                                </span>
+                                <span style={{ color: 'var(--text-tweed-dim)', fontWeight: 500, fontSize: '0.76rem' }}>Part 1 stays on Today</span>
                               </div>
 
-                              {/* Cadence Preset Pills */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                                <span style={{ fontSize: '0.68rem', color: 'var(--text-parchment-muted)', fontWeight: 600 }}>Cadence:</span>
+                              {/* Cadence Preset Pills (36px min touch target) */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '0.76rem', color: 'var(--text-parchment-muted)', fontWeight: 600 }}>Cadence:</span>
                                 {[25, 45, 60].map(mins => {
                                   const currentChunk = prop.splitBlocks?.[0]?.minutes || 45;
                                   const isSelected = currentChunk === mins || (![25, 45, 60].includes(currentChunk) && mins === 45);
@@ -507,50 +511,38 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
                                       key={mins}
                                       type="button"
                                       onClick={() => handleRecalculateChunkSize(idx, mins)}
-                                      style={{
-                                        fontSize: '0.68rem',
-                                        padding: '2px 7px',
-                                        borderRadius: '4px',
-                                        border: '1px solid',
-                                        borderColor: isSelected ? 'var(--saffron-ember)' : 'var(--border-walnut-faint)',
-                                        background: isSelected ? 'rgba(226, 149, 59, 0.2)' : 'transparent',
-                                        color: isSelected ? 'var(--saffron-ember)' : 'var(--text-tweed-dim)',
-                                        cursor: 'pointer',
-                                        fontWeight: isSelected ? 700 : 500,
-                                      }}
+                                      className={`btn-pill ${isSelected ? 'active' : ''}`}
+                                      style={{ padding: '5px 10px', fontSize: '0.78rem', minHeight: '32px' }}
                                     >
-                                      {mins === 25 ? '🍅 25m' : mins === 45 ? '⚡ 45m (Default)' : '🧠 60m Deep'}
+                                      {mins === 25 && <Timer size={12} />}
+                                      {mins === 45 && <Zap size={12} />}
+                                      {mins === 60 && <Brain size={12} />}
+                                      <span>{mins === 25 ? '25m Pomodoro' : mins === 45 ? '45m Standard' : '60m Deep'}</span>
                                     </button>
                                   );
                                 })}
                               </div>
 
                               {/* Sprint blocks chips */}
-                              <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' }}>
                                 {prop.splitBlocks!.map((b, bIdx) => {
                                   const isTomorrow = b.scheduleTomorrow && bIdx > 0;
                                   return (
                                     <span
                                       key={bIdx}
+                                      className="sprint-chip"
                                       style={{
-                                        fontSize: '0.70rem',
-                                        padding: '3px 7px',
-                                        borderRadius: '4px',
                                         background: bIdx === 0 
                                           ? 'rgba(74, 222, 128, 0.15)' 
                                           : isTomorrow 
-                                            ? 'rgba(192, 83, 48, 0.15)' 
-                                            : 'rgba(226, 149, 59, 0.15)',
+                                            ? 'rgba(192, 83, 48, 0.18)' 
+                                            : 'rgba(226, 149, 59, 0.16)',
                                         color: bIdx === 0 
                                           ? '#4ADE80' 
                                           : isTomorrow 
                                             ? 'var(--chinar-rust)' 
                                             : 'var(--saffron-ember)',
-                                        border: `1px solid ${bIdx === 0 ? 'rgba(74, 222, 128, 0.3)' : isTomorrow ? 'rgba(192, 83, 48, 0.35)' : 'rgba(226, 149, 59, 0.35)'}`,
-                                        fontWeight: 600,
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '3px',
+                                        border: `1px solid ${bIdx === 0 ? 'rgba(74, 222, 128, 0.35)' : isTomorrow ? 'rgba(192, 83, 48, 0.4)' : 'rgba(226, 149, 59, 0.4)'}`,
                                       }}
                                     >
                                       <strong>{b.title}</strong>: {b.minutes}m {bIdx === 0 ? '(Today)' : isTomorrow ? '(Tomorrow)' : '(Today)'}
@@ -560,41 +552,25 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
                               </div>
 
                               {/* Destination toggle for Part 2+ (Defaults to Today) */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                <span style={{ fontSize: '0.68rem', color: 'var(--text-parchment-muted)' }}>Schedule parts:</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '0.76rem', color: 'var(--text-parchment-muted)', fontWeight: 600 }}>Schedule parts:</span>
                                 <button
                                   type="button"
                                   onClick={() => handleToggleSplitSchedule(idx, false)}
-                                  style={{
-                                    fontSize: '0.68rem',
-                                    padding: '2px 8px',
-                                    borderRadius: '4px',
-                                    border: '1px solid',
-                                    borderColor: !prop.splitBlocks![1]?.scheduleTomorrow ? 'var(--saffron-ember)' : 'var(--border-walnut-faint)',
-                                    background: !prop.splitBlocks![1]?.scheduleTomorrow ? 'rgba(226, 149, 59, 0.2)' : 'transparent',
-                                    color: !prop.splitBlocks![1]?.scheduleTomorrow ? 'var(--saffron-ember)' : 'var(--text-tweed-dim)',
-                                    cursor: 'pointer',
-                                    fontWeight: 600,
-                                  }}
+                                  className={`btn-pill ${!prop.splitBlocks![1]?.scheduleTomorrow ? 'active' : ''}`}
+                                  style={{ padding: '5px 12px', fontSize: '0.78rem', minHeight: '32px' }}
                                 >
-                                  📅 Keep on Today
+                                  <Calendar size={13} />
+                                  <span>Keep on Today</span>
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => handleToggleSplitSchedule(idx, true)}
-                                  style={{
-                                    fontSize: '0.68rem',
-                                    padding: '2px 8px',
-                                    borderRadius: '4px',
-                                    border: '1px solid',
-                                    borderColor: prop.splitBlocks![1]?.scheduleTomorrow ? 'var(--chinar-rust)' : 'var(--border-walnut-faint)',
-                                    background: prop.splitBlocks![1]?.scheduleTomorrow ? 'rgba(192, 83, 48, 0.2)' : 'transparent',
-                                    color: prop.splitBlocks![1]?.scheduleTomorrow ? 'var(--chinar-rust)' : 'var(--text-tweed-dim)',
-                                    cursor: 'pointer',
-                                    fontWeight: 600,
-                                  }}
+                                  className={`btn-pill ${prop.splitBlocks![1]?.scheduleTomorrow ? 'active' : ''}`}
+                                  style={{ padding: '5px 12px', fontSize: '0.78rem', minHeight: '32px' }}
                                 >
-                                  🌙 Move to Tomorrow
+                                  <Moon size={13} />
+                                  <span>Move to Tomorrow</span>
                                 </button>
                               </div>
                             </div>

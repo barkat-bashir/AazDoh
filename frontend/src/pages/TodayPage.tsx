@@ -20,7 +20,8 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronRight,
-  Trophy
+  Trophy,
+  SunMedium
 } from 'lucide-react';
 import { discussionApi } from '../api/discussionApi';
 
@@ -181,7 +182,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
         onOpenAiReview={() => handleRunFeasibilityCheck(undefined, undefined, true)}
       />
 
-      {/* 🌅 Morning Accountability Catch-Up Banner */}
+      {/* Morning Accountability Catch-Up Banner */}
       {showCatchUpBanner && (
         <div style={{
           background: 'linear-gradient(135deg, rgba(226, 149, 59, 0.16), rgba(192, 83, 48, 0.1))',
@@ -196,7 +197,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
           boxShadow: '0 4px 16px rgba(226, 149, 59, 0.12)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '1.5rem' }}>🌅</span>
+            <SunMedium size={26} color="var(--saffron-ember)" style={{ flexShrink: 0 }} />
             <div>
               <strong style={{ fontSize: '0.92rem', color: 'var(--saffron-ember)', display: 'block' }}>
                 Yesterday's Accountability Catch-Up
@@ -213,8 +214,8 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
               className="btn-primary"
               style={{ padding: '8px 14px', fontSize: '0.84rem', display: 'flex', alignItems: 'center', gap: '6px' }}
             >
-              <Sparkles size={14} />
-              <span>⚡ Quick 30s Catch-Up</span>
+              <Zap size={14} />
+              <span>Quick 30s Catch-Up</span>
             </button>
             <button
               onClick={() => setIsCatchUpDismissed(true)}
