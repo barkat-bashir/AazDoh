@@ -1,5 +1,6 @@
 package com.aazdoh.commitment.service;
 
+import com.aazdoh.analytics.service.UserExecutionStatsService;
 import com.aazdoh.commitment.dto.CommitmentResponse;
 import com.aazdoh.commitment.dto.CreateCommitmentRequest;
 import com.aazdoh.commitment.dto.PostponeCommitmentRequest;
@@ -33,19 +34,22 @@ public class CommitmentService {
     private final UserRepository userRepository;
     private final DiscussionMessageRepository discussionMessageRepository;
     private final ReviewRepository reviewRepository;
+    private final UserExecutionStatsService statsService;
 
     public CommitmentService(
             CommitmentRepository commitmentRepository,
             UserService userService,
             UserRepository userRepository,
             DiscussionMessageRepository discussionMessageRepository,
-            ReviewRepository reviewRepository
+            ReviewRepository reviewRepository,
+            UserExecutionStatsService statsService
     ) {
         this.commitmentRepository = commitmentRepository;
         this.userService = userService;
         this.userRepository = userRepository;
         this.discussionMessageRepository = discussionMessageRepository;
         this.reviewRepository = reviewRepository;
+        this.statsService = statsService;
     }
 
     @Transactional
@@ -66,6 +70,7 @@ public class CommitmentService {
         commitment.setTargetPartnerId(request.getTargetPartnerId());
 
         Commitment saved = commitmentRepository.save(commitment);
+        statsService.refreshStatsAsync(userId);
         return mapToResponse(saved);
     }
 
@@ -144,6 +149,7 @@ public class CommitmentService {
         }
 
         Commitment updated = commitmentRepository.save(commitment);
+        statsService.refreshStatsAsync(userId);
         return mapToResponse(updated);
     }
 
@@ -160,6 +166,7 @@ public class CommitmentService {
         });
 
         Commitment updated = commitmentRepository.save(commitment);
+        statsService.refreshStatsAsync(userId);
         return CommitmentResponse.fromEntity(updated);
     }
 
@@ -177,6 +184,7 @@ public class CommitmentService {
         });
 
         Commitment updated = commitmentRepository.save(commitment);
+        statsService.refreshStatsAsync(userId);
         return CommitmentResponse.fromEntity(updated);
     }
 
@@ -212,6 +220,7 @@ public class CommitmentService {
         next.setPostponementCount(original.getPostponementCount() + 1);
 
         Commitment savedNew = commitmentRepository.save(next);
+        statsService.refreshStatsAsync(userId);
         return CommitmentResponse.fromEntity(savedNew);
     }
 
@@ -220,6 +229,7 @@ public class CommitmentService {
         Commitment commitment = findActiveCommitment(commitmentId, userId);
         commitment.setDeletedAt(OffsetDateTime.now());
         commitmentRepository.save(commitment);
+        statsService.refreshStatsAsync(userId);
     }
 
     @Transactional(readOnly = true)

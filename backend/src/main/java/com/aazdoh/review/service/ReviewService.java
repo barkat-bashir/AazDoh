@@ -1,5 +1,6 @@
 package com.aazdoh.review.service;
 
+import com.aazdoh.analytics.service.UserExecutionStatsService;
 import com.aazdoh.commitment.entity.Commitment;
 import com.aazdoh.commitment.entity.CommitmentStatus;
 import com.aazdoh.commitment.repository.CommitmentRepository;
@@ -11,6 +12,7 @@ import com.aazdoh.review.dto.ReviewResponse;
 import com.aazdoh.review.entity.CommitmentReview;
 import com.aazdoh.review.entity.NextAction;
 import com.aazdoh.review.repository.ReviewRepository;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,18 +26,22 @@ public class ReviewService {
     private final ReviewRepository reviewRepository;
     private final CommitmentRepository commitmentRepository;
     private final CommitmentService commitmentService;
+    private final UserExecutionStatsService statsService;
 
     public ReviewService(
             ReviewRepository reviewRepository,
             CommitmentRepository commitmentRepository,
-            CommitmentService commitmentService
+            CommitmentService commitmentService,
+            UserExecutionStatsService statsService
     ) {
         this.reviewRepository = reviewRepository;
         this.commitmentRepository = commitmentRepository;
         this.commitmentService = commitmentService;
+        this.statsService = statsService;
     }
 
     @Transactional
+    @CacheEvict(value = "ai_insights", key = "#userId")
     public ReviewResponse reviewCommitment(UUID userId, UUID commitmentId, ReviewCommitmentRequest request) {
         Commitment commitment = commitmentService.findActiveCommitment(commitmentId, userId);
 
@@ -58,6 +64,7 @@ public class ReviewService {
 
         commitmentRepository.save(commitment);
         CommitmentReview savedReview = reviewRepository.save(review);
+        statsService.refreshStatsAsync(userId);
 
         // Handle next action (e.g. Move to tomorrow / reschedule) with strict idempotency
         if (request.getNextAction() != null) {

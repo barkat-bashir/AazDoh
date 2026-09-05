@@ -1,5 +1,6 @@
 package com.aazdoh.commitment;
 
+import com.aazdoh.analytics.service.UserExecutionStatsService;
 import com.aazdoh.commitment.dto.CommitmentResponse;
 import com.aazdoh.commitment.dto.CreateCommitmentRequest;
 import com.aazdoh.commitment.entity.Commitment;
@@ -35,6 +36,9 @@ class CommitmentServiceTest {
 
     @Mock
     private UserService userService;
+
+    @Mock
+    private UserExecutionStatsService statsService;
 
     @InjectMocks
     private CommitmentService commitmentService;

@@ -1,80 +1,76 @@
 package com.aazdoh.ai.context;
 
-import com.aazdoh.commitment.entity.Commitment;
-import com.aazdoh.commitment.entity.CommitmentStatus;
-import com.aazdoh.commitment.repository.CommitmentRepository;
+import com.aazdoh.analytics.entity.UserExecutionStats;
+import com.aazdoh.analytics.service.UserExecutionStatsService;
 import com.aazdoh.review.entity.FailureReason;
-import com.aazdoh.review.repository.ReviewRepository;
 import com.aazdoh.user.entity.User;
 import com.aazdoh.user.service.UserService;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Component
 @Transactional(readOnly = true)
 public class AccountabilityContextBuilder {
 
     private final UserService userService;
-    private final CommitmentRepository commitmentRepository;
-    private final ReviewRepository reviewRepository;
+    private final UserExecutionStatsService statsService;
+    private final ObjectMapper objectMapper;
 
     public AccountabilityContextBuilder(
             UserService userService,
-            CommitmentRepository commitmentRepository,
-            ReviewRepository reviewRepository
+            UserExecutionStatsService statsService,
+            ObjectMapper objectMapper
     ) {
         this.userService = userService;
-        this.commitmentRepository = commitmentRepository;
-        this.reviewRepository = reviewRepository;
+        this.statsService = statsService;
+        this.objectMapper = objectMapper;
     }
 
     public UserAccountabilityContextDto buildContext(UUID userId) {
         User user = userService.findUserById(userId);
-        LocalDate today = LocalDate.now();
-        LocalDate sevenDaysAgo = today.minusDays(7);
+        UserExecutionStats stats = statsService.getOrComputeStats(userId);
 
-        List<Commitment> recentCommitments = commitmentRepository.findByUserIdAndDateRange(userId, sevenDaysAgo, today);
-        long total7Days = recentCommitments.size();
-        long completed7Days = recentCommitments.stream().filter(c -> c.getStatus() == CommitmentStatus.COMPLETED).count();
-        double completionRate = total7Days > 0 ? ((double) completed7Days / total7Days) * 100.0 : 0.0;
-
-        double totalCompletedMinutes = recentCommitments.stream()
-                .filter(c -> c.getStatus() == CommitmentStatus.COMPLETED)
-                .mapToInt(Commitment::getEstimatedMinutes)
-                .sum();
-        double avgDailyFocusMinutes = totalCompletedMinutes / 7.0;
-
-        // Postponed commitments
-        List<String> postponedTitles = recentCommitments.stream()
-                .filter(c -> c.getPostponedFromId() != null || c.getStatus() == CommitmentStatus.POSTPONED)
-                .map(Commitment::getTitle)
-                .distinct()
-                .collect(Collectors.toList());
-
-        // Failure reasons
         Map<FailureReason, Long> failureMap = new HashMap<>();
-        List<Object[]> reasonCounts = reviewRepository.countFailureReasonsByUserId(userId);
-        for (Object[] row : reasonCounts) {
-            if (row[0] instanceof FailureReason reason && row[1] instanceof Long count) {
-                failureMap.put(reason, count);
-            }
+        if (stats.getFailureBreakdownJson() != null && !stats.getFailureBreakdownJson().isBlank()) {
+            try {
+                Map<String, Long> rawMap = objectMapper.readValue(
+                        stats.getFailureBreakdownJson(),
+                        new TypeReference<Map<String, Long>>() {}
+                );
+                for (Map.Entry<String, Long> entry : rawMap.entrySet()) {
+                    try {
+                        failureMap.put(FailureReason.valueOf(entry.getKey()), entry.getValue());
+                    } catch (Exception ignored) {}
+                }
+            } catch (Exception ignored) {}
+        }
+
+        List<String> postponedTitles = Collections.emptyList();
+        if (stats.getRepeatedlyPostponedTitlesJson() != null && !stats.getRepeatedlyPostponedTitlesJson().isBlank()) {
+            try {
+                postponedTitles = objectMapper.readValue(
+                        stats.getRepeatedlyPostponedTitlesJson(),
+                        new TypeReference<List<String>>() {}
+                );
+            } catch (Exception ignored) {}
         }
 
         UserAccountabilityContextDto context = new UserAccountabilityContextDto();
         context.setUserFullName(user.getFullName());
         context.setTimezone(user.getTimezone());
         context.setPersona(user.getAiPersona());
-        context.setTotalCommitmentsLast7Days(total7Days);
-        context.setCompletedCommitmentsLast7Days(completed7Days);
-        context.setCompletionRateLast7Days(completionRate);
-        context.setAvgDailyFocusMinutesLast7Days(avgDailyFocusMinutes);
+        context.setTotalCommitmentsLast7Days(stats.getRolling7dTotalTasks());
+        context.setCompletedCommitmentsLast7Days(stats.getRolling7dCompletedTasks());
+        context.setCompletionRateLast7Days(stats.getRolling7dCompletionRate());
+        context.setAvgDailyFocusMinutesLast7Days(stats.getRolling7dAvgDailyFocusMinutes());
         context.setRepeatedlyPostponedTitles(postponedTitles);
         context.setTopFailureReasons(failureMap);
 

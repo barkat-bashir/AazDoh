@@ -66,4 +66,21 @@ public interface CommitmentRepository extends JpaRepository<Commitment, UUID> {
 
     @Query("SELECT c FROM Commitment c WHERE c.postponedFromId = :originalId AND c.status = 'PENDING' AND c.deletedAt IS NULL")
     Optional<Commitment> findNextPendingPostponedCopy(@Param("originalId") UUID originalId);
+
+    @Query("SELECT COUNT(c), " +
+           "SUM(CASE WHEN c.status = com.aazdoh.commitment.entity.CommitmentStatus.COMPLETED THEN 1L ELSE 0L END), " +
+           "SUM(CASE WHEN c.status = com.aazdoh.commitment.entity.CommitmentStatus.COMPLETED THEN c.estimatedMinutes ELSE 0 END) " +
+           "FROM Commitment c WHERE c.user.id = :userId AND c.commitmentDate BETWEEN :startDate AND :endDate AND c.deletedAt IS NULL")
+    List<Object[]> aggregateStatsByUserIdAndDateRange(
+            @Param("userId") UUID userId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
+    @Query("SELECT DISTINCT c.title FROM Commitment c WHERE c.user.id = :userId AND c.commitmentDate BETWEEN :startDate AND :endDate AND (c.postponedFromId IS NOT NULL OR c.status = com.aazdoh.commitment.entity.CommitmentStatus.POSTPONED) AND c.deletedAt IS NULL")
+    List<String> findPostponedTitlesByUserIdAndDateRange(
+            @Param("userId") UUID userId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
 }
