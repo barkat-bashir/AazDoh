@@ -67,6 +67,25 @@ const playChimeSound = () => {
   }
 };
 
+const sendDesktopNotification = (title: string, body: string) => {
+  if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+    try {
+      new Notification(title, {
+        body,
+        icon: '/favicon.ico',
+      });
+    } catch {
+      // Safely ignore notification errors on unsupported mobile/embedded browsers
+    }
+  }
+};
+
+const requestNotificationPermission = () => {
+  if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission().catch(() => {});
+  }
+};
+
 export const FocusTimerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeCommitment, setActiveCommitment] = useState<Commitment | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -80,53 +99,108 @@ export const FocusTimerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [isCompleted, setIsCompleted] = useState(false);
 
   const timerRef = useRef<number | null>(null);
+  const targetEndTimeRef = useRef<number | null>(null);
   const startedAtRef = useRef<string>(new Date().toISOString());
 
-  // Countdown loop
+  // Handles completion of sprint/break
+  const completeSession = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    targetEndTimeRef.current = null;
+    setIsRunning(false);
+    setTimeLeftSeconds(0);
+    setIsCompleted(true);
+    playChimeSound();
+
+    if (mode === 'FOCUS') {
+      sendDesktopNotification('⚡ Focus Sprint Complete!', 'Great work! Take a short break to recharge.');
+      setSprintsCompletedToday((c) => c + 1);
+
+      // Asynchronously record sprint telemetry to backend
+      focusApi.recordSprint({
+        commitmentId: activeCommitment?.id,
+        durationMinutes: Math.round(totalDurationSeconds / 60),
+        actualSecondsSpent: totalDurationSeconds,
+        mode: 'FOCUS',
+        status: 'COMPLETED',
+        distractionsCount: distractionNotes.length,
+        distractionNotes: distractionNotes,
+        startedAt: startedAtRef.current,
+        completedAt: new Date().toISOString(),
+      }).catch(err => console.warn('Failed to record sprint telemetry', err));
+    } else {
+      sendDesktopNotification('🔔 Break Finished', 'Ready to dive into the next focus block?');
+    }
+  }, [mode, activeCommitment, totalDurationSeconds, distractionNotes]);
+
+  // Synchronizes timer against real-world epoch timestamps (drift & sleep immune)
+  const syncWithRealTime = useCallback(() => {
+    if (!targetEndTimeRef.current || !isRunning) return;
+
+    const now = Date.now();
+    const remainingMs = targetEndTimeRef.current - now;
+    const remainingSecs = Math.max(0, Math.ceil(remainingMs / 1000));
+
+    if (remainingSecs <= 0) {
+      completeSession();
+    } else {
+      setTimeLeftSeconds(remainingSecs);
+    }
+  }, [isRunning, completeSession]);
+
+  // High-frequency tick loop + tab visibility / screen unlock synchronization
   useEffect(() => {
     if (isRunning) {
+      // Run interval to update UI
       timerRef.current = window.setInterval(() => {
-        setTimeLeftSeconds((prev) => {
-          if (prev <= 1) {
-            clearInterval(timerRef.current!);
-            setIsRunning(false);
-            setIsCompleted(true);
-            playChimeSound();
-            if (mode === 'FOCUS') {
-              setSprintsCompletedToday((c) => c + 1);
-              // Asynchronously record sprint telemetry to backend
-              focusApi.recordSprint({
-                commitmentId: activeCommitment?.id,
-                durationMinutes: Math.round(totalDurationSeconds / 60),
-                actualSecondsSpent: totalDurationSeconds,
-                mode: 'FOCUS',
-                status: 'COMPLETED',
-                distractionsCount: distractionNotes.length,
-                distractionNotes: distractionNotes,
-                startedAt: startedAtRef.current,
-                completedAt: new Date().toISOString(),
-              }).catch(err => console.warn('Failed to record sprint telemetry', err));
-            }
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+        syncWithRealTime();
+      }, 500);
+
+      // Instantly resync when user returns from another tab or unlocks their screen
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          syncWithRealTime();
+        }
+      };
+
+      const handleWindowFocus = () => {
+        syncWithRealTime();
+      };
+
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('focus', handleWindowFocus);
+
+      return () => {
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('focus', handleWindowFocus);
+      };
     } else if (timerRef.current) {
       clearInterval(timerRef.current);
+      timerRef.current = null;
     }
 
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     };
-  }, [isRunning, mode, activeCommitment, totalDurationSeconds, distractionNotes]);
+  }, [isRunning, syncWithRealTime]);
 
   const startFocusSession = useCallback((commitment: Commitment, initialMinutes?: number) => {
+    requestNotificationPermission();
     const mins = initialMinutes || commitment.estimatedMinutes || 25;
     const boundedMins = Math.min(Math.max(mins, 5), 180);
     const secs = boundedMins * 60;
     
     startedAtRef.current = new Date().toISOString();
+    targetEndTimeRef.current = Date.now() + secs * 1000;
     setActiveCommitment(commitment);
     setMode('FOCUS');
     setTotalDurationSeconds(secs);
@@ -138,8 +212,10 @@ export const FocusTimerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, []);
 
   const startQuickSprint = useCallback((minutes: number = 25) => {
+    requestNotificationPermission();
     const secs = minutes * 60;
     startedAtRef.current = new Date().toISOString();
+    targetEndTimeRef.current = Date.now() + secs * 1000;
     setActiveCommitment(null);
     setMode('FOCUS');
     setTotalDurationSeconds(secs);
@@ -151,16 +227,23 @@ export const FocusTimerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, []);
 
   const pause = useCallback(() => {
+    if (targetEndTimeRef.current) {
+      const remainingSecs = Math.max(0, Math.ceil((targetEndTimeRef.current - Date.now()) / 1000));
+      setTimeLeftSeconds(remainingSecs);
+    }
+    targetEndTimeRef.current = null;
     setIsRunning(false);
   }, []);
 
   const resume = useCallback(() => {
     if (timeLeftSeconds > 0) {
+      targetEndTimeRef.current = Date.now() + timeLeftSeconds * 1000;
       setIsRunning(true);
     }
   }, [timeLeftSeconds]);
 
   const reset = useCallback(() => {
+    targetEndTimeRef.current = null;
     setIsRunning(false);
     setTimeLeftSeconds(totalDurationSeconds);
     setIsCompleted(false);
@@ -168,6 +251,9 @@ export const FocusTimerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const addMinutes = useCallback((mins: number) => {
     const additionalSecs = mins * 60;
+    if (targetEndTimeRef.current) {
+      targetEndTimeRef.current += additionalSecs * 1000;
+    }
     setTimeLeftSeconds((prev) => prev + additionalSecs);
     setTotalDurationSeconds((prev) => prev + additionalSecs);
     setIsCompleted(false);
@@ -175,12 +261,17 @@ export const FocusTimerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const subtractMinutes = useCallback((mins: number) => {
     const deductSecs = mins * 60;
-    setTimeLeftSeconds((prev) => Math.max(60, prev - deductSecs));
+    const newSecs = Math.max(60, timeLeftSeconds - deductSecs);
+    if (targetEndTimeRef.current) {
+      targetEndTimeRef.current = Date.now() + newSecs * 1000;
+    }
+    setTimeLeftSeconds(newSecs);
     setTotalDurationSeconds((prev) => Math.max(60, prev - deductSecs));
-  }, []);
+  }, [timeLeftSeconds]);
 
   const setCadence = useCallback((mins: number, targetMode: FocusMode = 'FOCUS') => {
     const secs = mins * 60;
+    targetEndTimeRef.current = Date.now() + secs * 1000;
     setMode(targetMode);
     setTotalDurationSeconds(secs);
     setTimeLeftSeconds(secs);
@@ -211,6 +302,7 @@ export const FocusTimerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, []);
 
   const closeSession = useCallback(() => {
+    targetEndTimeRef.current = null;
     setIsRunning(false);
     setIsOpen(false);
     setIsMinimized(false);
