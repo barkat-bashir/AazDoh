@@ -426,7 +426,7 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
         double rate = context != null ? context.getCompletionRateLast7Days() : 0.0;
         long total = context != null ? context.getTotalCommitmentsLast7Days() : 0;
         String primaryTrap = (context != null && context.getTopFailureReasons() != null && !context.getTopFailureReasons().isEmpty())
-                ? context.getTopFailureReasons().keySet().iterator().next()
+                ? context.getTopFailureReasons().keySet().iterator().next().name()
                 : "POOR_TIME_ESTIMATION";
 
         String summary = String.format("Maintaining a %.1f%% completion rate across %d commitments with steady execution momentum.", rate, total);
