@@ -11,8 +11,10 @@ import {
   Eye, 
   EyeOff, 
   AlertTriangle,
-  RotateCcw
+  RotateCcw,
+  Zap
 } from 'lucide-react';
+import { useFocusTimer } from '../../context/FocusTimerContext';
 
 interface CommitmentCardProps {
   commitment: Commitment;
@@ -30,6 +32,7 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
   onReviewClick,
 }) => {
   const { showToast } = useToast();
+  const { startFocusSession } = useFocusTimer();
   const [loading, setLoading] = useState(false);
 
   const handleToggleComplete = async () => {
@@ -224,6 +227,27 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
 
             {/* Action buttons */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {!isCompleted && !isPostponed && (
+                <button
+                  onClick={() => startFocusSession(commitment)}
+                  className="btn-primary"
+                  style={{
+                    padding: '4px 10px',
+                    fontSize: '0.78rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontWeight: 700,
+                    background: 'linear-gradient(135deg, var(--chinar-rust), var(--saffron-ember))',
+                    boxShadow: '0 2px 8px rgba(192, 83, 48, 0.3)',
+                  }}
+                  title="Launch Pomodoro focus sprint for this commitment"
+                >
+                  <Zap size={13} />
+                  <span>Focus ({commitment.estimatedMinutes}m)</span>
+                </button>
+              )}
+
               <button
                 onClick={() => onOpenDiscussion(commitment)}
                 className="btn-outline"

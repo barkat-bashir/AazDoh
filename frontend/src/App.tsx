@@ -16,6 +16,9 @@ import { SettingsModal } from './components/settings/SettingsModal';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { discussionApi } from './api/discussionApi';
 import { useQuery } from '@tanstack/react-query';
+import { FocusTimerProvider } from './context/FocusTimerContext';
+import { FocusSprintModal } from './components/focus/FocusSprintModal';
+import { FloatingFocusBar } from './components/focus/FloatingFocusBar';
 
 // Reset Password Handler Route
 const ResetPasswordRoute: React.FC = () => {
@@ -70,6 +73,10 @@ const AuthenticatedLayout: React.FC<{
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
       />
+
+      {/* Integrated Task Pomodoro / Focus Sprint Cockpit & Minimized Floating Bar */}
+      <FocusSprintModal />
+      <FloatingFocusBar />
 
       {/* Authenticated Footer */}
       <footer style={{
@@ -218,7 +225,9 @@ export const App: React.FC = () => {
     <BrowserRouter>
       <AuthProvider>
         <ToastProvider>
-          <AppContent />
+          <FocusTimerProvider>
+            <AppContent />
+          </FocusTimerProvider>
         </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
