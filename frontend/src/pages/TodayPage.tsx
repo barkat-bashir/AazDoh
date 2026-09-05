@@ -40,7 +40,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
   const yesterdayStr = getLocalYesterdayStr();
 
   const [selectedDate, setSelectedDate] = useState(todayStr);
-  const [activeFilter, setActiveFilter] = useState<TaskFilter>('all');
+  const [activeFilter, setActiveFilter] = useState<TaskFilter>('active');
   const [isCompletedCollapsed, setIsCompletedCollapsed] = useState(false);
   const [isPostponedCollapsed, setIsPostponedCollapsed] = useState(false);
   const [isCatchUpDismissed, setIsCatchUpDismissed] = useState(false);
@@ -238,24 +238,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
           overflowX: 'auto',
           paddingBottom: '2px',
         }}>
-          <button
-            onClick={() => setActiveFilter('all')}
-            style={{
-              padding: '6px 14px',
-              fontSize: '0.82rem',
-              fontWeight: activeFilter === 'all' ? 700 : 500,
-              borderRadius: '20px',
-              cursor: 'pointer',
-              background: activeFilter === 'all' ? 'var(--bg-walnut-card)' : 'transparent',
-              color: activeFilter === 'all' ? 'var(--text-kehwa-cream)' : 'var(--text-parchment-muted)',
-              border: `1px solid ${activeFilter === 'all' ? 'var(--border-copper-subtle)' : 'var(--border-walnut-faint)'}`,
-              transition: 'all 0.15s ease',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            All ({commitments.length})
-          </button>
-
+          {/* 1. Active Focus (Highest Priority) */}
           <button
             onClick={() => setActiveFilter('active')}
             style={{
@@ -278,6 +261,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
             <span>Active Focus ({activeList.length})</span>
           </button>
 
+          {/* 2. Kept Commitments */}
           {completedList.length > 0 && (
             <button
               onClick={() => setActiveFilter('completed')}
@@ -302,6 +286,26 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
             </button>
           )}
 
+          {/* 3. All Commitments */}
+          <button
+            onClick={() => setActiveFilter('all')}
+            style={{
+              padding: '6px 14px',
+              fontSize: '0.82rem',
+              fontWeight: activeFilter === 'all' ? 700 : 500,
+              borderRadius: '20px',
+              cursor: 'pointer',
+              background: activeFilter === 'all' ? 'var(--bg-walnut-card)' : 'transparent',
+              color: activeFilter === 'all' ? 'var(--text-kehwa-cream)' : 'var(--text-parchment-muted)',
+              border: `1px solid ${activeFilter === 'all' ? 'var(--border-copper-subtle)' : 'var(--border-walnut-faint)'}`,
+              transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            All ({commitments.length})
+          </button>
+
+          {/* 4. Rescheduled (if any) */}
           {postponedList.length > 0 && (
             <button
               onClick={() => setActiveFilter('postponed')}
@@ -326,6 +330,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
             </button>
           )}
 
+          {/* 5. Missed (if any) */}
           {missedList.length > 0 && (
             <button
               onClick={() => setActiveFilter('missed')}
@@ -548,9 +553,49 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
           /* Specific Filter View */
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {activeFilter === 'active' && (
-              activeList.length === 0 
-                ? <p style={{ textAlign: 'center', color: 'var(--text-tweed-dim)', padding: '30px 0' }}>No active commitments remaining.</p>
-                : activeList.map(renderCard)
+              activeList.length === 0 ? (
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(46, 125, 82, 0.12), rgba(226, 149, 59, 0.08))',
+                  border: '1px solid rgba(46, 125, 82, 0.35)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '28px 20px',
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '10px',
+                }}>
+                  <div style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '12px',
+                    background: 'rgba(46, 125, 82, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#4ADE80',
+                  }}>
+                    <Trophy size={22} />
+                  </div>
+                  <strong style={{ fontSize: '1.05rem', color: '#4ADE80' }}>
+                    Active Focus Clear!
+                  </strong>
+                  <p style={{ fontSize: '0.84rem', color: 'var(--text-parchment-muted)', margin: 0, maxWidth: '360px' }}>
+                    All scheduled focus commitments for today are completed or resolved. Excellent operational integrity!
+                  </p>
+                  {completedList.length > 0 && (
+                    <button
+                      onClick={() => setActiveFilter('completed')}
+                      className="btn-secondary"
+                      style={{ marginTop: '6px', fontSize: '0.80rem', padding: '6px 14px' }}
+                    >
+                      View Kept Commitments ({completedList.length})
+                    </button>
+                  )}
+                </div>
+              ) : (
+                activeList.map(renderCard)
+              )
             )}
             {activeFilter === 'completed' && (
               completedList.length === 0 
