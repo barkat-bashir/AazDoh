@@ -645,12 +645,18 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
                         padding: '10px 18px', 
                         fontSize: '0.86rem', 
                         fontWeight: '600',
-                        color: 'var(--text-kehwa-cream)',
-                        border: '1px solid var(--border-copper-subtle)',
-                        background: 'rgba(28, 21, 16, 0.6)',
-                        cursor: 'pointer'
+                        color: '#4ADE80',
+                        border: '1px solid rgba(74, 222, 128, 0.4)',
+                        background: 'linear-gradient(135deg, rgba(46, 125, 82, 0.25), rgba(20, 83, 45, 0.45))',
+                        boxShadow: '0 2px 10px rgba(34, 197, 94, 0.15)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
                       }}
                     >
+                      <Check size={15} color="#4ADE80" />
                       <span>Keep Original ({data.plannedHours}h)</span>
                     </button>
 
