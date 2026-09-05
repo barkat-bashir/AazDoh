@@ -28,6 +28,7 @@ interface FocusTimerContextType {
   clearDistractionNotes: () => void;
   minimize: () => void;
   maximize: () => void;
+  finishEarly: () => void;
   closeSession: () => void;
 }
 
@@ -301,6 +302,36 @@ export const FocusTimerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setIsOpen(true);
   }, []);
 
+  const finishEarly = useCallback(() => {
+    const actualSeconds = Math.max(1, totalDurationSeconds - timeLeftSeconds);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    targetEndTimeRef.current = null;
+    setIsRunning(false);
+    setTimeLeftSeconds(0);
+    setIsCompleted(true);
+    playChimeSound();
+
+    if (mode === 'FOCUS') {
+      sendDesktopNotification('⚡ Focus Sprint Finished Early!', 'Great job finishing your sprint!');
+      setSprintsCompletedToday((c) => c + 1);
+
+      focusApi.recordSprint({
+        commitmentId: activeCommitment?.id,
+        durationMinutes: Math.round(totalDurationSeconds / 60),
+        actualSecondsSpent: actualSeconds,
+        mode: 'FOCUS',
+        status: 'COMPLETED',
+        distractionsCount: distractionNotes.length,
+        distractionNotes: distractionNotes,
+        startedAt: startedAtRef.current,
+        completedAt: new Date().toISOString(),
+      }).catch(err => console.warn('Failed to record sprint telemetry', err));
+    }
+  }, [mode, activeCommitment, totalDurationSeconds, timeLeftSeconds, distractionNotes]);
+
   const closeSession = useCallback(() => {
     targetEndTimeRef.current = null;
     setIsRunning(false);
@@ -334,6 +365,7 @@ export const FocusTimerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         clearDistractionNotes,
         minimize,
         maximize,
+        finishEarly,
         closeSession,
       }}
     >

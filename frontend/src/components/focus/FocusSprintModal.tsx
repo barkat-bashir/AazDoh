@@ -46,6 +46,7 @@ export const FocusSprintModal: React.FC<FocusSprintModalProps> = ({ onCommitment
     addDistractionNote,
     removeDistractionNote,
     minimize,
+    finishEarly,
     closeSession,
   } = useFocusTimer();
 
@@ -68,6 +69,24 @@ export const FocusSprintModal: React.FC<FocusSprintModalProps> = ({ onCommitment
     if (!scratchText.trim()) return;
     addDistractionNote(scratchText.trim());
     setScratchText('');
+  };
+
+  const handleFinishEarly = async () => {
+    try {
+      setIsMarkingDone(true);
+      if (activeCommitment) {
+        await commitmentApi.complete(activeCommitment.id);
+        showToast(`Commitment "${activeCommitment.title}" completed and kept!`, 'success');
+        if (onCommitmentCompleted) onCommitmentCompleted();
+      } else {
+        showToast('Focus sprint finished early!', 'success');
+      }
+      finishEarly();
+      setIsMarkingDone(false);
+    } catch (err: any) {
+      setIsMarkingDone(false);
+      showToast(err.message || 'Failed to complete commitment', 'error');
+    }
   };
 
   const handleMarkTaskKept = async () => {
@@ -417,6 +436,36 @@ export const FocusSprintModal: React.FC<FocusSprintModalProps> = ({ onCommitment
             <span>5m</span>
           </button>
         </div>
+
+        {/* Manual Finish Early / Mark Kept Button (During Active Focus) */}
+        {!isCompleted && mode === 'FOCUS' && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '-4px' }}>
+            <button
+              onClick={handleFinishEarly}
+              disabled={isMarkingDone}
+              className="btn-secondary"
+              style={{
+                padding: '8px 20px',
+                fontSize: '0.84rem',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: 'rgba(74, 222, 128, 0.12)',
+                color: '#4ADE80',
+                border: '1px solid rgba(74, 222, 128, 0.35)',
+                borderRadius: 'var(--radius-full)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+              }}
+              title="Finish sprint now and log exact time elapsed"
+            >
+              <CheckCircle2 size={15} />
+              <span>{isMarkingDone ? 'Marking Done...' : activeCommitment ? 'Mark Done & Finish Sprint' : 'Finish Sprint Early'}</span>
+            </button>
+          </div>
+        )}
 
         {/* "Park Distraction" Scratchpad */}
         <div style={{

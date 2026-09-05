@@ -1,6 +1,6 @@
 import React from 'react';
 import { useFocusTimer } from '../../context/FocusTimerContext';
-import { Play, Pause, Maximize2, X, Zap, Coffee } from 'lucide-react';
+import { Play, Pause, Maximize2, X, Zap, Coffee, CheckCircle2 } from 'lucide-react';
 
 export const FloatingFocusBar: React.FC = () => {
   const {
@@ -14,6 +14,7 @@ export const FloatingFocusBar: React.FC = () => {
     pause,
     resume,
     maximize,
+    finishEarly,
     closeSession,
   } = useFocusTimer();
 
@@ -40,7 +41,7 @@ export const FloatingFocusBar: React.FC = () => {
         padding: '8px 16px',
         display: 'flex',
         alignItems: 'center',
-        gap: '12px',
+        gap: '10px',
         animation: 'fadeIn 0.2s ease-in-out',
         backdropFilter: 'blur(10px)',
       }}
@@ -62,7 +63,7 @@ export const FloatingFocusBar: React.FC = () => {
       {/* Task & Time */}
       <div 
         onClick={maximize} 
-        style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', minWidth: '120px', maxWidth: '220px' }}
+        style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', minWidth: '120px', maxWidth: '200px' }}
       >
         <div style={{
           fontSize: '0.80rem',
@@ -84,6 +85,29 @@ export const FloatingFocusBar: React.FC = () => {
           {isCompleted ? '✓ Complete!' : timeFormatted}
         </div>
       </div>
+
+      {/* Finish Early Button */}
+      {!isCompleted && mode === 'FOCUS' && (
+        <button
+          onClick={finishEarly}
+          className="btn-pill"
+          style={{
+            padding: '4px 8px',
+            borderRadius: 'var(--radius-full)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            fontSize: '0.72rem',
+            background: 'rgba(74, 222, 128, 0.15)',
+            color: '#4ADE80',
+            border: '1px solid rgba(74, 222, 128, 0.35)',
+          }}
+          title="Finish Sprint Early"
+        >
+          <CheckCircle2 size={12} />
+          <span>Done</span>
+        </button>
+      )}
 
       {/* Play/Pause Control */}
       <button
