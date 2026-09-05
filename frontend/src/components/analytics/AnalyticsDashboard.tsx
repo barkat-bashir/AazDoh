@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { analyticsApi, AccountabilityStats, ComprehensiveAnalytics } from '../../api/analyticsApi';
 import { aiApi, BehavioralSynthesisDto } from '../../api/aiApi';
@@ -20,7 +21,9 @@ import {
   Layers, 
   Compass,
   ArrowRight,
-  Scale
+  Scale,
+  Calendar,
+  Rocket
 } from 'lucide-react';
 import { ConsistencyHeatmap } from './ConsistencyHeatmap';
 import { DayOfWeekMatrix } from './DayOfWeekMatrix';
@@ -29,6 +32,7 @@ import { FrictionAndBottlenecks } from './FrictionAndBottlenecks';
 import { FocusSprintTelemetryCard } from './FocusSprintTelemetryCard';
 
 export const AnalyticsDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'overview' | 'deep_dive'>('overview');
   const [days, setDays] = useState(30);
@@ -45,7 +49,7 @@ export const AnalyticsDashboard: React.FC = () => {
   // Tab 2: Lazy Loaded Deep Dive Query (Only fires when user clicks Deep Dive tab)
   const { data: deepData = null, isLoading: loadingDeep } = useQuery<ComprehensiveAnalytics | null>({
     queryKey: ['analytics-comprehensive', days],
-    queryFn: () => analyticsApi.getComprehensive(days, 180),
+    queryFn: () => analyticsApi.getComprehensive(days, Math.max(180, days)),
     enabled: activeTab === 'deep_dive',
     staleTime: 1000 * 60 * 5,
   });
@@ -106,27 +110,41 @@ export const AnalyticsDashboard: React.FC = () => {
           </div>
 
           {/* Time Window Buttons */}
-          <div style={{ display: 'flex', gap: '6px' }}>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             <button
               onClick={() => setDays(7)}
               className={days === 7 ? 'btn-primary' : 'btn-secondary'}
-              style={{ padding: '6px 12px', fontSize: '0.80rem' }}
+              style={{ padding: '6px 11px', fontSize: '0.78rem' }}
             >
               7 Days
             </button>
             <button
               onClick={() => setDays(30)}
               className={days === 30 ? 'btn-primary' : 'btn-secondary'}
-              style={{ padding: '6px 12px', fontSize: '0.80rem' }}
+              style={{ padding: '6px 11px', fontSize: '0.78rem' }}
             >
               30 Days
             </button>
             <button
               onClick={() => setDays(90)}
               className={days === 90 ? 'btn-primary' : 'btn-secondary'}
-              style={{ padding: '6px 12px', fontSize: '0.80rem' }}
+              style={{ padding: '6px 11px', fontSize: '0.78rem' }}
             >
               90 Days
+            </button>
+            <button
+              onClick={() => setDays(180)}
+              className={days === 180 ? 'btn-primary' : 'btn-secondary'}
+              style={{ padding: '6px 11px', fontSize: '0.78rem' }}
+            >
+              180 Days
+            </button>
+            <button
+              onClick={() => setDays(365)}
+              className={days === 365 ? 'btn-primary' : 'btn-secondary'}
+              style={{ padding: '6px 11px', fontSize: '0.78rem' }}
+            >
+              1 Year
             </button>
           </div>
         </div>
@@ -182,6 +200,78 @@ export const AnalyticsDashboard: React.FC = () => {
             <p style={{ color: 'var(--text-tweed-dim)', padding: '24px 0', textAlign: 'center' }}>Loading overview metrics...</p>
           ) : stats ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Cold-Start Behavioral Telemetry Calibration Banner */}
+              {stats.totalCommitments < 3 && (
+                <div className="harud-card" style={{
+                  padding: '20px 24px',
+                  background: 'linear-gradient(135deg, rgba(217, 119, 6, 0.12) 0%, rgba(194, 65, 12, 0.08) 100%)',
+                  border: '1px solid rgba(217, 119, 6, 0.3)',
+                  borderRadius: 'var(--radius-md)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '16px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', maxWidth: '600px' }}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '10px',
+                      background: 'linear-gradient(135deg, var(--chinar-rust), var(--saffron-ember))',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      boxShadow: '0 4px 12px rgba(194, 65, 12, 0.3)',
+                    }}>
+                      <Rocket size={20} color="#fff" />
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <h4 style={{ fontSize: '1.02rem', color: 'var(--text-kehwa-cream)', margin: 0, fontWeight: 700 }}>
+                          Calibrating Behavioral Telemetry
+                        </h4>
+                        <span style={{
+                          fontSize: '0.70rem',
+                          padding: '2px 8px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'rgba(217, 119, 6, 0.2)',
+                          color: 'var(--saffron-ember)',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.4px',
+                        }}>
+                          {stats.totalCommitments}/3 Logged
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '0.84rem', color: 'var(--text-parchment-muted)', margin: '4px 0 0 0', lineHeight: 1.45 }}>
+                        Your accountability curves and empirical rhythms require at least 3 logged daily commitments to establish a baseline. Plan today's commitments to unlock velocity predictions and duration sweet spots.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => navigate('/today')}
+                    className="btn-primary"
+                    style={{
+                      padding: '10px 20px',
+                      fontSize: '0.86rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontWeight: 700,
+                      background: 'linear-gradient(135deg, var(--chinar-rust), var(--saffron-ember))',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    <Zap size={15} />
+                    <span>Plan Today's Commitments</span>
+                    <ArrowRight size={14} />
+                  </button>
+                </div>
+              )}
+
               {/* Key Stat Cards Grid */}
               <div className="analytics-stats-grid">
                 {/* Completion Rate */}

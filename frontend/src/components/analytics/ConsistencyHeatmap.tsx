@@ -8,6 +8,7 @@ interface ConsistencyHeatmapProps {
 
 export const ConsistencyHeatmap: React.FC<ConsistencyHeatmapProps> = ({ data }) => {
   const [hoveredDay, setHoveredDay] = useState<HeatmapDay | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
 
   if (!data || data.length === 0) {
     return (
@@ -25,14 +26,11 @@ export const ConsistencyHeatmap: React.FC<ConsistencyHeatmapProps> = ({ data }) 
   const consistencyPct = totalDays > 0 ? Math.round((activeDays / totalDays) * 100) : 0;
 
   // Group data into weeks (columns of 7 days)
-  // Find start day of week for the first date
   const weeks: HeatmapDay[][] = [];
   let currentWeek: HeatmapDay[] = [];
 
-  // Pad the beginning so day of week aligns
   if (data.length > 0) {
     const firstDate = new Date(data[0].date);
-    // JS getDay(): 0=Sun, 1=Mon, ..., 6=Sat -> Convert to Mon=0..Sun=6
     const dayOfWeek = (firstDate.getDay() + 6) % 7;
     for (let p = 0; p < dayOfWeek; p++) {
       currentWeek.push({
@@ -40,7 +38,7 @@ export const ConsistencyHeatmap: React.FC<ConsistencyHeatmapProps> = ({ data }) 
         completedCount: 0,
         totalCount: 0,
         focusMinutes: 0,
-        intensityLevel: -1, // empty placeholder
+        intensityLevel: -1,
       });
     }
   }
@@ -87,8 +85,20 @@ export const ConsistencyHeatmap: React.FC<ConsistencyHeatmapProps> = ({ data }) 
     }
   };
 
+  const handleCellMouseEnter = (day: HeatmapDay, e: React.MouseEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const container = e.currentTarget.closest('.heatmap-container')?.getBoundingClientRect();
+    if (container) {
+      setTooltipPos({
+        x: rect.left - container.left + rect.width / 2,
+        y: rect.top - container.top - 8,
+      });
+    }
+    setHoveredDay(day);
+  };
+
   return (
-    <div className="harud-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div className="harud-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative' }}>
       {/* Card Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -127,7 +137,42 @@ export const ConsistencyHeatmap: React.FC<ConsistencyHeatmapProps> = ({ data }) 
       </div>
 
       {/* Heatmap Grid Container */}
-      <div style={{ overflowX: 'auto', paddingBottom: '6px' }}>
+      <div className="heatmap-container" style={{ overflowX: 'auto', paddingBottom: '6px', position: 'relative' }}>
+        {/* Floating Tooltip */}
+        {hoveredDay && tooltipPos && (
+          <div
+            style={{
+              position: 'absolute',
+              left: `${tooltipPos.x}px`,
+              top: `${tooltipPos.y}px`,
+              transform: 'translate(-50%, -100%)',
+              background: 'rgba(18, 14, 11, 0.95)',
+              border: '1px solid var(--border-copper-subtle)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '6px 10px',
+              fontSize: '0.74rem',
+              color: 'var(--text-kehwa-cream)',
+              whiteSpace: 'nowrap',
+              pointerEvents: 'none',
+              zIndex: 999,
+              boxShadow: '0 8px 20px rgba(0,0,0,0.7)',
+              backdropFilter: 'blur(8px)',
+              animation: 'fadeIn 0.15s ease-in-out',
+            }}
+          >
+            <div style={{ fontWeight: 700, color: 'var(--saffron-ember)', marginBottom: '2px' }}>
+              {formatDate(hoveredDay.date)}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-parchment-muted)' }}>
+              <span>{hoveredDay.focusMinutes > 0 ? `${hoveredDay.focusMinutes}m (${(hoveredDay.focusMinutes / 60).toFixed(1)}h)` : '0m'} focus</span>
+              <span>•</span>
+              <span style={{ color: hoveredDay.completedCount > 0 ? '#4ADE80' : 'inherit' }}>
+                {hoveredDay.completedCount}/{hoveredDay.totalCount} kept
+              </span>
+            </div>
+          </div>
+        )}
+
         <div style={{ display: 'flex', gap: '4px', minWidth: 'max-content', alignItems: 'flex-start' }}>
           {/* Day of week labels */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginRight: '6px', fontSize: '10px', color: 'var(--text-tweed-dim)', fontWeight: 600, height: '94px', justifyContent: 'space-between' }}>
@@ -160,8 +205,11 @@ export const ConsistencyHeatmap: React.FC<ConsistencyHeatmapProps> = ({ data }) 
                 return (
                   <div
                     key={dIdx}
-                    onMouseEnter={() => setHoveredDay(day)}
-                    onMouseLeave={() => setHoveredDay(null)}
+                    onMouseEnter={(e) => handleCellMouseEnter(day, e)}
+                    onMouseLeave={() => {
+                      setHoveredDay(null);
+                      setTooltipPos(null);
+                    }}
                     style={{
                       width: '11px',
                       height: '11px',
@@ -170,7 +218,7 @@ export const ConsistencyHeatmap: React.FC<ConsistencyHeatmapProps> = ({ data }) 
                       border: isHovered ? '1px solid #fff' : day.intensityLevel > 0 ? '1px solid rgba(74, 222, 128, 0.25)' : '1px solid rgba(255, 255, 255, 0.03)',
                       cursor: 'pointer',
                       transition: 'transform 0.1s ease, border-color 0.1s ease',
-                      transform: isHovered ? 'scale(1.3)' : 'scale(1)',
+                      transform: isHovered ? 'scale(1.35)' : 'scale(1)',
                       zIndex: isHovered ? 2 : 1,
                     }}
                   />
