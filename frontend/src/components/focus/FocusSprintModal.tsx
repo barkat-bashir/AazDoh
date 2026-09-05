@@ -17,7 +17,8 @@ import {
   Flame, 
   Sparkles,
   Clock,
-  Send
+  Send,
+  CalendarPlus
 } from 'lucide-react';
 
 interface FocusSprintModalProps {
@@ -81,6 +82,27 @@ export const FocusSprintModal: React.FC<FocusSprintModalProps> = ({ onCommitment
     } catch (err: any) {
       setIsMarkingDone(false);
       showToast(err.message || 'Failed to complete commitment', 'error');
+    }
+  };
+
+  const handleHarvestToTomorrow = async (note: string, index: number) => {
+    try {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+      await commitmentApi.create({
+        title: note,
+        commitmentDate: tomorrowStr,
+        estimatedMinutes: 30,
+        priority: 'MEDIUM',
+        visibility: 'PRIVATE',
+      });
+      removeDistractionNote(index);
+      showToast(`Harvested "${note}" as tomorrow's commitment!`, 'success');
+      if (onCommitmentCompleted) onCommitmentCompleted();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to create commitment from parked thought', 'error');
     }
   };
 
@@ -442,14 +464,35 @@ export const FocusSprintModal: React.FC<FocusSprintModalProps> = ({ onCommitment
                     border: '1px solid rgba(255,255,255,0.04)'
                   }}
                 >
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>• {note}</span>
-                  <button
-                    onClick={() => removeDistractionNote(nIdx)}
-                    style={{ background: 'none', border: 'none', color: 'var(--text-tweed-dim)', cursor: 'pointer', padding: '2px' }}
-                    title="Remove note"
-                  >
-                    <Trash2 size={11} />
-                  </button>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>• {note}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                    <button
+                      onClick={() => handleHarvestToTomorrow(note, nIdx)}
+                      className="btn-pill"
+                      style={{
+                        padding: '2px 7px',
+                        fontSize: '0.68rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        background: 'rgba(226, 149, 59, 0.15)',
+                        color: 'var(--saffron-ember)',
+                        border: '1px solid rgba(226, 149, 59, 0.35)',
+                        borderRadius: 'var(--radius-full)'
+                      }}
+                      title="Convert parked thought into tomorrow's commitment"
+                    >
+                      <CalendarPlus size={10} />
+                      <span>Tomorrow</span>
+                    </button>
+                    <button
+                      onClick={() => removeDistractionNote(nIdx)}
+                      style={{ background: 'none', border: 'none', color: 'var(--text-tweed-dim)', cursor: 'pointer', padding: '2px' }}
+                      title="Dismiss note"
+                    >
+                      <Trash2 size={11} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

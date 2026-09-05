@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { Commitment } from '../api/commitmentApi';
+import { focusApi } from '../api/focusApi';
 
 export type FocusMode = 'FOCUS' | 'SHORT_BREAK' | 'LONG_BREAK';
 
@@ -79,6 +80,7 @@ export const FocusTimerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [isCompleted, setIsCompleted] = useState(false);
 
   const timerRef = useRef<number | null>(null);
+  const startedAtRef = useRef<string>(new Date().toISOString());
 
   // Countdown loop
   useEffect(() => {
@@ -92,6 +94,18 @@ export const FocusTimerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             playChimeSound();
             if (mode === 'FOCUS') {
               setSprintsCompletedToday((c) => c + 1);
+              // Asynchronously record sprint telemetry to backend
+              focusApi.recordSprint({
+                commitmentId: activeCommitment?.id,
+                durationMinutes: Math.round(totalDurationSeconds / 60),
+                actualSecondsSpent: totalDurationSeconds,
+                mode: 'FOCUS',
+                status: 'COMPLETED',
+                distractionsCount: distractionNotes.length,
+                distractionNotes: distractionNotes,
+                startedAt: startedAtRef.current,
+                completedAt: new Date().toISOString(),
+              }).catch(err => console.warn('Failed to record sprint telemetry', err));
             }
             return 0;
           }
@@ -105,13 +119,14 @@ export const FocusTimerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isRunning, mode]);
+  }, [isRunning, mode, activeCommitment, totalDurationSeconds, distractionNotes]);
 
   const startFocusSession = useCallback((commitment: Commitment, initialMinutes?: number) => {
     const mins = initialMinutes || commitment.estimatedMinutes || 25;
     const boundedMins = Math.min(Math.max(mins, 5), 180);
     const secs = boundedMins * 60;
     
+    startedAtRef.current = new Date().toISOString();
     setActiveCommitment(commitment);
     setMode('FOCUS');
     setTotalDurationSeconds(secs);
@@ -124,6 +139,7 @@ export const FocusTimerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const startQuickSprint = useCallback((minutes: number = 25) => {
     const secs = minutes * 60;
+    startedAtRef.current = new Date().toISOString();
     setActiveCommitment(null);
     setMode('FOCUS');
     setTotalDurationSeconds(secs);

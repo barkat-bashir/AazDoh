@@ -26,6 +26,7 @@ import { ConsistencyHeatmap } from './ConsistencyHeatmap';
 import { DayOfWeekMatrix } from './DayOfWeekMatrix';
 import { DurationSuccessCurve } from './DurationSuccessCurve';
 import { FrictionAndBottlenecks } from './FrictionAndBottlenecks';
+import { FocusSprintTelemetryCard } from './FocusSprintTelemetryCard';
 
 export const AnalyticsDashboard: React.FC = () => {
   const { showToast } = useToast();
@@ -369,7 +370,10 @@ export const AnalyticsDashboard: React.FC = () => {
                 dailyDropoff={deepData.dailyDropoff} 
               />
 
-              {/* 6. On-Demand AI Chief of Staff Synthesis Card */}
+              {/* 6. Real-Time Focus Sprint & Cognitive Telemetry */}
+              <FocusSprintTelemetryCard days={days} />
+
+              {/* 7. On-Demand AI Chief of Staff Synthesis Card */}
               <div className="harud-card" style={{ padding: '24px', border: '1px solid var(--border-copper-subtle)', background: 'linear-gradient(180deg, var(--bg-walnut-card) 0%, var(--bg-walnut-surface) 100%)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
