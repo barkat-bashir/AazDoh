@@ -335,197 +335,241 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
           )}
         </div>
 
-        {/* Bottom Integrated Action Bar */}
+        {/* Row 1: Metadata & Properties Chips */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '12px 20px',
-          background: 'rgba(26, 17, 13, 0.75)',
-          borderTop: '1px solid var(--border-walnut-faint)',
           gap: '8px',
+          padding: '10px 22px',
+          background: 'rgba(26, 17, 13, 0.5)',
+          borderTop: '1px solid var(--border-walnut-faint)',
+          flexWrap: 'wrap',
         }}>
-          {/* Left: Refined Chips */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'nowrap' }}>
-
-            {/* Duration Chip with Popover */}
-            <div style={{ position: 'relative' }}>
-              <button
-                type="button"
-                onClick={() => setActiveMenu(activeMenu === 'duration' ? null : 'duration')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  padding: '5px 10px',
-                  borderRadius: '6px',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  background: 'var(--bg-walnut-surface)',
-                  color: 'var(--text-kehwa-cream)',
-                  border: '1px solid var(--border-walnut-faint)',
-                  transition: 'background 0.15s',
-                }}
-              >
-                <Clock size={12} color="var(--saffron-ember)" />
-                <span>{formatDurationLabel(estimatedMinutes)}</span>
-                <ChevronDown size={11} opacity={0.6} />
-              </button>
-
-              {activeMenu === 'duration' && (
-                <div style={{
-                  position: 'absolute',
-                  bottom: '120%',
-                  left: 0,
-                  zIndex: 100,
-                  background: 'var(--bg-walnut-card)',
-                  border: '1px solid var(--border-walnut-faint)',
-                  borderRadius: '8px',
-                  padding: '6px',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-                  display: 'flex',
-                  gap: '4px',
-                  minWidth: '240px',
-                }}>
-                  {focusOptions.map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => { setEstimatedMinutes(opt.value); setActiveMenu(null); }}
-                      style={{
-                        padding: '5px 8px',
-                        borderRadius: '5px',
-                        fontSize: '0.74rem',
-                        fontWeight: estimatedMinutes === opt.value ? 700 : 500,
-                        background: estimatedMinutes === opt.value ? 'var(--chinar-rust)' : 'transparent',
-                        color: estimatedMinutes === opt.value ? '#fff' : 'var(--text-parchment-muted)',
-                        border: 'none',
-                        cursor: 'pointer',
-                        flex: 1,
-                      }}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Priority Chip with Popover */}
-            <div style={{ position: 'relative' }}>
-              <button
-                type="button"
-                onClick={() => setActiveMenu(activeMenu === 'priority' ? null : 'priority')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  padding: '5px 10px',
-                  borderRadius: '6px',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  background: 'var(--bg-walnut-surface)',
-                  color: priorityConfig[priority].color,
-                  border: '1px solid var(--border-walnut-faint)',
-                }}
-              >
-                <Flame size={12} color={priorityConfig[priority].iconColor} />
-                <span>{priorityConfig[priority].label}</span>
-                <ChevronDown size={11} opacity={0.6} />
-              </button>
-
-              {activeMenu === 'priority' && (
-                <div style={{
-                  position: 'absolute',
-                  bottom: '120%',
-                  left: 0,
-                  zIndex: 100,
-                  background: 'var(--bg-walnut-card)',
-                  border: '1px solid var(--border-walnut-faint)',
-                  borderRadius: '8px',
-                  padding: '6px',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-                  display: 'flex',
-                  gap: '4px',
-                }}>
-                  {(['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as CommitmentPriority[]).map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => { setPriority(p); setActiveMenu(null); }}
-                      style={{
-                        padding: '5px 10px',
-                        borderRadius: '5px',
-                        fontSize: '0.74rem',
-                        fontWeight: priority === p ? 700 : 500,
-                        background: priority === p ? 'var(--bg-walnut-surface)' : 'transparent',
-                        color: priorityConfig[p].color,
-                        border: `1px solid ${priority === p ? priorityConfig[p].color : 'transparent'}`,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {priorityConfig[p].label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Visibility Toggle Chip */}
+          {/* Duration Chip with Popover */}
+          <div style={{ position: 'relative' }}>
             <button
               type="button"
-              onClick={() => setVisibility(visibility === 'SHARED_WITH_PARTNER' ? 'PRIVATE' : 'SHARED_WITH_PARTNER')}
+              onClick={() => setActiveMenu(activeMenu === 'duration' ? null : 'duration')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '5px 11px',
+                borderRadius: '6px',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                background: 'var(--bg-walnut-surface)',
+                color: 'var(--text-kehwa-cream)',
+                border: '1px solid var(--border-walnut-faint)',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <Clock size={13} color="var(--saffron-ember)" />
+              <span>{formatDurationLabel(estimatedMinutes)}</span>
+              <ChevronDown size={12} opacity={0.6} />
+            </button>
+
+            {activeMenu === 'duration' && (
+              <div style={{
+                position: 'absolute',
+                bottom: '125%',
+                left: 0,
+                zIndex: 100,
+                background: 'var(--bg-walnut-card)',
+                border: '1px solid var(--border-walnut-faint)',
+                borderRadius: '8px',
+                padding: '6px',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                display: 'flex',
+                gap: '4px',
+                minWidth: '250px',
+              }}>
+                {focusOptions.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => { setEstimatedMinutes(opt.value); setActiveMenu(null); }}
+                    style={{
+                      padding: '6px 8px',
+                      borderRadius: '5px',
+                      fontSize: '0.75rem',
+                      fontWeight: estimatedMinutes === opt.value ? 700 : 500,
+                      background: estimatedMinutes === opt.value ? 'var(--chinar-rust)' : 'transparent',
+                      color: estimatedMinutes === opt.value ? '#fff' : 'var(--text-parchment-muted)',
+                      border: 'none',
+                      cursor: 'pointer',
+                      flex: 1,
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Priority Chip with Popover */}
+          <div style={{ position: 'relative' }}>
+            <button
+              type="button"
+              onClick={() => setActiveMenu(activeMenu === 'priority' ? null : 'priority')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '5px 11px',
+                borderRadius: '6px',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                background: 'var(--bg-walnut-surface)',
+                color: priorityConfig[priority].color,
+                border: '1px solid var(--border-walnut-faint)',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <Flame size={13} color={priorityConfig[priority].iconColor} />
+              <span>{priorityConfig[priority].label}</span>
+              <ChevronDown size={12} opacity={0.6} />
+            </button>
+
+            {activeMenu === 'priority' && (
+              <div style={{
+                position: 'absolute',
+                bottom: '125%',
+                left: 0,
+                zIndex: 100,
+                background: 'var(--bg-walnut-card)',
+                border: '1px solid var(--border-walnut-faint)',
+                borderRadius: '8px',
+                padding: '6px',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                display: 'flex',
+                gap: '4px',
+              }}>
+                {(['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as CommitmentPriority[]).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => { setPriority(p); setActiveMenu(null); }}
+                    style={{
+                      padding: '6px 10px',
+                      borderRadius: '5px',
+                      fontSize: '0.75rem',
+                      fontWeight: priority === p ? 700 : 500,
+                      background: priority === p ? 'var(--bg-walnut-surface)' : 'transparent',
+                      color: priorityConfig[p].color,
+                      border: `1px solid ${priority === p ? priorityConfig[p].color : 'transparent'}`,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {priorityConfig[p].label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Visibility Toggle Chip */}
+          <button
+            type="button"
+            onClick={() => setVisibility(visibility === 'SHARED_WITH_PARTNER' ? 'PRIVATE' : 'SHARED_WITH_PARTNER')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '5px 11px',
+              borderRadius: '6px',
+              fontSize: '0.8rem',
+              fontWeight: 500,
+              cursor: 'pointer',
+              background: 'var(--bg-walnut-surface)',
+              color: visibility === 'SHARED_WITH_PARTNER' ? 'var(--saffron-ember)' : 'var(--text-tweed-dim)',
+              border: '1px solid var(--border-walnut-faint)',
+              transition: 'all 0.15s ease',
+            }}
+            title="Click to toggle Partner vs Private"
+          >
+            {visibility === 'SHARED_WITH_PARTNER' ? <Users size={13} /> : <Lock size={13} />}
+            <span>{visibility === 'SHARED_WITH_PARTNER' ? 'Shared' : 'Private'}</span>
+          </button>
+
+          {/* Add Deliverable Button */}
+          {!showDeliverable && category === 'DEEP_WORK' && (
+            <button
+              type="button"
+              onClick={() => setShowDeliverable(true)}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '5px',
                 padding: '5px 10px',
                 borderRadius: '6px',
-                fontSize: '0.78rem',
+                fontSize: '0.76rem',
                 fontWeight: 500,
                 cursor: 'pointer',
-                background: 'var(--bg-walnut-surface)',
-                color: visibility === 'SHARED_WITH_PARTNER' ? 'var(--saffron-ember)' : 'var(--text-tweed-dim)',
-                border: '1px solid var(--border-walnut-faint)',
+                background: 'transparent',
+                color: 'var(--text-tweed-dim)',
+                border: '1px dashed var(--border-walnut-faint)',
+                transition: 'all 0.15s ease',
               }}
-              title="Click to toggle Partner vs Private"
             >
-              {visibility === 'SHARED_WITH_PARTNER' ? <Users size={12} /> : <Lock size={12} />}
-              <span>{visibility === 'SHARED_WITH_PARTNER' ? 'Shared' : 'Private'}</span>
+              <Plus size={13} />
+              <span>+ Deliverable / DoD</span>
             </button>
+          )}
+        </div>
 
-            {/* Add Deliverable Button */}
-            {!showDeliverable && category === 'DEEP_WORK' && (
-              <button
-                type="button"
-                onClick={() => setShowDeliverable(true)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '5px 9px',
-                  borderRadius: '6px',
-                  fontSize: '0.75rem',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  background: 'transparent',
-                  color: 'var(--text-tweed-dim)',
-                  border: '1px dashed var(--border-walnut-faint)',
-                }}
-              >
-                <Plus size={12} />
-                <span>Deliverable</span>
-              </button>
-            )}
+        {/* Row 2: Actions & Keyboard Shortcut Bar */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 22px',
+          background: 'rgba(20, 14, 11, 0.9)',
+          borderTop: '1px solid var(--border-walnut-faint)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: 'var(--text-tweed-dim)' }}>
+            <span>Press</span>
+            <kbd style={{
+              background: 'var(--bg-walnut-surface)',
+              border: '1px solid var(--border-walnut-faint)',
+              padding: '1px 5px',
+              borderRadius: '3px',
+              fontSize: '0.7rem',
+              color: 'var(--text-parchment-muted)'
+            }}>Enter ↵</kbd>
+            <span>to save</span>
+            <span style={{ margin: '0 4px', opacity: 0.4 }}>•</span>
+            <kbd style={{
+              background: 'var(--bg-walnut-surface)',
+              border: '1px solid var(--border-walnut-faint)',
+              padding: '1px 5px',
+              borderRadius: '3px',
+              fontSize: '0.7rem',
+              color: 'var(--text-parchment-muted)'
+            }}>Esc</kbd>
+            <span>to cancel</span>
           </div>
 
-          {/* Right: Esc & Submit Button */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '0.74rem', color: 'var(--text-tweed-dim)' }}>
-              Esc
-            </span>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                padding: '7px 12px',
+                borderRadius: '6px',
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-tweed-dim)',
+                fontSize: '0.82rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
             <button
               type="submit"
               disabled={loading || !title.trim()}
@@ -533,24 +577,24 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '7px 16px',
+                padding: '7px 18px',
                 borderRadius: '6px',
                 background: title.trim() ? 'var(--chinar-rust)' : 'var(--bg-walnut-surface)',
                 color: title.trim() ? '#fff' : 'var(--text-tweed-dim)',
                 border: 'none',
-                fontSize: '0.82rem',
+                fontSize: '0.84rem',
                 fontWeight: 700,
                 cursor: title.trim() ? 'pointer' : 'not-allowed',
                 boxShadow: title.trim() ? '0 2px 10px var(--chinar-glow)' : 'none',
                 transition: 'all 0.15s ease',
               }}
             >
-              <span>{loading ? 'Saving...' : 'Commit'}</span>
+              <span>{loading ? 'Saving...' : 'Commit to Today'}</span>
               <kbd style={{
-                background: title.trim() ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)',
+                background: title.trim() ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.05)',
                 padding: '1px 5px',
                 borderRadius: '3px',
-                fontSize: '0.7rem',
+                fontSize: '0.72rem',
                 fontWeight: 700
               }}>↵</kbd>
             </button>
