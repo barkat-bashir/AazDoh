@@ -61,8 +61,10 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
   const [showDeliverable, setShowDeliverable] = useState(false);
   const [estimatedMinutes, setEstimatedMinutes] = useState(60);
   const [priority, setPriority] = useState<CommitmentPriority>('MEDIUM');
-  const [visibility, setVisibility] = useState<CommitmentVisibility>('SHARED_WITH_PARTNER');
-  const [activeMenu, setActiveMenu] = useState<'duration' | 'priority' | null>(null);
+  const [visibility, setVisibility] = useState<CommitmentVisibility>('PRIVATE');
+  const [targetPartnerId, setTargetPartnerId] = useState<string | null>(null);
+  const [activePartners, setActivePartners] = useState<{ id: string; name: string }[]>([]);
+  const [activeMenu, setActiveMenu] = useState<'duration' | 'priority' | 'visibility' | null>(null);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -73,6 +75,8 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
       setCategory('DEEP_WORK');
       setEstimatedMinutes(60);
       setPriority('MEDIUM');
+      setVisibility('PRIVATE');
+      setTargetPartnerId(null);
       setShowDeliverable(false);
       setExpectedOutcome('');
       setTitle('');
@@ -80,6 +84,19 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
       setTimeout(() => inputRef.current?.focus(), 60);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen && user?.id) {
+      partnershipApi.getActive().then(partnerships => {
+        const list = partnerships.map(p => {
+          const partnerUserId = p.requesterId === user.id ? p.partnerId : p.requesterId;
+          const partnerName = p.requesterId === user.id ? p.partnerName : p.requesterName;
+          return { id: partnerUserId, name: partnerName };
+        });
+        setActivePartners(list);
+      }).catch(() => {});
+    }
+  }, [isOpen, user?.id]);
 
   const deepWorkFocusOptions = [
     { label: '30m', value: 30 },
@@ -158,6 +175,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
         category,
         commitmentDate: targetDate,
         visibility,
+        targetPartnerId: visibility === 'SHARED_WITH_PARTNER' ? (targetPartnerId || undefined) : undefined,
       });
 
       showToast('Commitment locked in for today', 'success');
@@ -166,6 +184,8 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
       setExpectedOutcome('');
       setEstimatedMinutes(60);
       setPriority('MEDIUM');
+      setVisibility('PRIVATE');
+      setTargetPartnerId(null);
       onSuccess();
       onClose();
 
@@ -193,6 +213,16 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
     if (mins === 120) return '2h';
     return `${mins / 60}h`;
   };
+
+  const selectedPartnerName = targetPartnerId
+    ? activePartners.find(p => p.id === targetPartnerId)?.name
+    : null;
+
+  const visibilityLabel = visibility === 'PRIVATE'
+    ? 'Private'
+    : selectedPartnerName
+      ? `Shared: ${selectedPartnerName}`
+      : 'Shared with Partners';
 
   return (
     <Modal
@@ -305,7 +335,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
               border: '1px dashed var(--border-walnut-faint)',
             }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-tweed-dim)', whiteSpace: 'nowrap' }}>
-                Definition of Done:
+                Deliverable:
               </span>
               <input
                 type="text"
@@ -345,7 +375,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
           borderTop: '1px solid var(--border-walnut-faint)',
           flexWrap: 'wrap',
         }}>
-          {/* Duration Chip with Popover */}
+          {/* 1. Duration Chip with Popover */}
           <div style={{ position: 'relative' }}>
             <button
               type="button"
@@ -409,7 +439,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
             )}
           </div>
 
-          {/* Priority Chip with Popover */}
+          {/* 2. Priority Chip with Popover */}
           <div style={{ position: 'relative' }}>
             <button
               type="button"
@@ -471,31 +501,144 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
             )}
           </div>
 
-          {/* Visibility Toggle Chip */}
-          <button
-            type="button"
-            onClick={() => setVisibility(visibility === 'SHARED_WITH_PARTNER' ? 'PRIVATE' : 'SHARED_WITH_PARTNER')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '5px 11px',
-              borderRadius: '6px',
-              fontSize: '0.8rem',
-              fontWeight: 500,
-              cursor: 'pointer',
-              background: 'var(--bg-walnut-surface)',
-              color: visibility === 'SHARED_WITH_PARTNER' ? 'var(--saffron-ember)' : 'var(--text-tweed-dim)',
-              border: '1px solid var(--border-walnut-faint)',
-              transition: 'all 0.15s ease',
-            }}
-            title="Click to toggle Partner vs Private"
-          >
-            {visibility === 'SHARED_WITH_PARTNER' ? <Users size={13} /> : <Lock size={13} />}
-            <span>{visibility === 'SHARED_WITH_PARTNER' ? 'Shared' : 'Private'}</span>
-          </button>
+          {/* 3. Visibility & Partner Selection Popover */}
+          <div style={{ position: 'relative' }}>
+            <button
+              type="button"
+              onClick={() => setActiveMenu(activeMenu === 'visibility' ? null : 'visibility')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '5px 11px',
+                borderRadius: '6px',
+                fontSize: '0.8rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+                background: 'var(--bg-walnut-surface)',
+                color: visibility === 'PRIVATE' ? 'var(--text-kehwa-cream)' : 'var(--saffron-ember)',
+                border: `1px solid ${visibility === 'PRIVATE' ? 'var(--border-walnut-faint)' : 'rgba(226, 149, 59, 0.4)'}`,
+                transition: 'all 0.15s ease',
+              }}
+              title="Click to choose visibility and partners"
+            >
+              {visibility === 'PRIVATE' ? <Lock size={13} /> : <Users size={13} />}
+              <span>{visibilityLabel}</span>
+              <ChevronDown size={12} opacity={0.6} />
+            </button>
 
-          {/* Add Deliverable Button */}
+            {activeMenu === 'visibility' && (
+              <div style={{
+                position: 'absolute',
+                bottom: '125%',
+                left: 0,
+                zIndex: 100,
+                background: 'var(--bg-walnut-card)',
+                border: '1px solid var(--border-walnut-faint)',
+                borderRadius: '8px',
+                padding: '6px',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+                minWidth: '220px',
+              }}>
+                {/* Option 1: Private */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVisibility('PRIVATE');
+                    setTargetPartnerId(null);
+                    setActiveMenu(null);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '7px 10px',
+                    borderRadius: '5px',
+                    fontSize: '0.78rem',
+                    fontWeight: visibility === 'PRIVATE' ? 700 : 500,
+                    background: visibility === 'PRIVATE' ? 'var(--bg-walnut-surface)' : 'transparent',
+                    color: visibility === 'PRIVATE' ? 'var(--saffron-ember)' : 'var(--text-parchment-muted)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  <Lock size={13} />
+                  <span>Private (Just me)</span>
+                </button>
+
+                {/* Option 2: Shared with all partners */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVisibility('SHARED_WITH_PARTNER');
+                    setTargetPartnerId(null);
+                    setActiveMenu(null);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '7px 10px',
+                    borderRadius: '5px',
+                    fontSize: '0.78rem',
+                    fontWeight: (visibility === 'SHARED_WITH_PARTNER' && !targetPartnerId) ? 700 : 500,
+                    background: (visibility === 'SHARED_WITH_PARTNER' && !targetPartnerId) ? 'var(--bg-walnut-surface)' : 'transparent',
+                    color: (visibility === 'SHARED_WITH_PARTNER' && !targetPartnerId) ? 'var(--saffron-ember)' : 'var(--text-parchment-muted)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  <Users size={13} />
+                  <span>All Partners</span>
+                </button>
+
+                {/* Option 3+: Specific active partners */}
+                {activePartners.length > 0 && (
+                  <div style={{ borderTop: '1px solid var(--border-walnut-faint)', paddingTop: '4px', marginTop: '2px' }}>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-tweed-dim)', padding: '2px 10px 4px', fontWeight: 600 }}>
+                      Specific Partner:
+                    </div>
+                    {activePartners.map((partner) => (
+                      <button
+                        key={partner.id}
+                        type="button"
+                        onClick={() => {
+                          setVisibility('SHARED_WITH_PARTNER');
+                          setTargetPartnerId(partner.id);
+                          setActiveMenu(null);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '6px 10px',
+                          borderRadius: '5px',
+                          fontSize: '0.78rem',
+                          fontWeight: (visibility === 'SHARED_WITH_PARTNER' && targetPartnerId === partner.id) ? 700 : 500,
+                          background: (visibility === 'SHARED_WITH_PARTNER' && targetPartnerId === partner.id) ? 'var(--bg-walnut-surface)' : 'transparent',
+                          color: (visibility === 'SHARED_WITH_PARTNER' && targetPartnerId === partner.id) ? 'var(--saffron-ember)' : 'var(--text-parchment-muted)',
+                          border: 'none',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          width: '100%',
+                        }}
+                      >
+                        <span>👤</span>
+                        <span>{partner.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* 4. Add Deliverable Button */}
           {!showDeliverable && category === 'DEEP_WORK' && (
             <button
               type="button"
@@ -516,89 +659,65 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
               }}
             >
               <Plus size={13} />
-              <span>+ Deliverable / DoD</span>
+              <span>Deliverable</span>
             </button>
           )}
         </div>
 
-        {/* Row 2: Actions & Keyboard Shortcut Bar */}
+        {/* Row 2: Clean Actions Bar */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          justifyContent: 'flex-end',
           padding: '12px 22px',
           background: 'rgba(20, 14, 11, 0.9)',
           borderTop: '1px solid var(--border-walnut-faint)',
+          gap: '10px',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: 'var(--text-tweed-dim)' }}>
-            <span>Press</span>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              padding: '7px 14px',
+              borderRadius: '6px',
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-tweed-dim)',
+              fontSize: '0.84rem',
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading || !title.trim()}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 20px',
+              borderRadius: '6px',
+              background: title.trim() ? 'var(--chinar-rust)' : 'var(--bg-walnut-surface)',
+              color: title.trim() ? '#fff' : 'var(--text-tweed-dim)',
+              border: 'none',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              cursor: title.trim() ? 'pointer' : 'not-allowed',
+              boxShadow: title.trim() ? '0 2px 10px var(--chinar-glow)' : 'none',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span>{loading ? 'Saving...' : 'Commit to Today'}</span>
             <kbd style={{
-              background: 'var(--bg-walnut-surface)',
-              border: '1px solid var(--border-walnut-faint)',
+              background: title.trim() ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.05)',
               padding: '1px 5px',
               borderRadius: '3px',
-              fontSize: '0.7rem',
-              color: 'var(--text-parchment-muted)'
-            }}>Enter ↵</kbd>
-            <span>to save</span>
-            <span style={{ margin: '0 4px', opacity: 0.4 }}>•</span>
-            <kbd style={{
-              background: 'var(--bg-walnut-surface)',
-              border: '1px solid var(--border-walnut-faint)',
-              padding: '1px 5px',
-              borderRadius: '3px',
-              fontSize: '0.7rem',
-              color: 'var(--text-parchment-muted)'
-            }}>Esc</kbd>
-            <span>to cancel</span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                padding: '7px 12px',
-                borderRadius: '6px',
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-tweed-dim)',
-                fontSize: '0.82rem',
-                fontWeight: 500,
-                cursor: 'pointer',
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading || !title.trim()}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '7px 18px',
-                borderRadius: '6px',
-                background: title.trim() ? 'var(--chinar-rust)' : 'var(--bg-walnut-surface)',
-                color: title.trim() ? '#fff' : 'var(--text-tweed-dim)',
-                border: 'none',
-                fontSize: '0.84rem',
-                fontWeight: 700,
-                cursor: title.trim() ? 'pointer' : 'not-allowed',
-                boxShadow: title.trim() ? '0 2px 10px var(--chinar-glow)' : 'none',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <span>{loading ? 'Saving...' : 'Commit to Today'}</span>
-              <kbd style={{
-                background: title.trim() ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.05)',
-                padding: '1px 5px',
-                borderRadius: '3px',
-                fontSize: '0.72rem',
-                fontWeight: 700
-              }}>↵</kbd>
-            </button>
-          </div>
+              fontSize: '0.72rem',
+              fontWeight: 700
+            }}>↵</kbd>
+          </button>
         </div>
 
       </form>
