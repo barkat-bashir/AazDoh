@@ -622,6 +622,67 @@ textarea.input-field {
   }
 }
 
+/* Daily Progress Header Styles */
+.daily-progress-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.daily-date-switcher {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.daily-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.daily-ai-review-group {
+  display: flex;
+  align-items: center;
+  background: var(--bg-walnut-surface);
+  border: 1px solid var(--border-walnut-faint);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+
+/* Commitment Card Responsive Footer */
+.commitment-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-walnut-faint);
+  font-size: 0.8rem;
+  color: var(--text-tweed-dim);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.commitment-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.commitment-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 640px) {
   .hide-mobile {
     display: none !important;
@@ -659,4 +720,84 @@ textarea.input-field {
   .modal-body-box {
     padding: 16px 16px !important;
   }
+
+  /* Daily Progress Header on Mobile */
+  .daily-progress-top {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .daily-date-switcher {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+
+  .daily-header-actions {
+    width: 100% !important;
+    display: flex !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+
+  .daily-ai-review-group {
+    flex: 1 1 auto;
+    display: flex;
+    justify-content: space-around;
+  }
+
+  .daily-ai-review-group button {
+    flex: 1 1 auto;
+    justify-content: center;
+    padding: 7px 6px !important;
+    font-size: 0.78rem !important;
+  }
+
+  .daily-add-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    padding: 8px 12px !important;
+    font-size: 0.82rem !important;
+    white-space: nowrap;
+  }
+
+  .commitment-card-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .commitment-card-meta {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 8px 14px;
+  }
+
+  .commitment-card-actions {
+    width: 100%;
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .commitment-card-actions .btn-primary,
+  .commitment-card-actions .btn-outline {
+    flex: 1 1 auto;
+    min-width: calc(50% - 6px);
+    justify-content: center;
+    padding: 8px 10px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    text-align: center;
+  }
+
+  .commitment-card-actions .btn-delete-icon {
+    flex: 0 0 auto;
+    align-self: center;
+    padding: 8px;
+  }
 }
+
+
+

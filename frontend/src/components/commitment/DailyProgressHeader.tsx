@@ -62,18 +62,11 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
   };
 
   return (
-    <div className="harud-card" style={{ padding: 'clamp(16px, 3vw, 24px)', marginBottom: '20px' }}>
+    <div className="harud-card" style={{ padding: 'clamp(14px, 3vw, 24px)', marginBottom: '20px' }}>
       {/* Top row: Date Switcher & Main Actions */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '12px',
-        marginBottom: total > 0 ? '16px' : '0',
-      }}>
+      <div className="daily-progress-top" style={{ marginBottom: total > 0 ? '16px' : '0' }}>
         {/* Left: Date Switcher Pill */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="daily-date-switcher">
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -157,17 +150,9 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
         </div>
 
         {/* Right: Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="daily-header-actions">
           {total > 0 && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              background: 'var(--bg-walnut-surface)',
-              border: '1px solid var(--border-walnut-faint)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '2px',
-              gap: '2px',
-            }}>
+            <div className="daily-ai-review-group">
               <button
                 onClick={onOpenAiReview}
                 className="btn-secondary"
@@ -214,7 +199,7 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
 
           <button
             onClick={onOpenAddModal}
-            className="btn-primary"
+            className="btn-primary daily-add-btn"
             style={{ fontSize: '0.84rem', padding: '7px 14px', display: 'flex', alignItems: 'center', gap: '5px' }}
           >
             <Plus size={15} />

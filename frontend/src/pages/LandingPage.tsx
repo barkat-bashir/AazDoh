@@ -266,9 +266,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         position: 'relative',
       }}>
         <div style={{ textAlign: 'center', marginBottom: '32px', padding: '0 24px' }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--saffron-ember)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Empirical Telemetry
-          </span>
           <h2 style={{ fontSize: 'clamp(1.7rem, 4vw, 2.2rem)', fontWeight: 800, marginTop: '6px', color: 'var(--text-kehwa-cream)' }}>
             Behavioral Analytics That Actually Change How You Work
           </h2>

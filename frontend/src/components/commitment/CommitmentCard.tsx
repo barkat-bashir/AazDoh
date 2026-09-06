@@ -104,7 +104,7 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
     <div
       className={`harud-card ${isCompleted ? 'harud-card-glow' : ''}`}
       style={{
-        padding: '20px',
+        padding: 'clamp(14px, 3.5vw, 20px)',
         opacity: loading ? 0.6 : 1,
         borderColor: isCompleted 
           ? 'var(--pine-emerald)' 
@@ -137,18 +137,26 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
         </button>
 
         {/* Commitment Content */}
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: '8px 12px',
+            flexWrap: 'wrap',
+          }}>
             <h4 style={{
-              fontSize: '1.05rem',
+              fontSize: '1.02rem',
               color: isCompleted ? 'var(--text-parchment-muted)' : 'var(--text-kehwa-cream)',
               textDecoration: isCompleted ? 'line-through' : 'none',
-              fontWeight: 600,
+              wordBreak: 'break-word',
+              flex: '1 1 140px',
+              margin: 0,
             }}>
               {commitment.title}
             </h4>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', flexShrink: 0 }}>
               <span className={`badge ${getPriorityBadgeClass(commitment.priority)}`}>
                 {commitment.priority}
               </span>
@@ -158,10 +166,11 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
 
           {commitment.description && (
             <p style={{
-              fontSize: '0.86rem',
-              color: 'var(--text-parchment-muted)',
               marginTop: '6px',
-              lineHeight: 1.45,
+              fontSize: '0.88rem',
+              color: isCompleted ? 'var(--text-tweed-dim)' : 'var(--text-parchment-muted)',
+              lineHeight: 1.5,
+              wordBreak: 'break-word',
             }}>
               {commitment.description}
             </p>
@@ -176,6 +185,7 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
               borderLeft: '2px solid var(--chinar-rust)',
               fontSize: '0.8rem',
               color: 'var(--text-parchment-muted)',
+              wordBreak: 'break-word',
             }}>
               <span style={{ color: 'var(--saffron-ember)', fontWeight: 600 }}>Expected: </span>
               {commitment.expectedOutcome}
@@ -183,19 +193,8 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
           )}
 
           {/* Meta & Action Footer */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginTop: '14px',
-            paddingTop: '12px',
-            borderTop: '1px solid var(--border-walnut-faint)',
-            fontSize: '0.8rem',
-            color: 'var(--text-tweed-dim)',
-            flexWrap: 'wrap',
-            gap: '8px',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div className="commitment-card-footer">
+            <div className="commitment-card-meta">
               <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <Clock size={14} color="var(--saffron-ember)" />
                 <span>{commitment.estimatedMinutes} mins</span>
@@ -226,17 +225,17 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
             </div>
 
             {/* Action buttons */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="commitment-card-actions">
               {!isCompleted && !isPostponed && (
                 <button
                   onClick={() => startFocusSession(commitment)}
                   className="btn-primary"
                   style={{
-                    padding: '4px 10px',
+                    padding: '5px 12px',
                     fontSize: '0.78rem',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px',
+                    gap: '5px',
                     fontWeight: 700,
                     background: 'linear-gradient(135deg, var(--chinar-rust), var(--saffron-ember))',
                     boxShadow: '0 2px 8px rgba(192, 83, 48, 0.3)',
@@ -251,16 +250,20 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
               <button
                 onClick={() => onOpenDiscussion(commitment)}
                 className="btn-outline"
-                style={commitment.hasUnreadDiscussion ? {
-                  borderColor: 'var(--saffron-ember)',
-                  background: 'rgba(226, 149, 59, 0.16)',
-                  color: 'var(--saffron-ember)',
-                  fontWeight: 700,
-                  boxShadow: '0 0 12px rgba(226, 149, 59, 0.25)',
-                } : (commitment.discussionMessageCount && commitment.discussionMessageCount > 0) ? {
-                  borderColor: 'rgba(226, 149, 59, 0.35)',
-                  color: 'var(--text-kehwa-cream)',
-                } : undefined}
+                style={{
+                  padding: '5px 10px',
+                  fontSize: '0.78rem',
+                  ...(commitment.hasUnreadDiscussion ? {
+                    borderColor: 'var(--saffron-ember)',
+                    background: 'rgba(226, 149, 59, 0.16)',
+                    color: 'var(--saffron-ember)',
+                    fontWeight: 700,
+                    boxShadow: '0 0 12px rgba(226, 149, 59, 0.25)',
+                  } : (commitment.discussionMessageCount && commitment.discussionMessageCount > 0) ? {
+                    borderColor: 'rgba(226, 149, 59, 0.35)',
+                    color: 'var(--text-kehwa-cream)',
+                  } : {}),
+                }}
                 title="Discuss with accountability partner"
               >
                 <MessageSquare size={14} color={commitment.hasUnreadDiscussion ? 'var(--saffron-ember)' : undefined} />
@@ -277,6 +280,7 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
                 <button
                   onClick={() => onPostponeClick(commitment)}
                   className="btn-outline"
+                  style={{ padding: '5px 10px', fontSize: '0.78rem' }}
                   title="Postpone to a future date"
                 >
                   <CalendarClock size={14} />
@@ -290,6 +294,8 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
                   disabled={loading}
                   className="btn-outline"
                   style={{
+                    padding: '5px 10px',
+                    fontSize: '0.78rem',
                     borderColor: 'var(--saffron-ember)',
                     color: 'var(--saffron-ember)',
                     background: 'rgba(226, 149, 59, 0.1)',
@@ -308,7 +314,7 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
                 <button
                   onClick={() => onReviewClick(commitment)}
                   className="btn-outline"
-                  style={{ borderColor: 'var(--chinar-rust)', color: 'var(--chinar-rust)' }}
+                  style={{ padding: '5px 10px', fontSize: '0.78rem', borderColor: 'var(--chinar-rust)', color: 'var(--chinar-rust)' }}
                 >
                   <span>Review</span>
                 </button>
@@ -316,13 +322,16 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
 
               <button
                 onClick={handleDelete}
+                className="btn-delete-icon"
                 style={{
                   background: 'none',
                   border: 'none',
                   color: 'var(--text-tweed-dim)',
                   cursor: 'pointer',
-                  padding: '5px',
                   borderRadius: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
                 title="Delete commitment"
               >

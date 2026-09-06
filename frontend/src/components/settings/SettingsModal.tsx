@@ -102,9 +102,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <h3 style={{ fontSize: '1.15rem', color: 'var(--text-kehwa-cream)', margin: 0, fontWeight: 700 }}>
                 Account & Preferences
               </h3>
-              <p style={{ fontSize: '0.76rem', color: 'var(--text-tweed-dim)', margin: 0 }}>
-                AI challenger mode & profile settings
-              </p>
             </div>
           </div>
           <button
@@ -152,9 +149,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-kehwa-cream)' }}>
                     {user.fullName}
                   </h4>
-                  <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--text-tweed-dim)' }}>
-                    {user.email}
-                  </p>
                 </div>
               </div>
 
