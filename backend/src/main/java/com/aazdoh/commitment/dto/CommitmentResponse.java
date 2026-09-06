@@ -5,6 +5,8 @@ import com.aazdoh.commitment.entity.CommitmentPriority;
 import com.aazdoh.commitment.entity.CommitmentStatus;
 import com.aazdoh.commitment.entity.CommitmentVisibility;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -31,6 +33,7 @@ public class CommitmentResponse {
     private UUID originCommitmentId;
     private int postponementCount;
     private String postponeReason;
+    @JsonProperty("isReviewed")
     private boolean isReviewed;
     private OffsetDateTime completedAt;
     private OffsetDateTime createdAt;
@@ -248,10 +251,16 @@ public class CommitmentResponse {
         this.updatedAt = updatedAt;
     }
 
+    @JsonProperty("isReviewed")
     public boolean isReviewed() {
         return isReviewed;
     }
 
+    public boolean getIsReviewed() {
+        return isReviewed;
+    }
+
+    @JsonProperty("isReviewed")
     public void setReviewed(boolean reviewed) {
         isReviewed = reviewed;
     }
