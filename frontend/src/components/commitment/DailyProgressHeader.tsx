@@ -24,14 +24,15 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
   const dateInputRef = useRef<HTMLInputElement>(null);
   const total = commitments.length;
   const completed = commitments.filter((c) => c.status === 'COMPLETED').length;
-  const totalMinutes = commitments.reduce((acc, c) => acc + c.estimatedMinutes, 0);
-  const completedMinutes = commitments
+  const deepWorkCommitments = commitments.filter((c) => c.category !== 'ROUTINE');
+  const totalFocusMinutes = deepWorkCommitments.reduce((acc, c) => acc + (c.estimatedMinutes || 0), 0);
+  const completedFocusMinutes = deepWorkCommitments
     .filter((c) => c.status === 'COMPLETED')
-    .reduce((acc, c) => acc + c.estimatedMinutes, 0);
+    .reduce((acc, c) => acc + (c.estimatedMinutes || 0), 0);
 
   const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-  const totalHours = (totalMinutes / 60).toFixed(1);
-  const completedHours = (completedMinutes / 60).toFixed(1);
+  const totalHours = (totalFocusMinutes / 60).toFixed(1);
+  const completedHours = (completedFocusMinutes / 60).toFixed(1);
 
   const todayStr = getLocalTodayStr();
   const yesterdayStr = getLocalYesterdayStr();

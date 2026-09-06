@@ -1,5 +1,6 @@
 package com.aazdoh.commitment.dto;
 
+import com.aazdoh.commitment.entity.CommitmentCategory;
 import com.aazdoh.commitment.entity.CommitmentPriority;
 import com.aazdoh.commitment.entity.CommitmentVisibility;
 import jakarta.validation.constraints.Min;
@@ -20,10 +21,12 @@ public class CreateCommitmentRequest {
 
     private String expectedOutcome;
 
-    @Min(value = 5, message = "Estimated minutes must be at least 5")
+    @Min(value = 0, message = "Estimated minutes cannot be negative")
     private int estimatedMinutes = 60;
 
     private CommitmentPriority priority = CommitmentPriority.MEDIUM;
+
+    private CommitmentCategory category = CommitmentCategory.DEEP_WORK;
 
     @NotNull(message = "Commitment date is required")
     private LocalDate commitmentDate;
@@ -107,5 +110,13 @@ public class CreateCommitmentRequest {
 
     public void setTargetPartnerId(java.util.UUID targetPartnerId) {
         this.targetPartnerId = targetPartnerId;
+    }
+
+    public CommitmentCategory getCategory() {
+        return category;
+    }
+
+    public void setCategory(CommitmentCategory category) {
+        this.category = category;
     }
 }

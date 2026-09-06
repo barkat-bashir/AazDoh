@@ -100,8 +100,8 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
   const postponedList = useMemo(() => commitments.filter(c => c.status === 'POSTPONED'), [commitments]);
   const missedList = useMemo(() => commitments.filter(c => c.status === 'MISSED'), [commitments]);
 
-  const totalFocusMinutes = useMemo(() => activeList.reduce((acc, c) => acc + (c.estimatedMinutes || 0), 0), [activeList]);
-  const totalCompletedMinutes = useMemo(() => completedList.reduce((acc, c) => acc + (c.estimatedMinutes || 0), 0), [completedList]);
+  const totalFocusMinutes = useMemo(() => activeList.filter(c => c.category !== 'ROUTINE').reduce((acc, c) => acc + (c.estimatedMinutes || 0), 0), [activeList]);
+  const totalCompletedMinutes = useMemo(() => completedList.filter(c => c.category !== 'ROUTINE').reduce((acc, c) => acc + (c.estimatedMinutes || 0), 0), [completedList]);
 
   // Check for unreviewed tasks from yesterday (excluding already reviewed, postponed, or completed tasks)
   const unreviewedYesterday = useMemo(() => yesterdayCommitments.filter(

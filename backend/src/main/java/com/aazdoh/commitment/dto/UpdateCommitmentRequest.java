@@ -1,5 +1,6 @@
 package com.aazdoh.commitment.dto;
 
+import com.aazdoh.commitment.entity.CommitmentCategory;
 import com.aazdoh.commitment.entity.CommitmentPriority;
 import com.aazdoh.commitment.entity.CommitmentStatus;
 import com.aazdoh.commitment.entity.CommitmentVisibility;
@@ -18,10 +19,12 @@ public class UpdateCommitmentRequest {
 
     private String expectedOutcome;
 
-    @Min(value = 5, message = "Estimated minutes must be at least 5")
+    @Min(value = 0, message = "Estimated minutes cannot be negative")
     private Integer estimatedMinutes;
 
     private CommitmentPriority priority;
+
+    private CommitmentCategory category;
 
     private LocalDate commitmentDate;
 
@@ -114,5 +117,13 @@ public class UpdateCommitmentRequest {
 
     public void setTargetPartnerId(java.util.UUID targetPartnerId) {
         this.targetPartnerId = targetPartnerId;
+    }
+
+    public CommitmentCategory getCategory() {
+        return category;
+    }
+
+    public void setCategory(CommitmentCategory category) {
+        this.category = category;
     }
 }

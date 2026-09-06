@@ -89,6 +89,7 @@ public class ReviewService {
                     nextCommitment.setExpectedOutcome(commitment.getExpectedOutcome());
                     nextCommitment.setEstimatedMinutes(commitment.getEstimatedMinutes());
                     nextCommitment.setPriority(commitment.getPriority());
+                    nextCommitment.setCategory(commitment.getCategory());
                     nextCommitment.setCommitmentDate(targetDate);
                     nextCommitment.setVisibility(commitment.getVisibility());
                     nextCommitment.setStatus(CommitmentStatus.PENDING);

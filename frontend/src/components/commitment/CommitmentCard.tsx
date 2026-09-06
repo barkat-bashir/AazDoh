@@ -83,6 +83,7 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
   const isCompleted = commitment.status === 'COMPLETED';
   const isMissed = commitment.status === 'MISSED';
   const isPostponed = commitment.status === 'POSTPONED';
+  const isRoutine = commitment.category === 'ROUTINE';
 
   const getPriorityBadgeClass = (priority: string) => {
     switch (priority) {
@@ -157,6 +158,22 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
             </h4>
 
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', flexShrink: 0 }}>
+              {isRoutine && (
+                <span style={{
+                  fontSize: '0.72rem',
+                  padding: '2px 7px',
+                  borderRadius: '4px',
+                  background: 'rgba(226, 149, 59, 0.12)',
+                  border: '1px solid rgba(226, 149, 59, 0.3)',
+                  color: 'var(--saffron-ember)',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                }}>
+                  ⚡ Routine
+                </span>
+              )}
               <span className={`badge ${getPriorityBadgeClass(commitment.priority)}`}>
                 {commitment.priority}
               </span>
@@ -226,7 +243,7 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
 
             {/* Action buttons */}
             <div className="commitment-card-actions">
-              {!isCompleted && !isPostponed && (
+              {!isCompleted && !isPostponed && !isRoutine && (
                 <button
                   onClick={() => startFocusSession(commitment)}
                   className="btn-primary"

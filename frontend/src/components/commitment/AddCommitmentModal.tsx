@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
-import { commitmentApi, CommitmentPriority, CommitmentVisibility } from '../../api/commitmentApi';
+import { commitmentApi, CommitmentCategory, CommitmentPriority, CommitmentVisibility } from '../../api/commitmentApi';
 import { partnershipApi } from '../../api/partnershipApi';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { Sparkles, Clock, Shield, Flame, Users, Lock, Check, User as UserIcon } from 'lucide-react';
+import { Sparkles, Clock, Shield, Flame, Users, Lock, Check, User as UserIcon, Target, CheckCircle2 } from 'lucide-react';
 import { getLocalTodayStr } from '../../utils/dateUtils';
 
 interface AddCommitmentModalProps {
@@ -14,6 +14,28 @@ interface AddCommitmentModalProps {
   selectedDate?: string;
   onTriggerAiPlanReview?: () => void;
 }
+
+// Fast, robust regex for detecting intellectual / cognitive focus work
+const DEEP_WORK_REGEX = /\b(code|coding|implement|implementation|build|building|study|studying|research|design|designing|debug|debugging|refactor|refactoring|write|writing|article|interview|prep|algorithm|algorithms|dsa|system design|architecture|course|learn|learning|reading|analysis|backend|frontend|api|endpoint|test|tests|testing|feature|deploy|deployment|pipeline|database|sql|schema|auth|security|draft|essay|thesis|paper)\b/i;
+
+// Curated regex for detecting everyday routines, chores, habits, and errands
+const ROUTINE_REGEX = /\b(buy|groceries|grocery|market|haircut|barber|clean|cleaning|wash|washing|laundry|dishes|cook|cooking|bill|bills|recharge|payment|doctor|dentist|appointment|gym|workout|walk|pack|packing|tidy|car|repair|plumber|mail|post office|medicine|pharmacy|errand|errands|shop|shopping|bank|atm|drop off|pick up|water plants|trash|dusting|vacuum|feed|pet|dog|vet)\b/i;
+
+export const classifyCommitmentIntent = (text: string): CommitmentCategory => {
+  if (!text || text.trim().length < 3) {
+    return 'DEEP_WORK';
+  }
+  // 1. Deep work signals always win conflicts (e.g. "Clean up auth codebase" -> DEEP_WORK)
+  if (DEEP_WORK_REGEX.test(text)) {
+    return 'DEEP_WORK';
+  }
+  // 2. Clear routine signal
+  if (ROUTINE_REGEX.test(text)) {
+    return 'ROUTINE';
+  }
+  // 3. Default bias
+  return 'DEEP_WORK';
+};
 
 export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
   isOpen,
@@ -25,6 +47,8 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
   const { user } = useAuth();
   const { showToast } = useToast();
   const [title, setTitle] = useState('');
+  const [category, setCategory] = useState<CommitmentCategory>('DEEP_WORK');
+  const [isManuallySelected, setIsManuallySelected] = useState(false);
   const [expectedOutcome, setExpectedOutcome] = useState('');
   const [estimatedMinutes, setEstimatedMinutes] = useState(60);
   const [priority, setPriority] = useState<CommitmentPriority>('MEDIUM');
@@ -32,6 +56,13 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
   const [targetPartnerId, setTargetPartnerId] = useState<string | null>(null);
   const [activePartners, setActivePartners] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsManuallySelected(false);
+      setCategory('DEEP_WORK');
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen && user?.id) {
@@ -46,7 +77,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
     }
   }, [isOpen, user?.id]);
 
-  const focusOptions = [
+  const deepWorkFocusOptions = [
     { label: '30m', value: 30 },
     { label: '45m', value: 45 },
     { label: '1 Hour', value: 60 },
@@ -54,6 +85,41 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
     { label: '2 Hours', value: 120 },
     { label: '3h+', value: 180 },
   ];
+
+  const routineFocusOptions = [
+    { label: '10m', value: 10 },
+    { label: '15m', value: 15 },
+    { label: '30m', value: 30 },
+    { label: '45m', value: 45 },
+    { label: '1 Hour', value: 60 },
+  ];
+
+  const focusOptions = category === 'DEEP_WORK' ? deepWorkFocusOptions : routineFocusOptions;
+
+  const handleCategoryChange = (newCat: CommitmentCategory) => {
+    setIsManuallySelected(true);
+    setCategory(newCat);
+    if (newCat === 'ROUTINE' && estimatedMinutes > 45) {
+      setEstimatedMinutes(15);
+    } else if (newCat === 'DEEP_WORK' && estimatedMinutes < 30) {
+      setEstimatedMinutes(60);
+    }
+  };
+
+  const handleTitleChange = (val: string) => {
+    setTitle(val);
+    if (!isManuallySelected && val.trim().length >= 3) {
+      const detected = classifyCommitmentIntent(val);
+      if (detected !== category) {
+        setCategory(detected);
+        if (detected === 'ROUTINE' && estimatedMinutes > 45) {
+          setEstimatedMinutes(15);
+        } else if (detected === 'DEEP_WORK' && estimatedMinutes < 30) {
+          setEstimatedMinutes(60);
+        }
+      }
+    }
+  };
 
   const priorityOptions: { label: string; value: CommitmentPriority; icon?: any; color: string }[] = [
     { label: 'Low', value: 'LOW', color: 'var(--text-parchment-muted)' },
@@ -77,6 +143,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
         expectedOutcome: expectedOutcome.trim() || undefined,
         estimatedMinutes: Number(estimatedMinutes),
         priority,
+        category,
         commitmentDate: targetDate,
         visibility,
         targetPartnerId: visibility === 'SHARED_WITH_PARTNER' ? (targetPartnerId || undefined) : undefined,
@@ -84,6 +151,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
 
       showToast('Commitment created successfully', 'success');
       setTitle('');
+      setCategory('DEEP_WORK');
       setExpectedOutcome('');
       setEstimatedMinutes(60);
       setPriority('MEDIUM');
@@ -116,17 +184,91 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
       maxWidth="560px"
     >
       <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        {/* Work Mode / Category Selector */}
+        <div>
+          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-kehwa-cream)', marginBottom: '6px' }}>
+            Work Mode / Type
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => handleCategoryChange('DEEP_WORK')}
+              style={{
+                padding: '10px 12px',
+                borderRadius: 'var(--radius-sm)',
+                border: `1.5px solid ${category === 'DEEP_WORK' ? 'var(--chinar-rust)' : 'var(--border-walnut-faint)'}`,
+                background: category === 'DEEP_WORK' ? 'rgba(192, 83, 48, 0.16)' : 'var(--bg-walnut-card)',
+                color: category === 'DEEP_WORK' ? 'var(--text-kehwa-cream)' : 'var(--text-parchment-muted)',
+                cursor: 'pointer',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '8px',
+                transition: 'var(--transition-smooth)',
+                boxShadow: category === 'DEEP_WORK' ? '0 0 12px var(--chinar-glow)' : 'none',
+              }}
+            >
+              <Target size={18} color={category === 'DEEP_WORK' ? 'var(--saffron-ember)' : 'var(--text-tweed-dim)'} style={{ marginTop: '2px', flexShrink: 0 }} />
+              <div>
+                <strong style={{ fontSize: '0.88rem', display: 'block', color: category === 'DEEP_WORK' ? 'var(--saffron-ember)' : 'var(--text-kehwa-cream)' }}>
+                  🎯 Deep Focus
+                </strong>
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-tweed-dim)', lineHeight: 1.3, display: 'block', marginTop: '2px' }}>
+                  Intellectual work & Pomodoro sprints
+                </span>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleCategoryChange('ROUTINE')}
+              style={{
+                padding: '10px 12px',
+                borderRadius: 'var(--radius-sm)',
+                border: `1.5px solid ${category === 'ROUTINE' ? 'var(--saffron-ember)' : 'var(--border-walnut-faint)'}`,
+                background: category === 'ROUTINE' ? 'rgba(226, 149, 59, 0.14)' : 'var(--bg-walnut-card)',
+                color: category === 'ROUTINE' ? 'var(--text-kehwa-cream)' : 'var(--text-parchment-muted)',
+                cursor: 'pointer',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '8px',
+                transition: 'var(--transition-smooth)',
+                boxShadow: category === 'ROUTINE' ? '0 0 12px var(--saffron-glow)' : 'none',
+              }}
+            >
+              <CheckCircle2 size={18} color={category === 'ROUTINE' ? 'var(--saffron-ember)' : 'var(--text-tweed-dim)'} style={{ marginTop: '2px', flexShrink: 0 }} />
+              <div>
+                <strong style={{ fontSize: '0.88rem', display: 'block', color: category === 'ROUTINE' ? 'var(--saffron-ember)' : 'var(--text-kehwa-cream)' }}>
+                  ⚡ Routine / Errand
+                </strong>
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-tweed-dim)', lineHeight: 1.3, display: 'block', marginTop: '2px' }}>
+                  Quick chores, market, habits
+                </span>
+              </div>
+            </button>
+          </div>
+        </div>
+
         {/* Title */}
         <div>
-          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-kehwa-cream)', marginBottom: '5px' }}>
-            Commitment Title *
-          </label>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
+            <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-kehwa-cream)' }}>
+              {category === 'DEEP_WORK' ? 'Commitment Title *' : 'Task / Errand Description *'}
+            </label>
+            {!isManuallySelected && title.trim().length >= 3 && (
+              <span style={{ fontSize: '0.72rem', color: 'var(--saffron-ember)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                <Sparkles size={11} />
+                <span>Auto-detected as {category === 'DEEP_WORK' ? 'Deep Focus' : 'Routine'}</span>
+              </span>
+            )}
+          </div>
           <input
             type="text"
             className="input-field"
-            placeholder="e.g. Implement Payment Idempotency Endpoint"
+            placeholder={category === 'DEEP_WORK' ? 'e.g. Implement Payment Idempotency Endpoint' : 'e.g. Go to market, haircut, pay electricity bill'}
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => handleTitleChange(e.target.value)}
             autoFocus
             required
           />

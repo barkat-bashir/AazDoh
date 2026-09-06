@@ -1,6 +1,7 @@
 package com.aazdoh.commitment.dto;
 
 import com.aazdoh.commitment.entity.Commitment;
+import com.aazdoh.commitment.entity.CommitmentCategory;
 import com.aazdoh.commitment.entity.CommitmentPriority;
 import com.aazdoh.commitment.entity.CommitmentStatus;
 import com.aazdoh.commitment.entity.CommitmentVisibility;
@@ -21,6 +22,7 @@ public class CommitmentResponse {
     private String expectedOutcome;
     private int estimatedMinutes;
     private CommitmentPriority priority;
+    private CommitmentCategory category;
     private LocalDate commitmentDate;
     private OffsetDateTime deadline;
     private CommitmentStatus status;
@@ -52,6 +54,7 @@ public class CommitmentResponse {
         response.setExpectedOutcome(commitment.getExpectedOutcome());
         response.setEstimatedMinutes(commitment.getEstimatedMinutes());
         response.setPriority(commitment.getPriority());
+        response.setCategory(commitment.getCategory());
         response.setCommitmentDate(commitment.getCommitmentDate());
         response.setDeadline(commitment.getDeadline());
         response.setStatus(commitment.getStatus());
@@ -263,5 +266,13 @@ public class CommitmentResponse {
     @JsonProperty("isReviewed")
     public void setReviewed(boolean reviewed) {
         isReviewed = reviewed;
+    }
+
+    public CommitmentCategory getCategory() {
+        return category;
+    }
+
+    public void setCategory(CommitmentCategory category) {
+        this.category = category;
     }
 }

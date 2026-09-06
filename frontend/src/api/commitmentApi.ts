@@ -3,6 +3,7 @@ import { request } from './client';
 export type CommitmentStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'PARTIALLY_COMPLETED' | 'MISSED' | 'POSTPONED' | 'CANCELLED';
 export type CommitmentPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 export type CommitmentVisibility = 'PRIVATE' | 'SHARED_WITH_PARTNER';
+export type CommitmentCategory = 'DEEP_WORK' | 'ROUTINE';
 
 export interface Commitment {
   id: string;
@@ -13,6 +14,7 @@ export interface Commitment {
   expectedOutcome?: string;
   estimatedMinutes: number;
   priority: CommitmentPriority;
+  category?: CommitmentCategory;
   commitmentDate: string; // YYYY-MM-DD
   deadline?: string;
   status: CommitmentStatus;
@@ -37,6 +39,7 @@ export interface CreateCommitmentRequest {
   expectedOutcome?: string;
   estimatedMinutes: number;
   priority: CommitmentPriority;
+  category?: CommitmentCategory;
   commitmentDate: string;
   deadline?: string;
   visibility: CommitmentVisibility;
@@ -49,6 +52,7 @@ export interface UpdateCommitmentRequest {
   expectedOutcome?: string;
   estimatedMinutes?: number;
   priority?: CommitmentPriority;
+  category?: CommitmentCategory;
   commitmentDate?: string;
   deadline?: string;
   status?: CommitmentStatus;

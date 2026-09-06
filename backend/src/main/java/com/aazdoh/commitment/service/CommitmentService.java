@@ -63,6 +63,9 @@ public class CommitmentService {
         commitment.setExpectedOutcome(request.getExpectedOutcome());
         commitment.setEstimatedMinutes(request.getEstimatedMinutes());
         commitment.setPriority(request.getPriority());
+        if (request.getCategory() != null) {
+            commitment.setCategory(request.getCategory());
+        }
         commitment.setCommitmentDate(request.getCommitmentDate());
         commitment.setDeadline(request.getDeadline());
         commitment.setStatus(CommitmentStatus.PENDING);
@@ -124,6 +127,9 @@ public class CommitmentService {
         }
         if (request.getPriority() != null) {
             commitment.setPriority(request.getPriority());
+        }
+        if (request.getCategory() != null) {
+            commitment.setCategory(request.getCategory());
         }
         if (request.getCommitmentDate() != null) {
             commitment.setCommitmentDate(request.getCommitmentDate());
@@ -205,6 +211,7 @@ public class CommitmentService {
         next.setExpectedOutcome(original.getExpectedOutcome());
         next.setEstimatedMinutes(original.getEstimatedMinutes());
         next.setPriority(original.getPriority());
+        next.setCategory(original.getCategory());
         next.setCommitmentDate(request.getNewDate());
         next.setVisibility(original.getVisibility());
         next.setStatus(CommitmentStatus.PENDING);

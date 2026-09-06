@@ -36,8 +36,12 @@ public class Commitment extends BaseEntity {
     private int estimatedMinutes = 60;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 30)
     private CommitmentPriority priority = CommitmentPriority.MEDIUM;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private CommitmentCategory category = CommitmentCategory.DEEP_WORK;
 
     @Column(name = "commitment_date", nullable = false)
     private LocalDate commitmentDate;
@@ -211,5 +215,13 @@ public class Commitment extends BaseEntity {
 
     public void setTargetPartnerId(UUID targetPartnerId) {
         this.targetPartnerId = targetPartnerId;
+    }
+
+    public CommitmentCategory getCategory() {
+        return category;
+    }
+
+    public void setCategory(CommitmentCategory category) {
+        this.category = category;
     }
 }
