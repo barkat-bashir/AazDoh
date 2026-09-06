@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "aazdoh": {
+      "command": "node",
+      "args": ["p:/WORKSPACE/ZBS/AazDoh/mcp-server/dist/index.js"],
+      "env": {
+        "AAZDOH_API_KEY": "aazdoh_live_agent_key_placeholder",
+        "AAZDOH_API_URL": "http://localhost:8080"
+      }
+    }
+  }
+}
