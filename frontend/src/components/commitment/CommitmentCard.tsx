@@ -12,7 +12,8 @@ import {
   EyeOff, 
   AlertTriangle,
   RotateCcw,
-  Zap
+  Zap,
+  Pencil
 } from 'lucide-react';
 import { useFocusTimer } from '../../context/FocusTimerContext';
 
@@ -21,6 +22,7 @@ interface CommitmentCardProps {
   onRefresh: () => void;
   onOpenDiscussion: (commitment: Commitment) => void;
   onPostponeClick: (commitment: Commitment) => void;
+  onEditClick?: (commitment: Commitment) => void;
   onReviewClick?: (commitment: Commitment) => void;
 }
 
@@ -29,6 +31,7 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
   onRefresh,
   onOpenDiscussion,
   onPostponeClick,
+  onEditClick,
   onReviewClick,
 }) => {
   const { showToast } = useToast();
@@ -261,6 +264,19 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
                 >
                   <Zap size={13} />
                   <span>Focus ({commitment.estimatedMinutes}m)</span>
+                </button>
+              )}
+
+              {/* Edit button */}
+              {onEditClick && !isCompleted && (
+                <button
+                  onClick={() => onEditClick(commitment)}
+                  className="btn-outline"
+                  style={{ padding: '5px 10px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  title="Edit commitment details"
+                >
+                  <Pencil size={13} />
+                  <span>Edit</span>
                 </button>
               )}
 

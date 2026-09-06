@@ -7,6 +7,7 @@ import com.aazdoh.commitment.dto.PostponeCommitmentRequest;
 import com.aazdoh.commitment.dto.UpdateCommitmentRequest;
 import com.aazdoh.commitment.entity.Commitment;
 import com.aazdoh.commitment.entity.CommitmentStatus;
+import com.aazdoh.commitment.entity.CommitmentVisibility;
 import com.aazdoh.commitment.repository.CommitmentRepository;
 import com.aazdoh.common.exception.BadRequestException;
 import com.aazdoh.common.exception.ResourceNotFoundException;
@@ -120,7 +121,7 @@ public class CommitmentService {
             commitment.setDescription(request.getDescription());
         }
         if (request.getExpectedOutcome() != null) {
-            commitment.setExpectedOutcome(request.getExpectedOutcome());
+            commitment.setExpectedOutcome(request.getExpectedOutcome().isBlank() ? null : request.getExpectedOutcome().trim());
         }
         if (request.getEstimatedMinutes() != null) {
             commitment.setEstimatedMinutes(request.getEstimatedMinutes());
@@ -145,9 +146,14 @@ public class CommitmentService {
         }
         if (request.getVisibility() != null) {
             commitment.setVisibility(request.getVisibility());
+            if (request.getVisibility() == CommitmentVisibility.PRIVATE) {
+                commitment.setTargetPartnerId(null);
+            }
         }
         if (request.getTargetPartnerId() != null) {
             commitment.setTargetPartnerId(request.getTargetPartnerId());
+        } else if (request.getVisibility() == CommitmentVisibility.SHARED_WITH_PARTNER) {
+            commitment.setTargetPartnerId(null);
         }
 
         Commitment updated = commitmentRepository.save(commitment);

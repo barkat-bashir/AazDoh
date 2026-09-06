@@ -4,6 +4,7 @@ import { Commitment, commitmentApi } from '../api/commitmentApi';
 import { DailyProgressHeader } from '../components/commitment/DailyProgressHeader';
 import { CommitmentCard } from '../components/commitment/CommitmentCard';
 import { AddCommitmentModal } from '../components/commitment/AddCommitmentModal';
+import { EditCommitmentModal } from '../components/commitment/EditCommitmentModal';
 import { PostponeCommitmentModal } from '../components/commitment/PostponeCommitmentModal';
 import { DailyReviewModal } from '../components/review/DailyReviewModal';
 import { CommitmentDiscussionModal } from '../components/partnership/CommitmentDiscussionModal';
@@ -61,6 +62,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
 
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingCommitment, setEditingCommitment] = useState<Commitment | null>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [postponingCommitment, setPostponingCommitment] = useState<Commitment | null>(null);
   const [discussionCommitment, setDiscussionCommitment] = useState<Commitment | null>(null);
@@ -179,6 +181,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
         onRefresh={refreshCommitments}
         onOpenDiscussion={handleOpenDiscussion}
         onPostponeClick={handlePostponeClick}
+        onEditClick={(c) => setEditingCommitment(c)}
       />
     );
   }, [unreadCommitmentIds, refreshCommitments, handleOpenDiscussion, handlePostponeClick]);
@@ -636,6 +639,13 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
         onSuccess={refreshCommitments}
         selectedDate={selectedDate}
         onTriggerAiPlanReview={() => handleRunFeasibilityCheck()}
+      />
+
+      <EditCommitmentModal
+        isOpen={!!editingCommitment}
+        commitment={editingCommitment}
+        onClose={() => setEditingCommitment(null)}
+        onSuccess={refreshCommitments}
       />
 
       <PlanStressTestModal
