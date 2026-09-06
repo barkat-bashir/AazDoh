@@ -199,302 +199,249 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Create Daily Commitment"
-      subtitle="What promise are you making to yourself for today?"
-      maxWidth="560px"
+      title="Create Commitment"
+      subtitle="Lock in your promise for today"
+      maxWidth="500px"
     >
       <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        {/* Work Mode / Category Selector */}
-        <div>
-          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-kehwa-cream)', marginBottom: '6px' }}>
-            Work Mode / Type
-          </label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={() => handleCategoryChange('DEEP_WORK')}
-              style={{
-                padding: '10px 12px',
-                borderRadius: 'var(--radius-sm)',
-                border: `1.5px solid ${category === 'DEEP_WORK' ? 'var(--chinar-rust)' : 'var(--border-walnut-faint)'}`,
-                background: category === 'DEEP_WORK' ? 'rgba(192, 83, 48, 0.16)' : 'var(--bg-walnut-card)',
-                color: category === 'DEEP_WORK' ? 'var(--text-kehwa-cream)' : 'var(--text-parchment-muted)',
-                cursor: 'pointer',
-                textAlign: 'left',
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '8px',
-                transition: 'var(--transition-smooth)',
-                boxShadow: category === 'DEEP_WORK' ? '0 0 12px var(--chinar-glow)' : 'none',
-              }}
-            >
-              <Target size={18} color={category === 'DEEP_WORK' ? 'var(--saffron-ember)' : 'var(--text-tweed-dim)'} style={{ marginTop: '2px', flexShrink: 0 }} />
-              <div>
-                <strong style={{ fontSize: '0.88rem', display: 'block', color: category === 'DEEP_WORK' ? 'var(--saffron-ember)' : 'var(--text-kehwa-cream)' }}>
-                  🎯 Deep Focus
-                </strong>
-                <span style={{ fontSize: '0.74rem', color: 'var(--text-tweed-dim)', lineHeight: 1.3, display: 'block', marginTop: '2px' }}>
-                  Intellectual work & Pomodoro sprints
-                </span>
-              </div>
-            </button>
+        
+        {/* Top: Compact Work Mode Segmented Switcher */}
+        <div style={{
+          display: 'flex',
+          background: 'var(--bg-walnut-surface)',
+          padding: '3px',
+          borderRadius: 'var(--radius-sm)',
+          border: '1px solid var(--border-walnut-faint)',
+          gap: '4px',
+        }}>
+          <button
+            type="button"
+            onClick={() => handleCategoryChange('DEEP_WORK')}
+            style={{
+              flex: 1,
+              padding: '7px 10px',
+              borderRadius: '5px',
+              border: 'none',
+              background: category === 'DEEP_WORK' ? 'linear-gradient(135deg, var(--chinar-rust), #8A3016)' : 'transparent',
+              color: category === 'DEEP_WORK' ? '#fff' : 'var(--text-tweed-dim)',
+              fontSize: '0.82rem',
+              fontWeight: category === 'DEEP_WORK' ? 700 : 500,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              transition: 'var(--transition-smooth)',
+              boxShadow: category === 'DEEP_WORK' ? '0 2px 8px var(--chinar-glow)' : 'none',
+            }}
+          >
+            <Target size={14} />
+            <span>🎯 Deep Focus</span>
+          </button>
 
-            <button
-              type="button"
-              onClick={() => handleCategoryChange('ROUTINE')}
-              style={{
-                padding: '10px 12px',
-                borderRadius: 'var(--radius-sm)',
-                border: `1.5px solid ${category === 'ROUTINE' ? 'var(--saffron-ember)' : 'var(--border-walnut-faint)'}`,
-                background: category === 'ROUTINE' ? 'rgba(226, 149, 59, 0.14)' : 'var(--bg-walnut-card)',
-                color: category === 'ROUTINE' ? 'var(--text-kehwa-cream)' : 'var(--text-parchment-muted)',
-                cursor: 'pointer',
-                textAlign: 'left',
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '8px',
-                transition: 'var(--transition-smooth)',
-                boxShadow: category === 'ROUTINE' ? '0 0 12px var(--saffron-glow)' : 'none',
-              }}
-            >
-              <CheckCircle2 size={18} color={category === 'ROUTINE' ? 'var(--saffron-ember)' : 'var(--text-tweed-dim)'} style={{ marginTop: '2px', flexShrink: 0 }} />
-              <div>
-                <strong style={{ fontSize: '0.88rem', display: 'block', color: category === 'ROUTINE' ? 'var(--saffron-ember)' : 'var(--text-kehwa-cream)' }}>
-                  ⚡ Routine / Errand
-                </strong>
-                <span style={{ fontSize: '0.74rem', color: 'var(--text-tweed-dim)', lineHeight: 1.3, display: 'block', marginTop: '2px' }}>
-                  Quick chores, market, habits
-                </span>
-              </div>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => handleCategoryChange('ROUTINE')}
+            style={{
+              flex: 1,
+              padding: '7px 10px',
+              borderRadius: '5px',
+              border: 'none',
+              background: category === 'ROUTINE' ? 'rgba(226, 149, 59, 0.22)' : 'transparent',
+              color: category === 'ROUTINE' ? 'var(--saffron-ember)' : 'var(--text-tweed-dim)',
+              fontSize: '0.82rem',
+              fontWeight: category === 'ROUTINE' ? 700 : 500,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              transition: 'var(--transition-smooth)',
+              borderWidth: category === 'ROUTINE' ? '1px' : '0',
+              borderStyle: 'solid',
+              borderColor: category === 'ROUTINE' ? 'var(--saffron-ember)' : 'transparent',
+            }}
+          >
+            <CheckCircle2 size={14} />
+            <span>⚡ Routine / Errand</span>
+          </button>
         </div>
 
-        {/* Title */}
+        {/* Primary Title Input */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
             <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-kehwa-cream)' }}>
-              {category === 'DEEP_WORK' ? 'Commitment Title *' : 'Task / Errand Description *'}
+              {category === 'DEEP_WORK' ? 'What will you focus on?' : 'Task / Errand Description'}
             </label>
             {!isManuallySelected && activeMatch && (
               <span style={{ fontSize: '0.72rem', color: 'var(--saffron-ember)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
                 <Sparkles size={11} />
-                <span>Auto-detected as {activeMatch === 'DEEP_WORK' ? 'Deep Focus' : 'Routine'}</span>
+                <span>Auto-detected: {activeMatch === 'DEEP_WORK' ? 'Deep Focus' : 'Routine'}</span>
               </span>
             )}
           </div>
           <input
             type="text"
             className="input-field"
-            placeholder={category === 'DEEP_WORK' ? 'e.g. Implement Payment Idempotency Endpoint' : 'e.g. Go to market, haircut, pay electricity bill'}
+            placeholder={category === 'DEEP_WORK' ? 'e.g. Implement Payment Idempotency Endpoint' : 'e.g. Haircut, market groceries, pay bills'}
             value={title}
             onChange={(e) => handleTitleChange(e.target.value)}
             autoFocus
             required
+            style={{ fontSize: '0.96rem', padding: '10px 14px' }}
           />
         </div>
 
-        {/* Definition of Done */}
-        <div>
-          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '5px' }}>
-            Definition of Done / Deliverable <span style={{ color: 'var(--text-tweed-dim)', fontWeight: 400 }}>(Optional)</span>
-          </label>
-          <input
-            type="text"
-            className="input-field"
-            placeholder="e.g. All idempotency integration tests passing in Postman"
-            value={expectedOutcome}
-            onChange={(e) => setExpectedOutcome(e.target.value)}
-          />
-        </div>
-
-        {/* Estimated Focus Time Pills */}
-        <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '6px' }}>
-            <Clock size={13} color="var(--saffron-ember)" />
-            <span>Estimated Focus Time</span>
-          </label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(76px, 1fr))', gap: '6px' }}>
-            {focusOptions.map((opt) => {
-              const isSelected = estimatedMinutes === opt.value;
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setEstimatedMinutes(opt.value)}
-                  style={{
-                    padding: '7px 4px',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.82rem',
-                    fontWeight: isSelected ? 700 : 500,
-                    background: isSelected ? 'var(--chinar-rust)' : 'var(--bg-walnut-card)',
-                    color: isSelected ? '#fff' : 'var(--text-parchment-muted)',
-                    border: `1px solid ${isSelected ? 'var(--chinar-rust)' : 'var(--border-walnut-faint)'}`,
-                    cursor: 'pointer',
-                    transition: 'var(--transition-smooth)',
-                    boxShadow: isSelected ? '0 2px 8px rgba(192, 83, 48, 0.35)' : 'none',
-                  }}
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
+        {/* Definition of Done (Only shown for Deep Work) */}
+        {category === 'DEEP_WORK' && (
+          <div>
+            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-parchment-muted)', marginBottom: '4px' }}>
+              Deliverable / Definition of Done <span style={{ color: 'var(--text-tweed-dim)', fontWeight: 400 }}>(Optional)</span>
+            </label>
+            <input
+              type="text"
+              className="input-field"
+              placeholder="e.g. All unit tests passing & endpoint merged"
+              value={expectedOutcome}
+              onChange={(e) => setExpectedOutcome(e.target.value)}
+              style={{ fontSize: '0.84rem', padding: '8px 12px' }}
+            />
           </div>
-        </div>
+        )}
 
-        {/* Priority Level Pills */}
-        <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '6px' }}>
-            <Flame size={13} color="var(--chinar-rust)" />
-            <span>Priority Level</span>
-          </label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
-            {priorityOptions.map((opt) => {
-              const isSelected = priority === opt.value;
-              const Icon = opt.icon;
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setPriority(opt.value)}
-                  style={{
-                    padding: '7px 4px',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.8rem',
-                    fontWeight: isSelected ? 700 : 500,
-                    background: isSelected ? 'var(--bg-walnut-card-hover)' : 'var(--bg-walnut-card)',
-                    color: isSelected ? opt.color : 'var(--text-tweed-dim)',
-                    border: `1.5px solid ${isSelected ? opt.color : 'var(--border-walnut-faint)'}`,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px',
-                    transition: 'var(--transition-smooth)',
-                  }}
-                >
-                  {Icon && <Icon size={12} color={opt.color} />}
-                  <span>{opt.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Accountability Visibility Cards */}
-        <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '6px' }}>
-            <Shield size={13} color="var(--saffron-ember)" />
-            <span>Accountability Visibility</span>
-          </label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            {/* Share with Partner */}
-            <div
-              onClick={() => setVisibility('SHARED_WITH_PARTNER')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '9px 12px',
-                background: visibility === 'SHARED_WITH_PARTNER' ? 'rgba(192, 83, 48, 0.12)' : 'var(--bg-walnut-card)',
-                border: `1.5px solid ${visibility === 'SHARED_WITH_PARTNER' ? 'var(--chinar-rust)' : 'var(--border-walnut-faint)'}`,
-                borderRadius: 'var(--radius-sm)',
-                cursor: 'pointer',
-                transition: 'var(--transition-smooth)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '0.82rem', fontWeight: 600, color: visibility === 'SHARED_WITH_PARTNER' ? 'var(--text-kehwa-cream)' : 'var(--text-parchment-muted)' }}>
-                <Users size={14} color={visibility === 'SHARED_WITH_PARTNER' ? 'var(--saffron-ember)' : 'var(--text-tweed-dim)'} />
-                <span>Share with Partner</span>
-              </div>
-              {visibility === 'SHARED_WITH_PARTNER' && (
-                <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: 'var(--chinar-rust)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Check size={11} color="#fff" />
-                </div>
-              )}
-            </div>
-
-            {/* Private Only */}
-            <div
-              onClick={() => setVisibility('PRIVATE')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '9px 12px',
-                background: visibility === 'PRIVATE' ? 'rgba(226, 149, 59, 0.12)' : 'var(--bg-walnut-card)',
-                border: `1.5px solid ${visibility === 'PRIVATE' ? 'var(--saffron-ember)' : 'var(--border-walnut-faint)'}`,
-                borderRadius: 'var(--radius-sm)',
-                cursor: 'pointer',
-                transition: 'var(--transition-smooth)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '0.82rem', fontWeight: 600, color: visibility === 'PRIVATE' ? 'var(--text-kehwa-cream)' : 'var(--text-parchment-muted)' }}>
-                <Lock size={14} color={visibility === 'PRIVATE' ? 'var(--saffron-ember)' : 'var(--text-tweed-dim)'} />
-                <span>Private Only</span>
-              </div>
-              {visibility === 'PRIVATE' && (
-                <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: 'var(--saffron-ember)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Check size={11} color="#fff" />
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Targeted Partner Selector */}
-          {visibility === 'SHARED_WITH_PARTNER' && activePartners.length > 0 && (
-            <div style={{ marginTop: '10px', padding: '10px 12px', background: 'var(--bg-walnut-surface)', borderRadius: '8px', border: '1px solid var(--border-walnut-faint)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-kehwa-cream)' }}>
-                  Visible To:
-                </span>
-                <span style={{ fontSize: '0.70rem', color: 'var(--text-parchment-muted)' }}>
-                  {targetPartnerId ? 'Targeted Partner Only' : 'All Connected Partners'}
-                </span>
-              </div>
-              
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  onClick={() => setTargetPartnerId(null)}
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    fontSize: '0.74rem',
-                    border: '1px solid',
-                    borderColor: targetPartnerId === null ? 'var(--saffron-ember)' : 'var(--border-walnut-faint)',
-                    background: targetPartnerId === null ? 'rgba(226, 149, 59, 0.2)' : 'transparent',
-                    color: targetPartnerId === null ? 'var(--saffron-ember)' : 'var(--text-tweed-dim)',
-                    cursor: 'pointer',
-                    fontWeight: targetPartnerId === null ? 700 : 500,
-                  }}
-                >
-                  👥 All Partners
-                </button>
-
-                {activePartners.map(p => (
+        {/* Time & Priority Grid (2 columns side by side) */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          {/* Estimated Time */}
+          <div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '5px' }}>
+              <Clock size={12} color="var(--saffron-ember)" />
+              <span>{category === 'DEEP_WORK' ? 'Focus Duration' : 'Duration'}</span>
+            </label>
+            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+              {focusOptions.map((opt) => {
+                const isSelected = estimatedMinutes === opt.value;
+                return (
                   <button
-                    key={p.id}
+                    key={opt.value}
                     type="button"
-                    onClick={() => setTargetPartnerId(p.id)}
+                    onClick={() => setEstimatedMinutes(opt.value)}
                     style={{
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      fontSize: '0.74rem',
-                      border: '1px solid',
-                      borderColor: targetPartnerId === p.id ? 'var(--chinar-rust)' : 'var(--border-walnut-faint)',
-                      background: targetPartnerId === p.id ? 'rgba(192, 83, 48, 0.2)' : 'transparent',
-                      color: targetPartnerId === p.id ? 'var(--chinar-rust)' : 'var(--text-tweed-dim)',
+                      flex: '1 1 auto',
+                      minWidth: '38px',
+                      padding: '5px 6px',
+                      borderRadius: '5px',
+                      fontSize: '0.76rem',
+                      fontWeight: isSelected ? 700 : 500,
+                      background: isSelected ? 'var(--chinar-rust)' : 'var(--bg-walnut-card)',
+                      color: isSelected ? '#fff' : 'var(--text-parchment-muted)',
+                      border: `1px solid ${isSelected ? 'var(--chinar-rust)' : 'var(--border-walnut-faint)'}`,
                       cursor: 'pointer',
-                      fontWeight: targetPartnerId === p.id ? 700 : 500,
+                      textAlign: 'center',
+                      transition: 'var(--transition-smooth)',
                     }}
                   >
-                    👤 {p.name}
+                    {opt.label}
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
-          )}
+          </div>
+
+          {/* Priority */}
+          <div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-kehwa-cream)', marginBottom: '5px' }}>
+              <Flame size={12} color="var(--chinar-rust)" />
+              <span>Priority</span>
+            </label>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              {priorityOptions.map((opt) => {
+                const isSelected = priority === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setPriority(opt.value)}
+                    style={{
+                      flex: 1,
+                      padding: '5px 4px',
+                      borderRadius: '5px',
+                      fontSize: '0.76rem',
+                      fontWeight: isSelected ? 700 : 500,
+                      background: isSelected ? 'var(--bg-walnut-surface)' : 'var(--bg-walnut-card)',
+                      color: isSelected ? opt.color : 'var(--text-tweed-dim)',
+                      border: `1px solid ${isSelected ? opt.color : 'var(--border-walnut-faint)'}`,
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      transition: 'var(--transition-smooth)',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Accountability Visibility (Compact Single Line) */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '8px 10px',
+          background: 'var(--bg-walnut-surface)',
+          borderRadius: 'var(--radius-sm)',
+          border: '1px solid var(--border-walnut-faint)',
+          fontSize: '0.78rem',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-parchment-muted)' }}>
+            <Shield size={13} color="var(--saffron-ember)" />
+            <span>Accountability:</span>
+          </div>
+
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              type="button"
+              onClick={() => setVisibility('SHARED_WITH_PARTNER')}
+              style={{
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontSize: '0.74rem',
+                fontWeight: visibility === 'SHARED_WITH_PARTNER' ? 700 : 500,
+                background: visibility === 'SHARED_WITH_PARTNER' ? 'rgba(192, 83, 48, 0.25)' : 'transparent',
+                color: visibility === 'SHARED_WITH_PARTNER' ? 'var(--saffron-ember)' : 'var(--text-tweed-dim)',
+                border: `1px solid ${visibility === 'SHARED_WITH_PARTNER' ? 'var(--chinar-rust)' : 'transparent'}`,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <Users size={12} />
+              <span>Partners</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setVisibility('PRIVATE')}
+              style={{
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontSize: '0.74rem',
+                fontWeight: visibility === 'PRIVATE' ? 700 : 500,
+                background: visibility === 'PRIVATE' ? 'rgba(226, 149, 59, 0.2)' : 'transparent',
+                color: visibility === 'PRIVATE' ? 'var(--text-kehwa-cream)' : 'var(--text-tweed-dim)',
+                border: `1px solid ${visibility === 'PRIVATE' ? 'var(--border-copper-subtle)' : 'transparent'}`,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <Lock size={12} />
+              <span>Private</span>
+            </button>
+          </div>
         </div>
 
         {/* Footer Actions */}
@@ -502,21 +449,20 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginTop: '4px',
-          paddingTop: '12px',
+          paddingTop: '8px',
           borderTop: '1px solid var(--border-walnut-faint)',
         }}>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-tweed-dim)' }}>
-            Press <kbd style={{ padding: '1px 4px', borderRadius: '3px', background: 'var(--bg-walnut-card)', border: '1px solid var(--border-walnut-faint)', fontSize: '0.7rem' }}>Ctrl</kbd> + <kbd style={{ padding: '1px 4px', borderRadius: '3px', background: 'var(--bg-walnut-card)', border: '1px solid var(--border-walnut-faint)', fontSize: '0.7rem' }}>Enter</kbd> to save
+            <kbd style={{ padding: '1px 4px', borderRadius: '3px', background: 'var(--bg-walnut-card)', border: '1px solid var(--border-walnut-faint)', fontSize: '0.7rem' }}>Ctrl</kbd> + <kbd style={{ padding: '1px 4px', borderRadius: '3px', background: 'var(--bg-walnut-card)', border: '1px solid var(--border-walnut-faint)', fontSize: '0.7rem' }}>Enter</kbd> to save
           </span>
 
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
             <button
               type="button"
               className="btn-secondary"
               onClick={onClose}
               disabled={loading}
-              style={{ padding: '8px 14px', fontSize: '0.84rem' }}
+              style={{ padding: '7px 12px', fontSize: '0.82rem' }}
             >
               Cancel
             </button>
@@ -524,10 +470,10 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
               type="submit"
               className="btn-primary"
               disabled={loading}
-              style={{ padding: '8px 18px', fontSize: '0.84rem' }}
+              style={{ padding: '7px 16px', fontSize: '0.82rem', fontWeight: 700 }}
             >
-              <Sparkles size={15} />
-              <span>{loading ? 'Committing...' : 'Commit to Today'}</span>
+              <Sparkles size={14} />
+              <span>{loading ? 'Saving...' : 'Commit to Today'}</span>
             </button>
           </div>
         </div>
