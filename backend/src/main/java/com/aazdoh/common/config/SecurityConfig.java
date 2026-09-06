@@ -1,5 +1,6 @@
 package com.aazdoh.common.config;
 
+import com.aazdoh.auth.filter.ApiKeyAuthenticationFilter;
 import com.aazdoh.auth.filter.JwtAuthenticationFilter;
 import com.aazdoh.auth.service.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
@@ -32,10 +33,16 @@ import jakarta.servlet.DispatcherType;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    private final ApiKeyAuthenticationFilter apiKeyAuthFilter;
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final CustomUserDetailsService userDetailsService;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter, CustomUserDetailsService userDetailsService) {
+    public SecurityConfig(
+            ApiKeyAuthenticationFilter apiKeyAuthFilter,
+            JwtAuthenticationFilter jwtAuthFilter,
+            CustomUserDetailsService userDetailsService
+    ) {
+        this.apiKeyAuthFilter = apiKeyAuthFilter;
         this.jwtAuthFilter = jwtAuthFilter;
         this.userDetailsService = userDetailsService;
     }
@@ -62,6 +69,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())
+                .addFilterBefore(apiKeyAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -90,7 +98,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOriginPatterns(List.of("*"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept", "X-API-Key"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
