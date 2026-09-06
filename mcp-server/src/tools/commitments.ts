@@ -238,3 +238,76 @@ export async function handlePostponeCommitment(args: z.infer<typeof postponeComm
     structuredData: result,
   };
 }
+
+export const reopenCommitmentSchema = z.object({
+  id: z.string().uuid("Invalid commitment UUID").describe("The UUID of the postponed commitment to reopen for today"),
+});
+
+export async function handleReopenCommitment(args: z.infer<typeof reopenCommitmentSchema>) {
+  const reopened = await client.post<CommitmentDto>(`/api/v1/commitments/${args.id}/reopen`);
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: `🔄 **Commitment Reopened for Today!**\n- **Title**: ${reopened.title}\n- **ID**: \`${reopened.id}\`\n- **Status**: ${reopened.status}\n- **Duration**: ${reopened.estimatedMinutes}m | Priority: ${reopened.priority}`,
+      },
+    ],
+    structuredData: reopened,
+  };
+}
+
+export const deleteCommitmentSchema = z.object({
+  id: z.string().uuid("Invalid commitment UUID").describe("The UUID of the commitment to delete/drop"),
+});
+
+export async function handleDeleteCommitment(args: z.infer<typeof deleteCommitmentSchema>) {
+  await client.delete<void>(`/api/v1/commitments/${args.id}`);
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: `🗑️ **Commitment Deleted**\n- **ID**: \`${args.id}\``,
+      },
+    ],
+    structuredData: { id: args.id, deleted: true },
+  };
+}
+
+export const getCommitmentsRangeSchema = z.object({
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format must be YYYY-MM-DD").describe("Start date (YYYY-MM-DD)"),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format must be YYYY-MM-DD").describe("End date (YYYY-MM-DD)"),
+});
+
+export async function handleGetCommitmentsRange(args: z.infer<typeof getCommitmentsRangeSchema>) {
+  const list = await client.get<CommitmentDto[]>("/api/v1/commitments/range", {
+    startDate: args.startDate,
+    endDate: args.endDate,
+  });
+
+  const lines = [
+    `# 📅 Commitments Schedule (${args.startDate} to ${args.endDate})`,
+    `**Total Scheduled**: ${list.length} commitments\n`,
+  ];
+
+  if (list.length === 0) {
+    lines.push("No commitments scheduled across this date range.");
+  } else {
+    for (const c of list) {
+      const statusIcon = c.status === "COMPLETED" ? "✅" : c.status === "POSTPONED" ? "⏩" : "⭕";
+      lines.push(`${statusIcon} **${c.commitmentDate}**: **${c.title}** (${c.estimatedMinutes}m) [${c.priority}] - ID: \`${c.id}\` (${c.status})`);
+    }
+  }
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: lines.join("\n"),
+      },
+    ],
+    structuredData: list,
+  };
+}
+

@@ -210,3 +210,113 @@ export async function handleDetectExcuse(args: z.infer<typeof detectExcuseSchema
     structuredData: result,
   };
 }
+
+export interface BehavioralSynthesisDto {
+  summary: string;
+  keyObservations: string[];
+  quickTweak: string;
+  rootCauseDeconstruction?: string;
+  tacticalHabits?: string[];
+  persona: string;
+}
+
+export const getAiInsightsSchema = z.object({});
+
+export async function handleGetAiInsights(_args: z.infer<typeof getAiInsightsSchema>) {
+  const insights = await client.get<BehavioralSynthesisDto>("/api/v1/ai/insights");
+
+  const lines = [
+    `# 🧠 AI Behavioral Synthesis & Growth Diagnostics`,
+    `**Executive Summary**: ${insights.summary}\n`,
+    `### 🔍 Key Observations:`,
+    ...insights.keyObservations.map((obs) => `- ${obs}`),
+    `\n### ⚡ Quick Tweak:`,
+    `> ${insights.quickTweak}`,
+  ];
+
+  if (insights.rootCauseDeconstruction) {
+    lines.push(`\n### 🔬 Root Cause Deconstruction:`);
+    lines.push(insights.rootCauseDeconstruction);
+  }
+
+  if (insights.tacticalHabits && insights.tacticalHabits.length > 0) {
+    lines.push(`\n### 🛠️ Tactical Habits to Adopt:`);
+    lines.push(...insights.tacticalHabits.map((h) => `- ${h}`));
+  }
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: lines.join("\n"),
+      },
+    ],
+    structuredData: insights,
+  };
+}
+
+export const applyOptimizedPlanSchema = z.object({
+  proposals: z
+    .array(
+      z.object({
+        originalCommitmentId: z.string().uuid("Invalid commitment UUID"),
+        suggestedAction: z.enum(["KEEP", "TRIM", "SPLIT", "SHIFT_TO_TOMORROW"]).default("TRIM"),
+        proposedTitle: z.string().optional(),
+        proposedMinutes: z.number().int().optional(),
+        reasoning: z.string().default("Optimized by AI stress test"),
+      })
+    )
+    .describe("List of accepted de-risking proposals from stress_test_plan"),
+});
+
+export async function handleApplyOptimizedPlan(args: z.infer<typeof applyOptimizedPlanSchema>) {
+  const result = await client.post<any[]>("/api/v1/ai/apply-optimized-plan", {
+    acceptedProposals: args.proposals,
+  });
+
+  const lines = [
+    `# ⚡ AI Optimized Plan Applied!`,
+    `Successfully rebalanced **${result.length}** commitments for today.\n`,
+  ];
+
+  for (const c of result) {
+    lines.push(`- **${c.title}** (${c.estimatedMinutes}m) [${c.priority}] - Status: \`${c.status}\``);
+  }
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: lines.join("\n"),
+      },
+    ],
+    structuredData: result,
+  };
+}
+
+export const reviewMissedCommitmentSchema = z.object({
+  commitmentId: z.string().uuid("Invalid commitment UUID").describe("UUID of the missed commitment to deconstruct"),
+});
+
+export async function handleReviewMissedCommitment(args: z.infer<typeof reviewMissedCommitmentSchema>) {
+  const feedback = await client.post<{ feedback: string; persona: string; timestamp: string }>(
+    "/api/v1/ai/review-missed",
+    { commitmentId: args.commitmentId }
+  );
+
+  const lines = [
+    `# 🔬 AI Post-Mortem: Missed Commitment Analysis`,
+    feedback.feedback,
+  ];
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: lines.join("\n"),
+      },
+    ],
+    structuredData: feedback,
+  };
+}
+

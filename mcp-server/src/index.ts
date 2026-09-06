@@ -2,7 +2,6 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { z } from "zod";
 import { getConfig } from "./config.js";
 import {
   getTodayPlanSchema,
@@ -15,6 +14,12 @@ import {
   handleCompleteCommitment,
   postponeCommitmentSchema,
   handlePostponeCommitment,
+  reopenCommitmentSchema,
+  handleReopenCommitment,
+  deleteCommitmentSchema,
+  handleDeleteCommitment,
+  getCommitmentsRangeSchema,
+  handleGetCommitmentsRange,
 } from "./tools/commitments.js";
 import {
   stressTestPlanSchema,
@@ -23,6 +28,12 @@ import {
   handleGetTelemetryStats,
   detectExcuseSchema,
   handleDetectExcuse,
+  getAiInsightsSchema,
+  handleGetAiInsights,
+  applyOptimizedPlanSchema,
+  handleApplyOptimizedPlan,
+  reviewMissedCommitmentSchema,
+  handleReviewMissedCommitment,
 } from "./tools/telemetry.js";
 import {
   getDiscussionThreadSchema,
@@ -30,6 +41,18 @@ import {
   sendPartnerUpdateSchema,
   handleSendPartnerUpdate,
 } from "./tools/discussions.js";
+import {
+  submitReviewSchema,
+  handleSubmitReview,
+  getCommitmentReviewSchema,
+  handleGetCommitmentReview,
+} from "./tools/reviews.js";
+import {
+  getPartnershipsSchema,
+  handleGetPartnerships,
+  getPartnerFeedSchema,
+  handleGetPartnerFeed,
+} from "./tools/partnerships.js";
 
 // Initialize Server Configuration
 const config = getConfig();
@@ -37,7 +60,7 @@ const config = getConfig();
 // Create the MCP Server Instance
 const server = new McpServer({
   name: "aazdoh-mcp",
-  version: "1.0.0",
+  version: "1.0.1",
 });
 
 // 1. Tool: get_today_plan
@@ -125,7 +148,58 @@ server.tool(
   }
 );
 
-// 6. Tool: stress_test_plan
+// 6. Tool: reopen_commitment
+server.tool(
+  "reopen_commitment",
+  "Reopen a postponed commitment back to today's active pending list.",
+  reopenCommitmentSchema.shape,
+  async (args) => {
+    try {
+      return await handleReopenCommitment(args);
+    } catch (err: any) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `Error reopening commitment: ${err.message}` }],
+      };
+    }
+  }
+);
+
+// 7. Tool: delete_commitment
+server.tool(
+  "delete_commitment",
+  "Delete or drop a commitment from your schedule.",
+  deleteCommitmentSchema.shape,
+  async (args) => {
+    try {
+      return await handleDeleteCommitment(args);
+    } catch (err: any) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `Error deleting commitment: ${err.message}` }],
+      };
+    }
+  }
+);
+
+// 8. Tool: get_commitments_range
+server.tool(
+  "get_commitments_range",
+  "Fetch commitments scheduled across a multi-day or weekly date range.",
+  getCommitmentsRangeSchema.shape,
+  async (args) => {
+    try {
+      return await handleGetCommitmentsRange(args);
+    } catch (err: any) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `Error fetching commitments range: ${err.message}` }],
+      };
+    }
+  }
+);
+
+// 9. Tool: stress_test_plan
 server.tool(
   "stress_test_plan",
   "Run AI Chief of Staff 60-second plan feasibility stress-test. Calculates risk index and provides de-risked proposals.",
@@ -142,24 +216,58 @@ server.tool(
   }
 );
 
-// 7. Tool: get_telemetry_stats
+// 10. Tool: apply_optimized_plan
 server.tool(
-  "get_telemetry_stats",
-  "Retrieve cognitive telemetry, historical velocity, streak metrics, and deep focus time stats.",
-  getTelemetryStatsSchema.shape,
+  "apply_optimized_plan",
+  "Apply AI-optimized task splits, trims, and adjustments directly to today's commitments.",
+  applyOptimizedPlanSchema.shape,
   async (args) => {
     try {
-      return await handleGetTelemetryStats(args);
+      return await handleApplyOptimizedPlan(args);
     } catch (err: any) {
       return {
         isError: true,
-        content: [{ type: "text", text: `Error fetching telemetry: ${err.message}` }],
+        content: [{ type: "text", text: `Error applying optimized plan: ${err.message}` }],
       };
     }
   }
 );
 
-// 8. Tool: detect_excuse
+// 11. Tool: get_ai_insights
+server.tool(
+  "get_ai_insights",
+  "Fetch synthesized AI behavioral patterns, cognitive bottleneck diagnosis, and personalized tactical habits.",
+  getAiInsightsSchema.shape,
+  async (args) => {
+    try {
+      return await handleGetAiInsights(args);
+    } catch (err: any) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `Error fetching AI insights: ${err.message}` }],
+      };
+    }
+  }
+);
+
+// 12. Tool: review_missed_commitment
+server.tool(
+  "review_missed_commitment",
+  "Run an instant AI post-mortem on a missed or stalled commitment to pinpoint friction and pivots.",
+  reviewMissedCommitmentSchema.shape,
+  async (args) => {
+    try {
+      return await handleReviewMissedCommitment(args);
+    } catch (err: any) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `Error reviewing missed commitment: ${err.message}` }],
+      };
+    }
+  }
+);
+
+// 13. Tool: detect_excuse
 server.tool(
   "detect_excuse",
   "AI Anti-Self-Deception Mirror: Evaluate an excuse or rationalization against historical receipts to detect avoidance patterns.",
@@ -176,7 +284,92 @@ server.tool(
   }
 );
 
-// 9. Tool: get_discussion_thread
+// 14. Tool: get_telemetry_stats
+server.tool(
+  "get_telemetry_stats",
+  "Retrieve cognitive telemetry, historical velocity, streak metrics, and deep focus time stats.",
+  getTelemetryStatsSchema.shape,
+  async (args) => {
+    try {
+      return await handleGetTelemetryStats(args);
+    } catch (err: any) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `Error fetching telemetry: ${err.message}` }],
+      };
+    }
+  }
+);
+
+// 15. Tool: submit_review
+server.tool(
+  "submit_review",
+  "Submit end-of-day commitment review, retrospective reflection, and failure root-cause categorization.",
+  submitReviewSchema.shape,
+  async (args) => {
+    try {
+      return await handleSubmitReview(args);
+    } catch (err: any) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `Error submitting review: ${err.message}` }],
+      };
+    }
+  }
+);
+
+// 16. Tool: get_commitment_review
+server.tool(
+  "get_commitment_review",
+  "Inspect the submitted review and reflection record for a commitment.",
+  getCommitmentReviewSchema.shape,
+  async (args) => {
+    try {
+      return await handleGetCommitmentReview(args);
+    } catch (err: any) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `Error fetching commitment review: ${err.message}` }],
+      };
+    }
+  }
+);
+
+// 17. Tool: get_partnerships
+server.tool(
+  "get_partnerships",
+  "List active accountability partnerships and peer connection details.",
+  getPartnershipsSchema.shape,
+  async (args) => {
+    try {
+      return await handleGetPartnerships(args);
+    } catch (err: any) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `Error fetching partnerships: ${err.message}` }],
+      };
+    }
+  }
+);
+
+// 18. Tool: get_partner_feed
+server.tool(
+  "get_partner_feed",
+  "View an accountability partner's daily commitment feed, completion progress, and AI risk brief.",
+  getPartnerFeedSchema.shape,
+  async (args) => {
+    try {
+      return await handleGetPartnerFeed(args);
+    } catch (err: any) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `Error fetching partner feed: ${err.message}` }],
+      };
+    }
+  }
+);
+
+// 19. Tool: get_discussion_thread
 server.tool(
   "get_discussion_thread",
   "Fetch peer accountability discussion messages and proof-of-work updates for a commitment.",
@@ -193,7 +386,7 @@ server.tool(
   }
 );
 
-// 10. Tool: send_partner_update
+// 20. Tool: send_partner_update
 server.tool(
   "send_partner_update",
   "Post an update, proof of completion, or question to a commitment's accountability partner discussion thread.",
