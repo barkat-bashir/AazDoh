@@ -1,6 +1,16 @@
 import { z } from "zod";
 import { client } from "../client.js";
 
+export interface OptimizedTaskProposalDto {
+  originalCommitmentId: string;
+  currentTitle?: string;
+  currentMinutes?: number;
+  suggestedAction: "KEEP" | "TRIM" | "SPLIT" | "SHIFT_TO_TOMORROW" | string;
+  proposedTitle?: string;
+  proposedMinutes?: number;
+  reasoning: string;
+}
+
 export interface PlanStressTestResponseDto {
   riskScore: number;
   riskLevel: string;
@@ -8,16 +18,11 @@ export interface PlanStressTestResponseDto {
   plannedHours: number;
   optimizedHours: number;
   historicalCapacityHours: number;
-  proposedOptimizations?: Array<{
-    commitmentId: string;
-    action: "KEEP" | "TRIM_DURATION" | "SPLIT" | "POSTPONE" | "DROP";
-    suggestedMinutes: number;
-    reasoning: string;
-  }>;
+  proposedOptimizations?: OptimizedTaskProposalDto[];
   validated: boolean;
   defenseFeedback?: string;
   persona?: string;
-  timestamp: string;
+  timestamp?: string;
 }
 
 export interface AccountabilityStatsResponseDto {
@@ -36,13 +41,24 @@ export interface AccountabilityStatsResponseDto {
   }>;
 }
 
+export interface HistoricalExcuseReceiptDto {
+  date: string;
+  taskTitle: string;
+  pastExcuse: string;
+  eventualOutcome: string;
+}
+
 export interface ExcuseAnalysisResponseDto {
-  validityScore: number;
-  verdict: string;
-  historicalPatternDetected: boolean;
-  patternName?: string;
-  realityCheck: string;
-  constructiveAlternative: string;
+  patternDetected: boolean;
+  patternType?: string;
+  repetitionCount?: number;
+  similarityScore?: number;
+  mirrorCallout: string;
+  receipts?: HistoricalExcuseReceiptDto[];
+  suggestedMicroMinutes?: number;
+  microActionTitle?: string;
+  persona?: string;
+  timestamp?: string;
 }
 
 export const stressTestPlanSchema = z.object({
@@ -86,7 +102,9 @@ export async function handleStressTestPlan(args: z.infer<typeof stressTestPlanSc
   if (test.proposedOptimizations && test.proposedOptimizations.length > 0) {
     lines.push(`### 🛡️ Recommended De-Risking Proposals:`);
     for (const p of test.proposedOptimizations) {
-      lines.push(`- **Action: \`${p.action}\`** (Target: ${p.suggestedMinutes}m) -> Commitment ID: \`${p.commitmentId}\``);
+      const title = p.proposedTitle || p.currentTitle || "Task";
+      const minutes = p.proposedMinutes !== undefined ? p.proposedMinutes : p.currentMinutes;
+      lines.push(`- **Action: \`${p.suggestedAction}\`** (${title} -> ${minutes}m) [ID: \`${p.originalCommitmentId}\`]`);
       lines.push(`  _Rationale: ${p.reasoning}_`);
     }
   }
@@ -163,13 +181,24 @@ export async function handleDetectExcuse(args: z.infer<typeof detectExcuseSchema
 
   const lines = [
     `# 🪞 AI Anti-Self-Deception Reality Check`,
-    `**Verdict**: ${result.verdict} (Validity Score: ${result.validityScore}/100)`,
-    result.historicalPatternDetected ? `⚠️ **Historical Habit Pattern Identified**: _${result.patternName || "Recurring avoidance"}_` : "",
-    `\n**Receipt Analysis**:`,
-    result.realityCheck,
-    `\n**Constructive Path Forward**:`,
-    result.constructiveAlternative,
-  ].filter(Boolean);
+    result.patternDetected
+      ? `⚠️ **Pattern Detected**: _${result.patternType || "Recurring Avoidance"}_ (Repeated ${result.repetitionCount || 1}x, Similarity: ${result.similarityScore || 0}%)`
+      : `✅ **No Chronic Deception Pattern Detected**`,
+    `\n**Mirror Feedback**:`,
+    result.mirrorCallout || "No feedback generated.",
+  ];
+
+  if (result.microActionTitle) {
+    lines.push(`\n**Suggested Micro-Action**:`);
+    lines.push(`> "${result.microActionTitle}" (${result.suggestedMicroMinutes || 15}m commitment)`);
+  }
+
+  if (result.receipts && result.receipts.length > 0) {
+    lines.push(`\n### 📜 Past Receipts:`);
+    for (const r of result.receipts) {
+      lines.push(`- **${r.date}** on "${r.taskTitle}": _"${r.pastExcuse}"_ -> Outcome: \`${r.eventualOutcome}\``);
+    }
+  }
 
   return {
     content: [

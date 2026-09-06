@@ -3,19 +3,18 @@ import { client } from "../client.js";
 
 export interface DiscussionMessageDto {
   id: string;
-  senderId: string;
-  senderFullName: string;
-  content: string;
-  readAt?: string;
+  authorId: string;
+  authorFullName: string;
+  message: string;
   createdAt: string;
 }
 
 export interface DiscussionResponseDto {
   id: string;
   commitmentId: string;
-  commitmentTitle: string;
-  ownerId: string;
-  ownerFullName: string;
+  commitmentTitle?: string;
+  ownerId?: string;
+  ownerFullName?: string;
   messages: DiscussionMessageDto[];
 }
 
@@ -29,16 +28,19 @@ export async function handleGetDiscussionThread(args: z.infer<typeof getDiscussi
   );
 
   const lines = [
-    `# 💬 Partner Discussion: "${discussion.commitmentTitle}"`,
-    `**Owner**: ${discussion.ownerFullName} | Commitment ID: \`${discussion.commitmentId}\`\n`,
+    `# 💬 Partner Discussion: "${discussion.commitmentTitle || "Commitment"}"`,
+    `**Commitment ID**: \`${discussion.commitmentId}\`\n`,
   ];
 
   if (!discussion.messages || discussion.messages.length === 0) {
     lines.push("No messages exchanged yet in this thread.");
   } else {
     for (const msg of discussion.messages) {
-      lines.push(`**${msg.senderFullName}** (${new Date(msg.createdAt).toLocaleTimeString()}):`);
-      lines.push(`> ${msg.content}\n`);
+      const sender = msg.authorFullName || "Partner";
+      const body = msg.message || "";
+      const timeStr = msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString() : "";
+      lines.push(`**${sender}** (${timeStr}):`);
+      lines.push(`> ${body}\n`);
     }
   }
 
@@ -61,14 +63,17 @@ export const sendPartnerUpdateSchema = z.object({
 export async function handleSendPartnerUpdate(args: z.infer<typeof sendPartnerUpdateSchema>) {
   const msg = await client.post<DiscussionMessageDto>(
     `/api/v1/commitments/${args.commitmentId}/discussion/messages`,
-    { content: args.message }
+    { message: args.message }
   );
+
+  const sender = msg.authorFullName || "You";
+  const body = msg.message || args.message;
 
   return {
     content: [
       {
         type: "text" as const,
-        text: `📤 **Message Posted to Commitment Thread**\n- **Sender**: ${msg.senderFullName}\n- **Time**: ${msg.createdAt}\n- **Message**: "${msg.content}"`,
+        text: `📤 **Message Posted to Commitment Thread**\n- **Sender**: ${sender}\n- **Time**: ${msg.createdAt || new Date().toISOString()}\n- **Message**: "${body}"`,
       },
     ],
     structuredData: msg,

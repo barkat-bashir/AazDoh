@@ -14,7 +14,7 @@ export interface CommitmentDto {
   commitmentDate: string;
   deadline?: string;
   status: "PENDING" | "ACTIVE" | "COMPLETED" | "POSTPONED" | "CANCELLED";
-  visibility: "PRIVATE" | "MUTUAL";
+  visibility: "PRIVATE" | "SHARED_WITH_PARTNER" | "MUTUAL";
   targetPartnerId?: string;
   targetPartnerName?: string;
   postponementCount?: number;
@@ -105,31 +105,45 @@ export const createCommitmentSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Format must be YYYY-MM-DD")
     .optional()
     .describe("Date to schedule for (YYYY-MM-DD). Defaults to today."),
+  commitmentDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Format must be YYYY-MM-DD")
+    .optional()
+    .describe("Date to schedule for (YYYY-MM-DD). Alias for targetDate."),
   expectedOutcome: z
     .string()
     .optional()
     .describe("Observable Definition of Done / Expected outcome to prevent ambiguity"),
   visibility: z
-    .enum(["PRIVATE", "MUTUAL"])
+    .enum(["PRIVATE", "SHARED_WITH_PARTNER", "MUTUAL"])
     .default("PRIVATE")
     .describe("Whether this commitment is private or shared with peer partner"),
   partnerId: z
     .string()
     .uuid()
     .optional()
-    .describe("Specific accountability partner UUID if visibility is MUTUAL"),
+    .describe("Specific accountability partner UUID if visibility is shared"),
+  targetPartnerId: z
+    .string()
+    .uuid()
+    .optional()
+    .describe("Specific accountability partner UUID. Alias for partnerId"),
 });
 
 export async function handleCreateCommitment(args: z.infer<typeof createCommitmentSchema>) {
+  const targetDate = args.commitmentDate || args.targetDate || new Date().toISOString().split("T")[0];
+  const visibility = args.visibility === "MUTUAL" ? "SHARED_WITH_PARTNER" : (args.visibility || "PRIVATE");
+  const targetPartnerId = args.targetPartnerId || args.partnerId;
+
   const payload = {
     title: args.title,
     category: args.category || "DEEP_WORK",
     priority: args.priority || "HIGH",
     estimatedMinutes: args.estimatedMinutes || 30,
-    targetDate: args.targetDate,
+    commitmentDate: targetDate,
     expectedOutcome: args.expectedOutcome,
-    visibility: args.visibility || "PRIVATE",
-    partnerId: args.partnerId,
+    visibility,
+    targetPartnerId,
   };
 
   const created = await client.post<CommitmentDto>("/api/v1/commitments", payload);
@@ -155,12 +169,17 @@ export const updateCommitmentSchema = z.object({
   priority: z.enum(["URGENT", "HIGH", "MEDIUM", "LOW"]).optional().describe("Updated priority"),
   estimatedMinutes: z.number().int().min(1).max(720).optional().describe("Updated estimated duration in minutes"),
   expectedOutcome: z.string().optional().describe("Updated definition of done"),
-  visibility: z.enum(["PRIVATE", "MUTUAL"]).optional().describe("Updated visibility"),
+  visibility: z.enum(["PRIVATE", "SHARED_WITH_PARTNER", "MUTUAL"]).optional().describe("Updated visibility"),
+  commitmentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format must be YYYY-MM-DD").optional().describe("Updated date (YYYY-MM-DD)"),
 });
 
 export async function handleUpdateCommitment(args: z.infer<typeof updateCommitmentSchema>) {
-  const { id, ...updates } = args;
-  const updated = await client.patch<CommitmentDto>(`/api/v1/commitments/${id}`, updates);
+  const { id, visibility, ...updates } = args;
+  const payload: Record<string, unknown> = { ...updates };
+  if (visibility) {
+    payload.visibility = visibility === "MUTUAL" ? "SHARED_WITH_PARTNER" : visibility;
+  }
+  const updated = await client.patch<CommitmentDto>(`/api/v1/commitments/${id}`, payload);
 
   return {
     content: [
@@ -178,7 +197,7 @@ export const completeCommitmentSchema = z.object({
 });
 
 export async function handleCompleteCommitment(args: z.infer<typeof completeCommitmentSchema>) {
-  const completed = await client.patch<CommitmentDto>(`/api/v1/commitments/${args.id}/complete`);
+  const completed = await client.post<CommitmentDto>(`/api/v1/commitments/${args.id}/complete`);
 
   return {
     content: [
