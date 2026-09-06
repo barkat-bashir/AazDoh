@@ -25,11 +25,4 @@ public interface FocusSprintRepository extends JpaRepository<FocusSprint, UUID> 
             @Param("userId") UUID userId,
             @Param("commitmentId") UUID commitmentId
     );
-
-    @Query("SELECT COUNT(s) FROM FocusSprint s WHERE s.user.id = :userId AND s.status = 'COMPLETED' AND s.mode = 'FOCUS' AND s.startedAt BETWEEN :startDate AND :endDate")
-    long countCompletedFocusSprints(
-            @Param("userId") UUID userId,
-            @Param("startDate") OffsetDateTime startDate,
-            @Param("endDate") OffsetDateTime endDate
-    );
 }

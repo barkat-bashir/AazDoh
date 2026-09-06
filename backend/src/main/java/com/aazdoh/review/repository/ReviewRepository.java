@@ -1,7 +1,6 @@
 package com.aazdoh.review.repository;
 
 import com.aazdoh.review.entity.CommitmentReview;
-import com.aazdoh.review.entity.FailureReason;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

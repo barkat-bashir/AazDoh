@@ -30,7 +30,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -318,13 +317,6 @@ public class PartnershipService {
         }
 
         return overview;
-    }
-
-    public boolean areActivePartners(UUID user1, UUID user2) {
-        if (user1.equals(user2)) return true;
-        return partnershipRepository.findActiveBetween(user1, user2)
-                .map(p -> p.getStatus() == PartnershipStatus.ACCEPTED)
-                .orElse(false);
     }
 
     private AccountabilityPartnership findPartnership(UUID partnershipId) {

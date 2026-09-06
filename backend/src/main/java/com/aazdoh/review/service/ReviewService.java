@@ -5,7 +5,6 @@ import com.aazdoh.commitment.entity.Commitment;
 import com.aazdoh.commitment.entity.CommitmentStatus;
 import com.aazdoh.commitment.repository.CommitmentRepository;
 import com.aazdoh.commitment.service.CommitmentService;
-import com.aazdoh.common.exception.BadRequestException;
 import com.aazdoh.common.exception.ResourceNotFoundException;
 import com.aazdoh.review.dto.ReviewCommitmentRequest;
 import com.aazdoh.review.dto.ReviewResponse;

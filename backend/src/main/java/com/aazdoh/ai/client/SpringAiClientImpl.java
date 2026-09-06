@@ -61,6 +61,15 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
         this.chatClient = chatClient;
     }
 
+    private String readResource(Resource resource) {
+        if (resource == null) return "";
+        try {
+            return resource.getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     private String getPersonaName(AiPersona persona) {
         return persona != null ? persona.name() : "BALANCED";
     }
@@ -82,17 +91,17 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
         try {
             return chatClient.prompt()
                     .system(s -> s.text(stressTestSystemPrompt)
-                            .param("personaRules", personaRulesPrompt)
+                            .param("personaRules", readResource(personaRulesPrompt))
                             .param("persona", getPersonaName(persona)))
                     .user(u -> u.text(stressTestUserPrompt)
                             .param("userName", context.getUserFullName() != null ? context.getUserFullName() : "User")
                             .param("capacityHours", String.format("%.1f", avgHoursLast7Days))
                             .param("completionRate", String.format("%.1f", context.getCompletionRateLast7Days()))
-                            .param("completedTasks", context.getCompletedCommitmentsLast7Days())
-                            .param("totalTasks", context.getTotalCommitmentsLast7Days())
+                            .param("completedTasks", String.valueOf(context.getCompletedCommitmentsLast7Days()))
+                            .param("totalTasks", String.valueOf(context.getTotalCommitmentsLast7Days()))
                             .param("repeatedlyPostponed", context.getRepeatedlyPostponedTitles().isEmpty() ? "None" : String.join(", ", context.getRepeatedlyPostponedTitles()))
                             .param("plannedHours", String.format("%.1f", totalHours))
-                            .param("taskCount", todaysCommitments.size())
+                            .param("taskCount", String.valueOf(todaysCommitments.size()))
                             .param("commitmentsList", commitmentListStr)
                             .param("riskScore", totalHours > avgHoursLast7Days ? "75" : "25")
                             .param("riskLevel", totalHours > avgHoursLast7Days ? "HIGH" : "LOW"))
@@ -113,12 +122,12 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
         try {
             return chatClient.prompt()
                     .system(s -> s.text(missedAnalysisSystemPrompt)
-                            .param("personaRules", personaRulesPrompt)
+                            .param("personaRules", readResource(personaRulesPrompt))
                             .param("persona", getPersonaName(persona)))
                     .user(u -> u.text(missedAnalysisUserPrompt)
                             .param("userName", context.getUserFullName() != null ? context.getUserFullName() : "User")
                             .param("title", commitment.getTitle())
-                            .param("estimatedMinutes", commitment.getEstimatedMinutes())
+                            .param("estimatedMinutes", String.valueOf(commitment.getEstimatedMinutes()))
                             .param("priority", commitment.getPriority() != null ? commitment.getPriority().name() : "MEDIUM")
                             .param("reason", reason != null ? reason : "Unspecified")
                             .param("reflection", reflection != null && !reflection.isBlank() ? reflection : "No detailed reflection provided")
@@ -147,13 +156,13 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
         try {
             BehavioralSynthesisDto result = chatClient.prompt()
                     .system(s -> s.text(behavioralInsightsSystemPrompt)
-                            .param("personaRules", personaRulesPrompt)
+                            .param("personaRules", readResource(personaRulesPrompt))
                             .param("persona", getPersonaName(persona)))
                     .user(u -> u.text(behavioralInsightsUserPrompt)
                             .param("userName", context.getUserFullName() != null ? context.getUserFullName() : "User")
                             .param("completionRate", String.format("%.1f", context.getCompletionRateLast7Days()))
-                            .param("totalCommitments", context.getTotalCommitmentsLast7Days())
-                            .param("completedCommitments", context.getCompletedCommitmentsLast7Days())
+                            .param("totalCommitments", String.valueOf(context.getTotalCommitmentsLast7Days()))
+                            .param("completedCommitments", String.valueOf(context.getCompletedCommitmentsLast7Days()))
                             .param("avgDailyHours", String.format("%.1f", context.getAvgDailyFocusMinutesLast7Days() / 60.0))
                             .param("topFailureReasons", context.getTopFailureReasons() != null ? context.getTopFailureReasons().toString() : "None")
                             .param("repeatedlyPostponed", context.getRepeatedlyPostponedTitles().isEmpty() ? "None" : String.join(", ", context.getRepeatedlyPostponedTitles()))
@@ -305,17 +314,17 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
             try {
                 String aiSummary = chatClient.prompt()
                         .system(s -> s.text(stressTestSystemPrompt)
-                                .param("personaRules", personaRulesPrompt)
+                                .param("personaRules", readResource(personaRulesPrompt))
                                 .param("persona", getPersonaName(persona)))
                         .user(u -> u.text(stressTestUserPrompt)
                                 .param("userName", context.getUserFullName() != null ? context.getUserFullName() : "User")
                                 .param("capacityHours", String.format("%.1f", capacityHours))
                                 .param("completionRate", String.format("%.1f", context.getCompletionRateLast7Days()))
-                                .param("completedTasks", context.getCompletedCommitmentsLast7Days())
-                                .param("totalTasks", context.getTotalCommitmentsLast7Days())
+                                .param("completedTasks", String.valueOf(context.getCompletedCommitmentsLast7Days()))
+                                .param("totalTasks", String.valueOf(context.getTotalCommitmentsLast7Days()))
                                 .param("repeatedlyPostponed", context.getRepeatedlyPostponedTitles().isEmpty() ? "None" : String.join(", ", context.getRepeatedlyPostponedTitles()))
                                 .param("plannedHours", String.format("%.1f", plannedHours))
-                                .param("taskCount", todaysCommitments.size())
+                                .param("taskCount", String.valueOf(todaysCommitments.size()))
                                 .param("commitmentsList", commitmentListStr)
                                 .param("riskScore", String.valueOf(calculatedRisk))
                                 .param("riskLevel", response.getRiskLevel()))
@@ -384,7 +393,7 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
             try {
                 String aiMirror = chatClient.prompt()
                         .system(s -> s.text(excuseMirrorSystemPrompt)
-                                .param("personaRules", personaRulesPrompt)
+                                .param("personaRules", readResource(personaRulesPrompt))
                                 .param("persona", getPersonaName(persona)))
                         .user(u -> u.text(excuseMirrorUserPrompt)
                                 .param("userName", context.getUserFullName() != null ? context.getUserFullName() : "User")

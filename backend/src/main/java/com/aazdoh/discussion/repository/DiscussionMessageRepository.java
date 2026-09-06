@@ -15,14 +15,6 @@ import java.util.UUID;
 public interface DiscussionMessageRepository extends JpaRepository<DiscussionMessage, UUID> {
     List<DiscussionMessage> findByDiscussionIdOrderByCreatedAtAsc(UUID discussionId);
 
-    @Query("SELECT COUNT(m) FROM DiscussionMessage m JOIN m.discussion d JOIN d.commitment c " +
-           "WHERE m.author.id != :userId AND m.readAt IS NULL " +
-           "AND (c.user.id = :userId OR c.targetPartnerId = :userId " +
-           "     OR EXISTS (SELECT 1 FROM AccountabilityPartnership ap WHERE ap.status = 'ACCEPTED' " +
-           "                AND ((ap.requester.id = :userId AND ap.partner.id = c.user.id) " +
-           "                     OR (ap.partner.id = :userId AND ap.requester.id = c.user.id))))")
-    long countUnreadMessagesForUser(@Param("userId") UUID userId);
-
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE DiscussionMessage m SET m.readAt = :now WHERE m.discussion.id = :discussionId AND m.author.id != :userId AND m.readAt IS NULL")
     int markDiscussionAsRead(@Param("discussionId") UUID discussionId, @Param("userId") UUID userId, @Param("now") OffsetDateTime now);

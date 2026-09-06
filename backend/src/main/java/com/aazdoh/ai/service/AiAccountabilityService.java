@@ -157,33 +157,6 @@ public class AiAccountabilityService {
 
     @Async
     @Transactional(readOnly = true)
-    public CompletableFuture<AiFeedbackResponse> getBehavioralInsightsAsync(UUID userId) {
-        return getBehavioralSynthesisAsync(userId).thenApply(synthesis ->
-                new AiFeedbackResponse(synthesis.summary(), synthesis.persona())
-        );
-    }
-
-    @Async
-    @Transactional
-    public void evolveBehavioralMemoryAsync(UUID userId) {
-        try {
-            User user = userService.findUserById(userId);
-            UserExecutionStats stats = statsService.getOrComputeStats(userId);
-            String priorSynthesis = stats.getBehavioralSynthesisJson();
-
-            UserAccountabilityContextDto context = contextBuilder.buildContext(userId);
-            BehavioralSynthesisDto newSynthesis = aiClient.generateBehavioralSynthesis(context, priorSynthesis, user.getAiPersona());
-
-            String json = objectMapper.writeValueAsString(newSynthesis);
-            statsService.updateBehavioralSynthesis(userId, json);
-            aiInteractionRepository.save(new AiInteraction(user, "BEHAVIORAL_MEMORY_EVOLUTION", "Delta Synthesis Evolution", newSynthesis.summary()));
-        } catch (Exception e) {
-            log.warn("Failed to evolve behavioral memory asynchronously for user {}", userId, e);
-        }
-    }
-
-    @Async
-    @Transactional(readOnly = true)
     public CompletableFuture<PlanStressTestResponse> stressTestPlanAsync(UUID userId, PlanStressTestRequest request) {
         User user = userService.findUserById(userId);
         LocalDate targetDate = request != null && request.getDate() != null ? request.getDate() : LocalDate.now();
