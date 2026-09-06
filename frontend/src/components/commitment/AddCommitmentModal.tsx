@@ -4,7 +4,7 @@ import { commitmentApi, CommitmentCategory, CommitmentPriority, CommitmentVisibi
 import { partnershipApi } from '../../api/partnershipApi';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { Sparkles, Clock, Shield, Flame, Users, Lock, Target, Zap, Plus, X, ChevronDown } from 'lucide-react';
+import { Sparkles, Clock, Shield, Flame, Users, Lock, Target, Zap, Plus, X, ChevronDown, Check } from 'lucide-react';
 import { getLocalTodayStr } from '../../utils/dateUtils';
 
 interface AddCommitmentModalProps {
@@ -374,7 +374,16 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
           background: 'rgba(26, 17, 13, 0.5)',
           borderTop: '1px solid var(--border-walnut-faint)',
           flexWrap: 'wrap',
+          position: 'relative',
         }}>
+          {/* Click-away overlay for active popover */}
+          {activeMenu !== null && (
+            <div
+              style={{ position: 'fixed', inset: 0, zIndex: 90 }}
+              onClick={() => setActiveMenu(null)}
+            />
+          )}
+
           {/* 1. Duration Chip with Popover */}
           <div style={{ position: 'relative' }}>
             <button
@@ -403,14 +412,14 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
             {activeMenu === 'duration' && (
               <div style={{
                 position: 'absolute',
-                bottom: '125%',
+                top: 'calc(100% + 6px)',
                 left: 0,
                 zIndex: 100,
                 background: 'var(--bg-walnut-card)',
                 border: '1px solid var(--border-walnut-faint)',
                 borderRadius: '8px',
                 padding: '6px',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
                 display: 'flex',
                 gap: '4px',
                 minWidth: '250px',
@@ -467,14 +476,14 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
             {activeMenu === 'priority' && (
               <div style={{
                 position: 'absolute',
-                bottom: '125%',
+                top: 'calc(100% + 6px)',
                 left: 0,
                 zIndex: 100,
                 background: 'var(--bg-walnut-card)',
                 border: '1px solid var(--border-walnut-faint)',
                 borderRadius: '8px',
                 padding: '6px',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
                 display: 'flex',
                 gap: '4px',
               }}>
@@ -524,24 +533,50 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
             >
               {visibility === 'PRIVATE' ? <Lock size={13} /> : <Users size={13} />}
               <span>{visibilityLabel}</span>
-              <ChevronDown size={12} opacity={0.6} />
+              
+              {/* If not private, show a quick X button to reset back to private immediately */}
+              {visibility !== 'PRIVATE' ? (
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setVisibility('PRIVATE');
+                    setTargetPartnerId(null);
+                    setActiveMenu(null);
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    padding: '2px',
+                    borderRadius: '50%',
+                    color: 'var(--text-tweed-dim)',
+                    marginLeft: '2px',
+                  }}
+                  title="Reset to Private"
+                >
+                  <X size={12} />
+                </span>
+              ) : (
+                <ChevronDown size={12} opacity={0.6} />
+              )}
             </button>
 
             {activeMenu === 'visibility' && (
               <div style={{
                 position: 'absolute',
-                bottom: '125%',
+                top: 'calc(100% + 6px)',
                 left: 0,
                 zIndex: 100,
                 background: 'var(--bg-walnut-card)',
                 border: '1px solid var(--border-walnut-faint)',
                 borderRadius: '8px',
                 padding: '6px',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '4px',
-                minWidth: '220px',
+                minWidth: '230px',
+                maxHeight: '220px',
+                overflowY: 'auto',
               }}>
                 {/* Option 1: Private */}
                 <button
@@ -554,7 +589,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px',
+                    justifyContent: 'space-between',
                     padding: '7px 10px',
                     borderRadius: '5px',
                     fontSize: '0.78rem',
@@ -566,8 +601,11 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
                     textAlign: 'left',
                   }}
                 >
-                  <Lock size={13} />
-                  <span>Private (Just me)</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Lock size={13} />
+                    <span>Private (Just me)</span>
+                  </div>
+                  {visibility === 'PRIVATE' && <Check size={13} color="var(--saffron-ember)" />}
                 </button>
 
                 {/* Option 2: Shared with all partners */}
@@ -581,7 +619,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px',
+                    justifyContent: 'space-between',
                     padding: '7px 10px',
                     borderRadius: '5px',
                     fontSize: '0.78rem',
@@ -593,8 +631,11 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
                     textAlign: 'left',
                   }}
                 >
-                  <Users size={13} />
-                  <span>All Partners</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Users size={13} />
+                    <span>All Partners</span>
+                  </div>
+                  {visibility === 'SHARED_WITH_PARTNER' && !targetPartnerId && <Check size={13} color="var(--saffron-ember)" />}
                 </button>
 
                 {/* Option 3+: Specific active partners */}
@@ -603,35 +644,46 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
                     <div style={{ fontSize: '0.7rem', color: 'var(--text-tweed-dim)', padding: '2px 10px 4px', fontWeight: 600 }}>
                       Specific Partner:
                     </div>
-                    {activePartners.map((partner) => (
-                      <button
-                        key={partner.id}
-                        type="button"
-                        onClick={() => {
-                          setVisibility('SHARED_WITH_PARTNER');
-                          setTargetPartnerId(partner.id);
-                          setActiveMenu(null);
-                        }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          padding: '6px 10px',
-                          borderRadius: '5px',
-                          fontSize: '0.78rem',
-                          fontWeight: (visibility === 'SHARED_WITH_PARTNER' && targetPartnerId === partner.id) ? 700 : 500,
-                          background: (visibility === 'SHARED_WITH_PARTNER' && targetPartnerId === partner.id) ? 'var(--bg-walnut-surface)' : 'transparent',
-                          color: (visibility === 'SHARED_WITH_PARTNER' && targetPartnerId === partner.id) ? 'var(--saffron-ember)' : 'var(--text-parchment-muted)',
-                          border: 'none',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          width: '100%',
-                        }}
-                      >
-                        <span>👤</span>
-                        <span>{partner.name}</span>
-                      </button>
-                    ))}
+                    {activePartners.map((partner) => {
+                      const isSelected = visibility === 'SHARED_WITH_PARTNER' && targetPartnerId === partner.id;
+                      return (
+                        <button
+                          key={partner.id}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setVisibility('PRIVATE');
+                              setTargetPartnerId(null);
+                            } else {
+                              setVisibility('SHARED_WITH_PARTNER');
+                              setTargetPartnerId(partner.id);
+                            }
+                            setActiveMenu(null);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '6px 10px',
+                            borderRadius: '5px',
+                            fontSize: '0.78rem',
+                            fontWeight: isSelected ? 700 : 500,
+                            background: isSelected ? 'var(--bg-walnut-surface)' : 'transparent',
+                            color: isSelected ? 'var(--saffron-ember)' : 'var(--text-parchment-muted)',
+                            border: 'none',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            width: '100%',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span>👤</span>
+                            <span>{partner.name}</span>
+                          </div>
+                          {isSelected && <Check size={13} color="var(--saffron-ember)" />}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -663,6 +715,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
             </button>
           )}
         </div>
+
 
         {/* Row 2: Clean Actions Bar */}
         <div style={{

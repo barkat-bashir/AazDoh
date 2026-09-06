@@ -10,6 +10,7 @@ interface ModalProps {
   maxWidth?: string;
   hideHeader?: boolean;
   bodyPadding?: string;
+  overflow?: string;
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -21,6 +22,7 @@ export const Modal: React.FC<ModalProps> = ({
   maxWidth = '560px',
   hideHeader = false,
   bodyPadding,
+  overflow,
 }) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -38,7 +40,7 @@ export const Modal: React.FC<ModalProps> = ({
     <div className="modal-backdrop" onClick={onClose}>
       <div
         className="modal-content"
-        style={{ maxWidth, margin: 'auto', overflow: 'hidden' }}
+        style={{ maxWidth, margin: 'auto', overflow: overflow || (hideHeader ? 'visible' : 'hidden') }}
         onClick={(e) => e.stopPropagation()}
       >
         {!hideHeader && title && (
@@ -82,11 +84,12 @@ export const Modal: React.FC<ModalProps> = ({
           </div>
         )}
 
-        <div className="modal-body-box" style={{ padding: bodyPadding || '20px 22px', overflowY: 'auto', flex: 1 }}>
+        <div className="modal-body-box" style={{ padding: bodyPadding || '20px 22px', overflow: overflow || (hideHeader ? 'visible' : 'auto'), flex: 1 }}>
           {children}
         </div>
       </div>
     </div>
   );
 };
+
 
