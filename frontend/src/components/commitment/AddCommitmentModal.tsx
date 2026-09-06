@@ -16,7 +16,7 @@ interface AddCommitmentModalProps {
 }
 
 // Fast regex for detecting intellectual / cognitive deep work (case-insensitive)
-const DEEP_WORK_REGEX = /\b(code|coding|coded|coder|implement|implementation|implementing|build|building|study|studying|studied|research|researching|design|designing|designed|debug|debugging|debugged|refactor|refactoring|write|writing|written|draft|drafting|article|essay|thesis|paper|interview|prep|algorithm|algorithms|dsa|system design|architecture|course|learn|learning|reading|read|analysis|analyze|analyzing|backend|frontend|api|endpoint|endpoints|test|tests|testing|feature|deploy|deployment|pipeline|database|sql|schema|auth|security|documentation|pr review|git|bugfix|script|scripting)\b/i;
+const DEEP_WORK_REGEX = /\b(code|coding|coded|coder|implement|implementation|implementing|build|building|study|studying|studied|research|researching|design|designing|designed|debug|debugging|debugged|refactor|refactoring|write|writing|written|draft|drafting|article|essay|thesis|paper|interview|lecture|prep|algorithm|algorithms|dsa|system design|architecture|course|learn|learning|reading|read|analysis|analyze|analyzing|backend|frontend|api|endpoint|endpoints|test|tests|testing|feature|deploy|deployment|pipeline|database|sql|schema|auth|security|documentation|pr review|git|bugfix|script|scripting)\b/i;
 
 // Comprehensive regex for detecting everyday routines, chores, habits, and errands (case-insensitive)
 const ROUTINE_REGEX = /\b(buy|buying|bought|purchase|shopping|shop|store|mall|market|bazaar|groceries|grocery|vegetables|fruits|milk|bread|meat|haircut|hair cut|cutting|cut hair|barber|salon|trim|trimming|shave|shaving|groom|grooming|clean|cleaning|cleaned|tidy|tidying|sweep|sweeping|mop|mopping|wash|washing|washed|iron|ironing|fold|folding|laundry|dishes|trash|garbage|dust|dusting|vacuum|vacuuming|cook|cooking|cooked|meal|bake|baking|breakfast|lunch|dinner|kitchen|tea|coffee|gym|workout|working out|exercise|exercising|walk|walking|run|running|jog|jogging|swim|swimming|yoga|stretch|cardio|doctor|dentist|appointment|clinic|hospital|checkup|therapy|physio|medicine|meds|pharmacy|refill|pill|pills|prescription|bill|bills|pay|paying|payment|recharge|electricity|wifi|water bill|rent|fee|fees|tax|taxes|invoice|receipt|bank|atm|deposit|withdraw|transfer|money|cash|car|bike|scooter|vehicle|fuel|petrol|diesel|gas|oil|mechanic|repair|repairing|fix|service|servicing|tyre|tire|wash car|plumber|electrician|carpenter|courier|parcel|package|post office|mail|mail box|drop off|pick up|deliver|delivery|feed|dog|cat|pet|vet|water plants|plants|gardening|pack|packing|unpack)\b/i;
@@ -62,7 +62,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
   const [estimatedMinutes, setEstimatedMinutes] = useState(60);
   const [priority, setPriority] = useState<CommitmentPriority>('MEDIUM');
   const [visibility, setVisibility] = useState<CommitmentVisibility>('SHARED_WITH_PARTNER');
-  const [activeMenu, setActiveMenu] = useState<'category' | 'duration' | 'priority' | 'visibility' | null>(null);
+  const [activeMenu, setActiveMenu] = useState<'duration' | 'priority' | null>(null);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -77,7 +77,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
       setExpectedOutcome('');
       setTitle('');
       setActiveMenu(null);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      setTimeout(() => inputRef.current?.focus(), 60);
     }
   }, [isOpen]);
 
@@ -100,15 +100,15 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
 
   const focusOptions = category === 'DEEP_WORK' ? deepWorkFocusOptions : routineFocusOptions;
 
-  const handleCategoryChange = (newCat: CommitmentCategory) => {
+  const handleCategoryToggle = () => {
+    const nextCat = category === 'DEEP_WORK' ? 'ROUTINE' : 'DEEP_WORK';
     setIsManuallySelected(true);
-    setCategory(newCat);
-    if (newCat === 'ROUTINE' && estimatedMinutes > 45) {
+    setCategory(nextCat);
+    if (nextCat === 'ROUTINE' && estimatedMinutes > 45) {
       setEstimatedMinutes(15);
-    } else if (newCat === 'DEEP_WORK' && estimatedMinutes < 30) {
+    } else if (nextCat === 'DEEP_WORK' && estimatedMinutes < 30) {
       setEstimatedMinutes(60);
     }
-    setActiveMenu(null);
   };
 
   const handleTitleChange = (val: string) => {
@@ -119,6 +119,11 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
         if (result.isMatched) {
           setActiveMatch(result.category);
           setCategory(result.category);
+          if (result.category === 'ROUTINE' && estimatedMinutes > 45) {
+            setEstimatedMinutes(15);
+          } else if (result.category === 'DEEP_WORK' && estimatedMinutes < 30) {
+            setEstimatedMinutes(60);
+          }
         } else {
           setActiveMatch(null);
         }
@@ -128,11 +133,11 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
     }
   };
 
-  const priorityConfig: Record<CommitmentPriority, { label: string; color: string }> = {
-    LOW: { label: 'Low', color: 'var(--text-parchment-muted)' },
-    MEDIUM: { label: 'Med', color: 'var(--saffron-ember)' },
-    HIGH: { label: 'High', color: 'var(--chinar-rust)' },
-    URGENT: { label: 'Urgent', color: '#F87171' },
+  const priorityConfig: Record<CommitmentPriority, { label: string; color: string; iconColor: string }> = {
+    LOW: { label: 'Low', color: 'var(--text-parchment-muted)', iconColor: 'var(--text-tweed-dim)' },
+    MEDIUM: { label: 'Medium', color: 'var(--saffron-ember)', iconColor: 'var(--saffron-ember)' },
+    HIGH: { label: 'High', color: 'var(--chinar-rust)', iconColor: 'var(--chinar-rust)' },
+    URGENT: { label: 'Urgent', color: '#F87171', iconColor: '#F87171' },
   };
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -155,7 +160,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
         visibility,
       });
 
-      showToast('Commitment created successfully', 'success');
+      showToast('Commitment locked in for today', 'success');
       setTitle('');
       setCategory('DEEP_WORK');
       setExpectedOutcome('');
@@ -193,57 +198,84 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Quick Add Commitment"
-      subtitle="Type your task & press Enter to commit"
-      maxWidth="540px"
+      hideHeader={true}
+      bodyPadding="0"
+      maxWidth="620px"
     >
-      <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        
-        <div style={{
-          background: 'var(--bg-walnut-surface)',
-          borderRadius: 'var(--radius-md)',
-          border: '1.5px solid var(--border-walnut-faint)',
-          padding: '12px 14px',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
-          transition: 'border-color 0.2s ease',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <span style={{
-              fontSize: '0.74rem',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              color: category === 'DEEP_WORK' ? 'var(--chinar-rust)' : 'var(--saffron-ember)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}>
-              {category === 'DEEP_WORK' ? <Target size={12} /> : <Zap size={12} />}
-              {category === 'DEEP_WORK' ? 'Deep Focus' : 'Routine / Errand'}
-            </span>
+      <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} style={{ display: 'flex', flexDirection: 'column' }}>
 
-            {!isManuallySelected && activeMatch && (
-              <span style={{
-                fontSize: '0.72rem',
-                color: 'var(--saffron-ember)',
-                fontWeight: 600,
-                display: 'inline-flex',
+        {/* Top Section: Expansive Command Input Canvas */}
+        <div style={{ padding: '22px 24px 16px 24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+          {/* Header Row: Live Smart Mode Badge + Close Button */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={handleCategoryToggle}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '4px 10px',
+                  borderRadius: '20px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  border: category === 'DEEP_WORK'
+                    ? '1px solid rgba(192, 83, 48, 0.45)'
+                    : '1px solid rgba(226, 149, 59, 0.45)',
+                  background: category === 'DEEP_WORK'
+                    ? 'rgba(192, 83, 48, 0.15)'
+                    : 'rgba(226, 149, 59, 0.15)',
+                  color: category === 'DEEP_WORK' ? 'var(--chinar-rust)' : 'var(--saffron-ember)',
+                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                }}
+                title="Click to toggle Deep Focus vs Routine"
+              >
+                {category === 'DEEP_WORK' ? <Target size={13} /> : <Zap size={13} />}
+                <span>{category === 'DEEP_WORK' ? 'Deep Focus' : 'Routine Task'}</span>
+              </button>
+
+              {!isManuallySelected && activeMatch && (
+                <span style={{
+                  fontSize: '0.72rem',
+                  color: 'var(--text-parchment-muted)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  opacity: 0.9,
+                }}>
+                  <Sparkles size={11} color="var(--saffron-ember)" />
+                  <span>Auto-detected</span>
+                </span>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-tweed-dim)',
+                cursor: 'pointer',
+                padding: '4px',
+                borderRadius: '50%',
+                display: 'flex',
                 alignItems: 'center',
-                gap: '3px',
-                background: 'rgba(226, 149, 59, 0.12)',
-                padding: '2px 6px',
-                borderRadius: '4px'
-              }}>
-                <Sparkles size={11} />
-                <span>Auto-detected</span>
-              </span>
-            )}
+                justifyContent: 'center',
+              }}
+            >
+              <X size={16} />
+            </button>
           </div>
 
+          {/* Clean Main Title Input (No box-in-box, no focus outlines) */}
           <input
             ref={inputRef}
             type="text"
-            placeholder={category === 'DEEP_WORK' ? 'What focus task are you locking in? (e.g. Implement auth API)' : 'What errand or chore? (e.g. Buy groceries, haircut)'}
+            placeholder={category === 'DEEP_WORK' ? 'What are you focusing on today?' : 'What errand or task do you need to do?'}
             value={title}
             onChange={(e) => handleTitleChange(e.target.value)}
             style={{
@@ -251,23 +283,30 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
               background: 'transparent',
               border: 'none',
               outline: 'none',
+              boxShadow: 'none',
               color: 'var(--text-kehwa-cream)',
-              fontSize: '1.05rem',
+              fontSize: '1.18rem',
               fontWeight: 500,
               fontFamily: 'inherit',
+              padding: '4px 0',
+              lineHeight: 1.4,
             }}
           />
 
+          {/* Collapsible Deliverable / Outcome Field */}
           {showDeliverable && (
             <div style={{
-              marginTop: '10px',
-              paddingTop: '8px',
-              borderTop: '1px dashed var(--border-walnut-faint)',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px'
+              gap: '8px',
+              padding: '8px 12px',
+              background: 'var(--bg-walnut-surface)',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px dashed var(--border-walnut-faint)',
             }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-tweed-dim)', whiteSpace: 'nowrap' }}>Deliverable:</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-tweed-dim)', whiteSpace: 'nowrap' }}>
+                Definition of Done:
+              </span>
               <input
                 type="text"
                 placeholder="e.g. Unit tests passing & PR opened"
@@ -278,7 +317,8 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
                   background: 'transparent',
                   border: 'none',
                   outline: 'none',
-                  color: 'var(--text-parchment-muted)',
+                  boxShadow: 'none',
+                  color: 'var(--text-kehwa-cream)',
                   fontSize: '0.85rem',
                   fontFamily: 'inherit',
                 }}
@@ -295,38 +335,20 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
           )}
         </div>
 
+        {/* Bottom Integrated Action Bar */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '6px',
-          padding: '4px 2px',
+          padding: '12px 20px',
+          background: 'rgba(26, 17, 13, 0.75)',
+          borderTop: '1px solid var(--border-walnut-faint)',
+          gap: '8px',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={() => handleCategoryChange(category === 'DEEP_WORK' ? 'ROUTINE' : 'DEEP_WORK')}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '4px 9px',
-                borderRadius: '6px',
-                fontSize: '0.78rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                background: category === 'DEEP_WORK' ? 'rgba(192, 83, 48, 0.18)' : 'rgba(226, 149, 59, 0.18)',
-                color: category === 'DEEP_WORK' ? 'var(--chinar-rust)' : 'var(--saffron-ember)',
-                border: `1px solid ${category === 'DEEP_WORK' ? 'rgba(192, 83, 48, 0.4)' : 'rgba(226, 149, 59, 0.4)'}`,
-                transition: 'all 0.15s ease',
-              }}
-              title="Click to toggle Focus vs Routine mode"
-            >
-              {category === 'DEEP_WORK' ? <Target size={12} /> : <Zap size={12} />}
-              <span>{category === 'DEEP_WORK' ? 'Deep Focus' : 'Routine'}</span>
-            </button>
+          {/* Left: Refined Chips */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'nowrap' }}>
 
+            {/* Duration Chip with Popover */}
             <div style={{ position: 'relative' }}>
               <button
                 type="button"
@@ -335,14 +357,15 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '5px',
-                  padding: '4px 9px',
+                  padding: '5px 10px',
                   borderRadius: '6px',
                   fontSize: '0.78rem',
                   fontWeight: 600,
                   cursor: 'pointer',
                   background: 'var(--bg-walnut-surface)',
-                  color: 'var(--text-parchment-muted)',
+                  color: 'var(--text-kehwa-cream)',
                   border: '1px solid var(--border-walnut-faint)',
+                  transition: 'background 0.15s',
                 }}
               >
                 <Clock size={12} color="var(--saffron-ember)" />
@@ -353,18 +376,17 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
               {activeMenu === 'duration' && (
                 <div style={{
                   position: 'absolute',
-                  top: '110%',
+                  bottom: '120%',
                   left: 0,
                   zIndex: 100,
                   background: 'var(--bg-walnut-card)',
                   border: '1px solid var(--border-walnut-faint)',
-                  borderRadius: '6px',
-                  padding: '4px',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                  borderRadius: '8px',
+                  padding: '6px',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
                   display: 'flex',
                   gap: '4px',
-                  minWidth: '220px',
-                  flexWrap: 'wrap'
+                  minWidth: '240px',
                 }}>
                   {focusOptions.map((opt) => (
                     <button
@@ -372,15 +394,15 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
                       type="button"
                       onClick={() => { setEstimatedMinutes(opt.value); setActiveMenu(null); }}
                       style={{
-                        padding: '4px 8px',
-                        borderRadius: '4px',
+                        padding: '5px 8px',
+                        borderRadius: '5px',
                         fontSize: '0.74rem',
                         fontWeight: estimatedMinutes === opt.value ? 700 : 500,
                         background: estimatedMinutes === opt.value ? 'var(--chinar-rust)' : 'transparent',
                         color: estimatedMinutes === opt.value ? '#fff' : 'var(--text-parchment-muted)',
                         border: 'none',
                         cursor: 'pointer',
-                        flex: '1 1 auto',
+                        flex: 1,
                       }}
                     >
                       {opt.label}
@@ -390,6 +412,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
               )}
             </div>
 
+            {/* Priority Chip with Popover */}
             <div style={{ position: 'relative' }}>
               <button
                 type="button"
@@ -398,7 +421,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '5px',
-                  padding: '4px 9px',
+                  padding: '5px 10px',
                   borderRadius: '6px',
                   fontSize: '0.78rem',
                   fontWeight: 600,
@@ -408,7 +431,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
                   border: '1px solid var(--border-walnut-faint)',
                 }}
               >
-                <Flame size={12} color={priorityConfig[priority].color} />
+                <Flame size={12} color={priorityConfig[priority].iconColor} />
                 <span>{priorityConfig[priority].label}</span>
                 <ChevronDown size={11} opacity={0.6} />
               </button>
@@ -416,14 +439,14 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
               {activeMenu === 'priority' && (
                 <div style={{
                   position: 'absolute',
-                  top: '110%',
+                  bottom: '120%',
                   left: 0,
                   zIndex: 100,
                   background: 'var(--bg-walnut-card)',
                   border: '1px solid var(--border-walnut-faint)',
-                  borderRadius: '6px',
-                  padding: '4px',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                  borderRadius: '8px',
+                  padding: '6px',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
                   display: 'flex',
                   gap: '4px',
                 }}>
@@ -433,8 +456,8 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
                       type="button"
                       onClick={() => { setPriority(p); setActiveMenu(null); }}
                       style={{
-                        padding: '4px 8px',
-                        borderRadius: '4px',
+                        padding: '5px 10px',
+                        borderRadius: '5px',
                         fontSize: '0.74rem',
                         fontWeight: priority === p ? 700 : 500,
                         background: priority === p ? 'var(--bg-walnut-surface)' : 'transparent',
@@ -450,6 +473,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
               )}
             </div>
 
+            {/* Visibility Toggle Chip */}
             <button
               type="button"
               onClick={() => setVisibility(visibility === 'SHARED_WITH_PARTNER' ? 'PRIVATE' : 'SHARED_WITH_PARTNER')}
@@ -457,7 +481,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '5px',
-                padding: '4px 9px',
+                padding: '5px 10px',
                 borderRadius: '6px',
                 fontSize: '0.78rem',
                 fontWeight: 500,
@@ -472,6 +496,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
               <span>{visibility === 'SHARED_WITH_PARTNER' ? 'Shared' : 'Private'}</span>
             </button>
 
+            {/* Add Deliverable Button */}
             {!showDeliverable && category === 'DEEP_WORK' && (
               <button
                 type="button"
@@ -480,9 +505,9 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '4px',
-                  padding: '4px 8px',
+                  padding: '5px 9px',
                   borderRadius: '6px',
-                  fontSize: '0.74rem',
+                  fontSize: '0.75rem',
                   fontWeight: 500,
                   cursor: 'pointer',
                   background: 'transparent',
@@ -490,53 +515,42 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
                   border: '1px dashed var(--border-walnut-faint)',
                 }}
               >
-                <Plus size={11} />
+                <Plus size={12} />
                 <span>Deliverable</span>
               </button>
             )}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                padding: '6px 10px',
-                borderRadius: '6px',
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-tweed-dim)',
-                fontSize: '0.78rem',
-                cursor: 'pointer',
-              }}
-            >
+          {/* Right: Esc & Submit Button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '0.74rem', color: 'var(--text-tweed-dim)' }}>
               Esc
-            </button>
+            </span>
             <button
               type="submit"
               disabled={loading || !title.trim()}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '5px',
-                padding: '6px 14px',
+                gap: '6px',
+                padding: '7px 16px',
                 borderRadius: '6px',
-                background: title.trim() ? 'var(--chinar-rust)' : 'var(--bg-walnut-card)',
+                background: title.trim() ? 'var(--chinar-rust)' : 'var(--bg-walnut-surface)',
                 color: title.trim() ? '#fff' : 'var(--text-tweed-dim)',
                 border: 'none',
                 fontSize: '0.82rem',
                 fontWeight: 700,
                 cursor: title.trim() ? 'pointer' : 'not-allowed',
-                boxShadow: title.trim() ? '0 2px 8px var(--chinar-glow)' : 'none',
+                boxShadow: title.trim() ? '0 2px 10px var(--chinar-glow)' : 'none',
                 transition: 'all 0.15s ease',
               }}
             >
               <span>{loading ? 'Saving...' : 'Commit'}</span>
               <kbd style={{
-                background: 'rgba(255,255,255,0.2)',
-                padding: '1px 4px',
+                background: title.trim() ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)',
+                padding: '1px 5px',
                 borderRadius: '3px',
-                fontSize: '0.68rem',
+                fontSize: '0.7rem',
                 fontWeight: 700
               }}>↵</kbd>
             </button>
