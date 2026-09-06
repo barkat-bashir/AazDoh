@@ -15,26 +15,36 @@ interface AddCommitmentModalProps {
   onTriggerAiPlanReview?: () => void;
 }
 
-// Fast, robust regex for detecting intellectual / cognitive focus work
-const DEEP_WORK_REGEX = /\b(code|coding|implement|implementation|build|building|study|studying|research|design|designing|debug|debugging|refactor|refactoring|write|writing|article|interview|prep|algorithm|algorithms|dsa|system design|architecture|course|learn|learning|reading|analysis|backend|frontend|api|endpoint|test|tests|testing|feature|deploy|deployment|pipeline|database|sql|schema|auth|security|draft|essay|thesis|paper)\b/i;
+// Fast, robust regex for detecting intellectual / cognitive focus work (case-insensitive)
+const DEEP_WORK_REGEX = /\b(code|coding|coded|coder|implement|implementation|implementing|build|building|study|studying|studied|research|researching|design|designing|designed|debug|debugging|debugged|refactor|refactoring|write|writing|written|draft|drafting|article|essay|thesis|paper|interview|prep|algorithm|algorithms|dsa|system design|architecture|course|learn|learning|reading|read|analysis|analyze|analyzing|backend|frontend|api|endpoint|endpoints|test|tests|testing|feature|deploy|deployment|pipeline|database|sql|schema|auth|security|documentation|pr review|git|bugfix|script|scripting)\b/i;
 
-// Curated regex for detecting everyday routines, chores, habits, and errands
-const ROUTINE_REGEX = /\b(buy|groceries|grocery|market|haircut|barber|clean|cleaning|wash|washing|laundry|dishes|cook|cooking|bill|bills|recharge|payment|doctor|dentist|appointment|gym|workout|walk|pack|packing|tidy|car|repair|plumber|mail|post office|medicine|pharmacy|errand|errands|shop|shopping|bank|atm|drop off|pick up|water plants|trash|dusting|vacuum|feed|pet|dog|vet)\b/i;
+// Comprehensive regex for detecting everyday routines, chores, habits, and errands (case-insensitive)
+const ROUTINE_REGEX = /\b(buy|buying|bought|purchase|shopping|shop|store|mall|market|bazaar|groceries|grocery|vegetables|fruits|milk|bread|meat|haircut|hair cut|cutting|cut hair|barber|salon|trim|trimming|shave|shaving|groom|grooming|clean|cleaning|cleaned|tidy|tidying|sweep|sweeping|mop|mopping|wash|washing|washed|iron|ironing|fold|folding|laundry|dishes|trash|garbage|dust|dusting|vacuum|vacuuming|cook|cooking|cooked|meal|bake|baking|breakfast|lunch|dinner|kitchen|tea|coffee|gym|workout|working out|exercise|exercising|walk|walking|run|running|jog|jogging|swim|swimming|yoga|stretch|cardio|doctor|dentist|appointment|clinic|hospital|checkup|therapy|physio|medicine|meds|pharmacy|refill|pill|pills|prescription|bill|bills|pay|paying|payment|recharge|electricity|wifi|water bill|rent|fee|fees|tax|taxes|invoice|receipt|bank|atm|deposit|withdraw|transfer|money|cash|car|bike|scooter|vehicle|fuel|petrol|diesel|gas|oil|mechanic|repair|repairing|fix|service|servicing|tyre|tire|wash car|plumber|electrician|carpenter|courier|parcel|package|post office|mail|mail box|drop off|pick up|deliver|delivery|feed|dog|cat|pet|vet|water plants|plants|gardening|pack|packing|unpack)\b/i;
 
-export const classifyCommitmentIntent = (text: string): CommitmentCategory => {
-  if (!text || text.trim().length < 3) {
-    return 'DEEP_WORK';
+export interface IntentDetectionResult {
+  category: CommitmentCategory;
+  isMatched: boolean;
+}
+
+export const classifyCommitmentIntent = (text: string): IntentDetectionResult => {
+  if (!text || text.trim().length < 2) {
+    return { category: 'DEEP_WORK', isMatched: false };
   }
+
+  const normalized = text.toLowerCase().trim();
+
   // 1. Deep work signals always win conflicts (e.g. "Clean up auth codebase" -> DEEP_WORK)
-  if (DEEP_WORK_REGEX.test(text)) {
-    return 'DEEP_WORK';
+  if (DEEP_WORK_REGEX.test(normalized)) {
+    return { category: 'DEEP_WORK', isMatched: true };
   }
+
   // 2. Clear routine signal
-  if (ROUTINE_REGEX.test(text)) {
-    return 'ROUTINE';
+  if (ROUTINE_REGEX.test(normalized)) {
+    return { category: 'ROUTINE', isMatched: true };
   }
-  // 3. Default bias
-  return 'DEEP_WORK';
+
+  // 3. Default bias (no concrete keyword matched)
+  return { category: 'DEEP_WORK', isMatched: false };
 };
 
 export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
@@ -49,6 +59,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<CommitmentCategory>('DEEP_WORK');
   const [isManuallySelected, setIsManuallySelected] = useState(false);
+  const [activeMatch, setActiveMatch] = useState<CommitmentCategory | null>(null);
   const [expectedOutcome, setExpectedOutcome] = useState('');
   const [estimatedMinutes, setEstimatedMinutes] = useState(60);
   const [priority, setPriority] = useState<CommitmentPriority>('MEDIUM');
@@ -60,6 +71,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setIsManuallySelected(false);
+      setActiveMatch(null);
       setCategory('DEEP_WORK');
     }
   }, [isOpen]);
@@ -98,6 +110,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
 
   const handleCategoryChange = (newCat: CommitmentCategory) => {
     setIsManuallySelected(true);
+    setActiveMatch(null);
     setCategory(newCat);
     if (newCat === 'ROUTINE' && estimatedMinutes > 45) {
       setEstimatedMinutes(15);
@@ -108,15 +121,22 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
 
   const handleTitleChange = (val: string) => {
     setTitle(val);
-    if (!isManuallySelected && val.trim().length >= 3) {
-      const detected = classifyCommitmentIntent(val);
-      if (detected !== category) {
-        setCategory(detected);
-        if (detected === 'ROUTINE' && estimatedMinutes > 45) {
-          setEstimatedMinutes(15);
-        } else if (detected === 'DEEP_WORK' && estimatedMinutes < 30) {
-          setEstimatedMinutes(60);
+    if (!isManuallySelected) {
+      if (val.trim().length >= 2) {
+        const result = classifyCommitmentIntent(val);
+        if (result.isMatched) {
+          setActiveMatch(result.category);
+          setCategory(result.category);
+          if (result.category === 'ROUTINE' && estimatedMinutes > 45) {
+            setEstimatedMinutes(15);
+          } else if (result.category === 'DEEP_WORK' && estimatedMinutes < 30) {
+            setEstimatedMinutes(60);
+          }
+        } else {
+          setActiveMatch(null);
         }
+      } else {
+        setActiveMatch(null);
       }
     }
   };
@@ -256,10 +276,10 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
             <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-kehwa-cream)' }}>
               {category === 'DEEP_WORK' ? 'Commitment Title *' : 'Task / Errand Description *'}
             </label>
-            {!isManuallySelected && title.trim().length >= 3 && (
+            {!isManuallySelected && activeMatch && (
               <span style={{ fontSize: '0.72rem', color: 'var(--saffron-ember)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
                 <Sparkles size={11} />
-                <span>Auto-detected as {category === 'DEEP_WORK' ? 'Deep Focus' : 'Routine'}</span>
+                <span>Auto-detected as {activeMatch === 'DEEP_WORK' ? 'Deep Focus' : 'Routine'}</span>
               </span>
             )}
           </div>
