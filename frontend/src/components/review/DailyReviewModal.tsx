@@ -11,6 +11,7 @@ interface DailyReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  isYesterdayCatchUp?: boolean;
 }
 
 export const DailyReviewModal: React.FC<DailyReviewModalProps> = ({
@@ -18,6 +19,7 @@ export const DailyReviewModal: React.FC<DailyReviewModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
+  isYesterdayCatchUp = false,
 }) => {
   const { showToast } = useToast();
 
@@ -42,10 +44,14 @@ export const DailyReviewModal: React.FC<DailyReviewModalProps> = ({
 
   if (commitments.length === 0) {
     return (
-      <Modal isOpen={isOpen} onClose={onClose} title="Daily Review">
-        <p style={{ color: 'var(--text-tweed-dim)' }}>No unreviewed commitments remaining for catch-up.</p>
+      <Modal isOpen={isOpen} onClose={onClose} title={isYesterdayCatchUp ? "Yesterday's Catch-Up" : "Daily Review"}>
+        <p style={{ color: 'var(--text-tweed-dim)' }}>
+          {isYesterdayCatchUp 
+            ? "No unreviewed commitments remaining from yesterday. You're all caught up!" 
+            : "No commitments to review."}
+        </p>
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-          <button onClick={onClose} className="btn-secondary">Close</button>
+          <button onClick={() => { onSuccess(); onClose(); }} className="btn-secondary">Close</button>
         </div>
       </Modal>
     );
@@ -252,8 +258,10 @@ export const DailyReviewModal: React.FC<DailyReviewModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Daily Accountability Review"
-      subtitle={`Commitment ${currentIndex + 1} of ${commitments.length}`}
+      title={isYesterdayCatchUp ? "Yesterday's Accountability Catch-Up" : "Daily Accountability Review"}
+      subtitle={isYesterdayCatchUp 
+        ? `Reviewing unreviewed commitment ${currentIndex + 1} of ${commitments.length} from yesterday`
+        : `Commitment ${currentIndex + 1} of ${commitments.length}`}
       maxWidth="620px"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>

@@ -15,7 +15,8 @@ import java.util.UUID;
 @Repository
 public interface ReviewRepository extends JpaRepository<CommitmentReview, UUID> {
 
-    Optional<CommitmentReview> findByCommitmentId(UUID commitmentId);
+    @Query("SELECT r FROM CommitmentReview r WHERE r.commitment.id = :commitmentId")
+    Optional<CommitmentReview> findByCommitmentId(@Param("commitmentId") UUID commitmentId);
 
     @Query("SELECT r FROM CommitmentReview r WHERE r.commitment.user.id = :userId ORDER BY r.reviewedAt DESC")
     List<CommitmentReview> findRecentReviewsByUserId(@Param("userId") UUID userId);
@@ -29,6 +30,9 @@ public interface ReviewRepository extends JpaRepository<CommitmentReview, UUID> 
 
     @Query("SELECT r.failureReason, COUNT(r) FROM CommitmentReview r WHERE r.commitment.user.id = :userId AND r.failureReason IS NOT NULL GROUP BY r.failureReason ORDER BY COUNT(r) DESC")
     List<Object[]> countFailureReasonsByUserId(@Param("userId") UUID userId);
+
+    @Query("SELECT r.commitment.id FROM CommitmentReview r WHERE r.commitment.id IN :commitmentIds")
+    java.util.Set<UUID> findReviewedCommitmentIds(@Param("commitmentIds") java.util.Collection<UUID> commitmentIds);
 
     @Query("SELECT r.commitment.id FROM CommitmentReview r WHERE r.commitment.user.id = :userId AND r.commitment.commitmentDate = :date")
     java.util.Set<UUID> findReviewedCommitmentIdsByUserIdAndDate(@Param("userId") UUID userId, @Param("date") LocalDate date);

@@ -43,8 +43,21 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
   const [activeFilter, setActiveFilter] = useState<TaskFilter>('active');
   const [isCompletedCollapsed, setIsCompletedCollapsed] = useState(false);
   const [isPostponedCollapsed, setIsPostponedCollapsed] = useState(false);
-  const [isCatchUpDismissed, setIsCatchUpDismissed] = useState(false);
+  const [isCatchUpDismissed, setIsCatchUpDismissed] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem(`catchup_dismissed_${yesterdayStr}`) === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [reviewDate, setReviewDate] = useState<string>(todayStr);
+
+  const dismissCatchUp = useCallback(() => {
+    setIsCatchUpDismissed(true);
+    try {
+      sessionStorage.setItem(`catchup_dismissed_${yesterdayStr}`, 'true');
+    } catch {}
+  }, [yesterdayStr]);
 
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -218,7 +231,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
               <span>Quick 30s Catch-Up</span>
             </button>
             <button
-              onClick={() => setIsCatchUpDismissed(true)}
+              onClick={dismissCatchUp}
               className="btn-secondary"
               style={{ padding: '8px 12px', fontSize: '0.84rem' }}
               title="Dismiss and focus on today"
@@ -637,11 +650,17 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
       <DailyReviewModal
         commitments={activeReviewCommitments}
         isOpen={isReviewModalOpen}
+        isYesterdayCatchUp={reviewDate === yesterdayStr}
         onClose={() => {
           setIsReviewModalOpen(false);
           refreshCommitments();
         }}
-        onSuccess={refreshCommitments}
+        onSuccess={() => {
+          if (reviewDate === yesterdayStr) {
+            dismissCatchUp();
+          }
+          refreshCommitments();
+        }}
       />
 
       <PostponeCommitmentModal

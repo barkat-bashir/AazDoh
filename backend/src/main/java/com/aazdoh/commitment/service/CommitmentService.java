@@ -82,16 +82,7 @@ public class CommitmentService {
                 .map(c -> mapToResponse(c, partnerNameMap))
                 .collect(Collectors.toList());
         populateDiscussionStats(responses, userId);
-
-        java.util.Set<UUID> reviewedIds = reviewRepository.findReviewedCommitmentIdsByUserIdAndDate(userId, date);
-        if (reviewedIds != null && !reviewedIds.isEmpty()) {
-            for (CommitmentResponse res : responses) {
-                if (reviewedIds.contains(res.getId())) {
-                    res.setReviewed(true);
-                }
-            }
-        }
-
+        populateReviewedStatus(responses);
         return responses;
     }
 
@@ -99,15 +90,20 @@ public class CommitmentService {
     public List<CommitmentResponse> getCommitmentsByRange(UUID userId, LocalDate startDate, LocalDate endDate) {
         List<Commitment> list = commitmentRepository.findByUserIdAndDateRange(userId, startDate, endDate);
         Map<UUID, String> partnerNameMap = getPartnerNameMap(list);
-        return list.stream()
+        List<CommitmentResponse> responses = list.stream()
                 .map(c -> mapToResponse(c, partnerNameMap))
                 .collect(Collectors.toList());
+        populateDiscussionStats(responses, userId);
+        populateReviewedStatus(responses);
+        return responses;
     }
 
     @Transactional(readOnly = true)
     public CommitmentResponse getCommitmentById(UUID userId, UUID commitmentId) {
         Commitment commitment = findActiveCommitment(commitmentId, userId);
-        return mapToResponse(commitment);
+        CommitmentResponse response = mapToResponse(commitment);
+        populateReviewedStatus(List.of(response));
+        return response;
     }
 
     @Transactional
@@ -299,6 +295,21 @@ public class CommitmentService {
             } else {
                 resp.setDiscussionMessageCount(0);
                 resp.setHasUnreadDiscussion(false);
+            }
+        }
+    }
+
+    private void populateReviewedStatus(List<CommitmentResponse> responses) {
+        if (responses == null || responses.isEmpty()) {
+            return;
+        }
+        List<UUID> ids = responses.stream().map(CommitmentResponse::getId).collect(Collectors.toList());
+        java.util.Set<UUID> reviewedIds = reviewRepository.findReviewedCommitmentIds(ids);
+        if (reviewedIds != null && !reviewedIds.isEmpty()) {
+            for (CommitmentResponse resp : responses) {
+                if (reviewedIds.contains(resp.getId())) {
+                    resp.setReviewed(true);
+                }
             }
         }
     }
