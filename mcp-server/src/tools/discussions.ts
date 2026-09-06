@@ -1,0 +1,76 @@
+import { z } from "zod";
+import { client } from "../client.js";
+
+export interface DiscussionMessageDto {
+  id: string;
+  senderId: string;
+  senderFullName: string;
+  content: string;
+  readAt?: string;
+  createdAt: string;
+}
+
+export interface DiscussionResponseDto {
+  id: string;
+  commitmentId: string;
+  commitmentTitle: string;
+  ownerId: string;
+  ownerFullName: string;
+  messages: DiscussionMessageDto[];
+}
+
+export const getDiscussionThreadSchema = z.object({
+  commitmentId: z.string().uuid().describe("UUID of the commitment"),
+});
+
+export async function handleGetDiscussionThread(args: z.infer<typeof getDiscussionThreadSchema>) {
+  const discussion = await client.get<DiscussionResponseDto>(
+    `/api/v1/commitments/${args.commitmentId}/discussion`
+  );
+
+  const lines = [
+    `# 💬 Partner Discussion: "${discussion.commitmentTitle}"`,
+    `**Owner**: ${discussion.ownerFullName} | Commitment ID: \`${discussion.commitmentId}\`\n`,
+  ];
+
+  if (!discussion.messages || discussion.messages.length === 0) {
+    lines.push("No messages exchanged yet in this thread.");
+  } else {
+    for (const msg of discussion.messages) {
+      lines.push(`**${msg.senderFullName}** (${new Date(msg.createdAt).toLocaleTimeString()}):`);
+      lines.push(`> ${msg.content}\n`);
+    }
+  }
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: lines.join("\n"),
+      },
+    ],
+    structuredData: discussion,
+  };
+}
+
+export const sendPartnerUpdateSchema = z.object({
+  commitmentId: z.string().uuid().describe("UUID of the commitment to discuss"),
+  message: z.string().min(1).describe("The message or proof-of-work update to post to the thread"),
+});
+
+export async function handleSendPartnerUpdate(args: z.infer<typeof sendPartnerUpdateSchema>) {
+  const msg = await client.post<DiscussionMessageDto>(
+    `/api/v1/commitments/${args.commitmentId}/discussion/messages`,
+    { content: args.message }
+  );
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: `📤 **Message Posted to Commitment Thread**\n- **Sender**: ${msg.senderFullName}\n- **Time**: ${msg.createdAt}\n- **Message**: "${msg.content}"`,
+      },
+    ],
+    structuredData: msg,
+  };
+}

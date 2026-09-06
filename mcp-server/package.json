@@ -1,0 +1,40 @@
+{
+  "name": "aazdoh-mcp",
+  "version": "1.0.0",
+  "description": "Production-Grade Model Context Protocol (MCP) Server for AazDoh",
+  "type": "module",
+  "bin": {
+    "aazdoh-mcp": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepare": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "aazdoh",
+    "commitments",
+    "productivity",
+    "ai-copilot"
+  ],
+  "author": "AazDoh",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.6.0",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.19",
+    "typescript": "^5.7.3"
+  }
+}
