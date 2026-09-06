@@ -82,7 +82,7 @@ public class ApiKeyService {
 
     @Transactional(readOnly = true)
     public List<ApiKeyResponse> listUserApiKeys(UUID userId) {
-        return apiKeyRepository.findByUserIdOrderByCreatedAtDesc(userId)
+        return apiKeyRepository.findByUserIdAndRevokedFalseOrderByCreatedAtDesc(userId)
                 .stream()
                 .map(ApiKeyResponse::fromEntity)
                 .collect(Collectors.toList());

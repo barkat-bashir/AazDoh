@@ -74,7 +74,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     try {
       setLoadingKeys(true);
       const keys = await apiKeyApi.list();
-      setApiKeys(keys);
+      setApiKeys((keys || []).filter((k) => !k.revoked));
     } catch (err: any) {
       showToast(err.message || 'Failed to load API keys', 'error');
     } finally {
@@ -132,7 +132,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
     try {
       await apiKeyApi.revoke(id);
-      showToast('API key revoked', 'info');
+      setApiKeys((prev) => prev.filter((k) => k.id !== id));
+      if (newlyCreatedKey?.id === id) {
+        setNewlyCreatedKey(null);
+      }
+      showToast('API key revoked successfully', 'info');
       fetchApiKeys();
     } catch (err: any) {
       showToast(err.message || 'Failed to revoke key', 'error');
