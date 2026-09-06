@@ -13,7 +13,7 @@ export interface CommitmentDto {
   category: "DEEP_WORK" | "ROUTINE" | "STRATEGIC_PLANNING" | "COMMUNICATION" | "FITNESS_HEALTH" | "LEARNING" | "ADMIN_MAINTENANCE" | "OTHER";
   commitmentDate: string;
   deadline?: string;
-  status: "ACTIVE" | "COMPLETED" | "POSTPONED" | "CANCELLED";
+  status: "PENDING" | "ACTIVE" | "COMPLETED" | "POSTPONED" | "CANCELLED";
   visibility: "PRIVATE" | "MUTUAL";
   targetPartnerId?: string;
   targetPartnerName?: string;
@@ -38,13 +38,16 @@ export const getTodayPlanSchema = z.object({
 export async function handleGetTodayPlan(args: z.infer<typeof getTodayPlanSchema>) {
   const params: Record<string, string> = {};
   if (args.date) params.date = args.date;
-  if (args.filter) params.filter = args.filter;
 
-  const commitments = await client.get<CommitmentDto[]>("/api/v1/commitments", params);
+  let commitments = await client.get<CommitmentDto[]>("/api/v1/commitments/today", params);
+
+  if (args.filter && args.filter !== "ALL") {
+    commitments = commitments.filter((c) => c.status === args.filter);
+  }
   
   const totalMinutes = commitments.reduce((acc, c) => acc + (c.estimatedMinutes || 0), 0);
   const completed = commitments.filter((c) => c.status === "COMPLETED").length;
-  const active = commitments.filter((c) => c.status === "ACTIVE").length;
+  const active = commitments.filter((c) => c.status === "PENDING" || c.status === "ACTIVE").length;
 
   const lines = [
     `# Daily Commitment Plan (${args.date || "Today"})`,

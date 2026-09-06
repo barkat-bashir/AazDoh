@@ -162,7 +162,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             args: ["-y", "aazdoh-mcp"],
             env: {
               AAZDOH_API_KEY: activeKeyForConfig,
-              AAZDOH_API_URL: window.location.origin.includes('localhost') ? 'http://localhost:8080' : 'https://aazdoh-api.onrender.com'
+              AAZDOH_API_URL: window.location.origin.includes('localhost') ? 'http://localhost:8080' : 'https://aazdoh.onrender.com'
             }
           }
         }

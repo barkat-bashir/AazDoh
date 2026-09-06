@@ -4,8 +4,8 @@
       "command": "node",
       "args": ["p:/WORKSPACE/ZBS/AazDoh/mcp-server/dist/index.js"],
       "env": {
-        "AAZDOH_API_KEY": "aazdoh_live_agent_key_placeholder",
-        "AAZDOH_API_URL": "http://localhost:8080"
+        "AAZDOH_API_KEY": "aazdoh_live_c83a36a1b43b41a9a2d6d49c127d8906aff186b20cad3bd49618fe63a4b23c87",
+        "AAZDOH_API_URL": "https://aazdoh.onrender.com"
       }
     }
   }

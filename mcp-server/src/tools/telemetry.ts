@@ -21,16 +21,19 @@ export interface PlanStressTestResponseDto {
 }
 
 export interface AccountabilityStatsResponseDto {
-  completionRate: number;
+  daysAnalyzed: number;
   totalCommitments: number;
   completedCommitments: number;
+  missedCommitments: number;
   postponedCommitments: number;
-  failedCommitments: number;
-  currentStreak: number;
-  longestStreak: number;
-  totalFocusMinutes: number;
-  averageFocusPerDay: number;
-  estimationAccuracyPercent: number;
+  completionRate: number;
+  totalFocusHours: number;
+  avgDailyFocusHours: number;
+  failureBreakdown?: Array<{
+    reason: string;
+    count: number;
+    percentage: number;
+  }>;
 }
 
 export interface ExcuseAnalysisResponseDto {
@@ -117,17 +120,24 @@ export async function handleGetTelemetryStats(args: z.infer<typeof getTelemetryS
   const days = args.days || 30;
   const stats = await client.get<AccountabilityStatsResponseDto>("/api/v1/analytics/summary", { days });
 
-  const completionPct = Math.round(stats.completionRate * 100);
-  const accuracyPct = Math.round(stats.estimationAccuracyPercent || 0);
+  const completionPct = typeof stats.completionRate === "number" ? Math.round(stats.completionRate) : 0;
+  const focusHours = typeof stats.totalFocusHours === "number" ? Math.round(stats.totalFocusHours * 10) / 10 : 0;
+  const avgHours = typeof stats.avgDailyFocusHours === "number" ? Math.round(stats.avgDailyFocusHours * 10) / 10 : 0;
 
   const lines = [
     `# 📊 AazDoh Cognitive Telemetry & Execution Velocity (${days}-Day Window)`,
     `- **Commitment Completion Rate**: **${completionPct}%** (${stats.completedCommitments} of ${stats.totalCommitments} kept)`,
-    `- **Postponement Ratio**: **${stats.postponedCommitments}** tasks rescheduled to future dates`,
-    `- **Active Accountability Streak**: **${stats.currentStreak} days** 🔥 (Personal Record: ${stats.longestStreak} days)`,
-    `- **Total Deep Focus Time**: **${Math.round(stats.totalFocusMinutes / 60 * 10) / 10} hours** (~${stats.averageFocusPerDay}m/day average)`,
-    `- **Time Estimation Accuracy**: **${accuracyPct}%** (Ratio of estimated vs actual time spent)`,
+    `- **Postponements Logged**: **${stats.postponedCommitments}** tasks rescheduled`,
+    `- **Missed / Dropped**: **${stats.missedCommitments || 0}** commitments`,
+    `- **Total Deep Focus Time**: **${focusHours} hours** (~${avgHours}h/day average)`,
   ];
+
+  if (stats.failureBreakdown && stats.failureBreakdown.length > 0) {
+    lines.push(`\n### ⚠️ Top Behavioral Failure Friction:`);
+    for (const f of stats.failureBreakdown) {
+      lines.push(`- **${f.reason}**: ${f.count} instances (${f.percentage}%)`);
+    }
+  }
 
   return {
     content: [

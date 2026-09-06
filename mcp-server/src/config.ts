@@ -10,7 +10,7 @@ export function getConfig(): ServerConfig {
   const apiUrl =
     process.env.AAZDOH_API_URL ||
     process.env.AAZDOH_URL ||
-    "http://localhost:8080";
+    "https://aazdoh.onrender.com";
 
   const apiKey =
     process.env.AAZDOH_API_KEY ||
