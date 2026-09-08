@@ -25,10 +25,10 @@ interface AgentDrawerProps {
 }
 
 const QUICK_PROMPTS = [
-  { label: 'Audit my day', prompt: 'Audit my day and tell me if my schedule is realistic against my cognitive capacity.' },
+  { label: 'Audit my day', prompt: 'Audit my day in 2-3 short bullet points: progress, capacity bottleneck, and next step.' },
   { label: 'I am procrastinating', prompt: 'I am feeling stuck on my highest friction task. Break it down into a 15-minute micro-sprint right now.' },
   { label: 'Short on time (90m)', prompt: 'I only have 90 minutes remaining today. Postpone non-essential tasks to tomorrow and prioritize my main focus.' },
-  { label: 'Evening debrief', prompt: 'Conduct my evening accountability reflection. Review what I finished and what fell through.' },
+  { label: 'Evening debrief', prompt: 'Conduct my evening accountability reflection in 2 short bullet points.' },
 ];
 
 export const AgentDrawer: React.FC<AgentDrawerProps> = ({ isOpen, onClose }) => {
@@ -93,7 +93,7 @@ export const AgentDrawer: React.FC<AgentDrawerProps> = ({ isOpen, onClose }) => 
     try {
       const res = await agentApi.chat({
         message: text,
-        history: messages.slice(-8), // Keep recent turns for context
+        history: messages.slice(-6), // Keep recent turns for context
       });
 
       setMessages([...newHistory, { role: 'assistant', content: res.reply }]);
@@ -159,6 +159,154 @@ export const AgentDrawer: React.FC<AgentDrawerProps> = ({ isOpen, onClose }) => 
       sessionStorage.removeItem('aazdoh_agent_chat_history');
     } catch {}
     showToast('Chat cleared', 'info');
+  };
+
+  // Sleek Markdown Parser for formatted assistant bubbles
+  const renderFormattedContent = (text: string) => {
+    const lines = text.split('\n');
+    const elements: React.ReactNode[] = [];
+    let listItems: React.ReactNode[] = [];
+
+    const flushList = () => {
+      if (listItems.length > 0) {
+        elements.push(
+          <ul
+            key={`ul-${elements.length}`}
+            style={{
+              margin: '4px 0 8px 0',
+              paddingLeft: '6px',
+              listStyleType: 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+            }}
+          >
+            {listItems}
+          </ul>
+        );
+        listItems = [];
+      }
+    };
+
+    const parseInline = (str: string): React.ReactNode[] => {
+      const parts: React.ReactNode[] = [];
+      const regex = /(\*\*[^*]+\*\*|`[^`]+`)/g;
+      let lastIdx = 0;
+      let match: RegExpExecArray | null;
+
+      while ((match = regex.exec(str)) !== null) {
+        if (match.index > lastIdx) {
+          parts.push(str.substring(lastIdx, match.index));
+        }
+        const token = match[0];
+        if (token.startsWith('**') && token.endsWith('**')) {
+          parts.push(
+            <strong key={match.index} style={{ color: 'var(--text-kehwa-cream)', fontWeight: 700 }}>
+              {token.slice(2, -2)}
+            </strong>
+          );
+        } else if (token.startsWith('`') && token.endsWith('`')) {
+          parts.push(
+            <code
+              key={match.index}
+              style={{
+                background: 'rgba(0,0,0,0.4)',
+                color: 'var(--saffron-ember)',
+                padding: '2px 5px',
+                borderRadius: '4px',
+                fontSize: '0.76rem',
+                fontFamily: 'monospace',
+              }}
+            >
+              {token.slice(1, -1)}
+            </code>
+          );
+        }
+        lastIdx = regex.lastIndex;
+      }
+      if (lastIdx < str.length) {
+        parts.push(str.substring(lastIdx));
+      }
+      return parts;
+    };
+
+    lines.forEach((line, idx) => {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        flushList();
+        return;
+      }
+
+      if (trimmed === '---' || trimmed === '***') {
+        flushList();
+        elements.push(
+          <hr
+            key={`hr-${idx}`}
+            style={{ border: 'none', borderTop: '1px solid var(--border-walnut-faint)', margin: '8px 0' }}
+          />
+        );
+        return;
+      }
+
+      if (trimmed.startsWith('### ') || trimmed.startsWith('## ') || trimmed.startsWith('# ')) {
+        flushList();
+        const headerText = trimmed.replace(/^#+\s*/, '');
+        elements.push(
+          <div
+            key={`h-${idx}`}
+            style={{
+              fontSize: '0.84rem',
+              fontWeight: 700,
+              color: 'var(--saffron-ember)',
+              margin: '8px 0 3px 0',
+            }}
+          >
+            {parseInline(headerText)}
+          </div>
+        );
+        return;
+      }
+
+      if (trimmed.startsWith('* ') || trimmed.startsWith('- ') || /^\d+\.\s+/.test(trimmed)) {
+        const itemText = trimmed.replace(/^(\*|-|\d+\.)\s+/, '');
+        listItems.push(
+          <li
+            key={`li-${idx}`}
+            style={{
+              fontSize: '0.81rem',
+              lineHeight: 1.5,
+              position: 'relative',
+              paddingLeft: '14px',
+              color: 'var(--text-parchment-muted)',
+            }}
+          >
+            <span
+              style={{
+                position: 'absolute',
+                left: '2px',
+                top: '7px',
+                width: '4px',
+                height: '4px',
+                borderRadius: '50%',
+                background: 'var(--saffron-ember)',
+              }}
+            />
+            {parseInline(itemText)}
+          </li>
+        );
+        return;
+      }
+
+      flushList();
+      elements.push(
+        <p key={`p-${idx}`} style={{ margin: '0 0 6px 0', fontSize: '0.82rem', lineHeight: 1.55 }}>
+          {parseInline(line)}
+        </p>
+      );
+    });
+
+    flushList();
+    return elements;
   };
 
   if (!isOpen) return null;
@@ -408,7 +556,7 @@ export const AgentDrawer: React.FC<AgentDrawerProps> = ({ isOpen, onClose }) => 
               >
                 <div
                   style={{
-                    maxWidth: '85%',
+                    maxWidth: '88%',
                     padding: '12px 16px',
                     borderRadius: m.role === 'user' ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
                     background:
@@ -422,12 +570,10 @@ export const AgentDrawer: React.FC<AgentDrawerProps> = ({ isOpen, onClose }) => 
                         : '1px solid var(--border-walnut-faint)',
                     fontSize: '0.84rem',
                     lineHeight: 1.55,
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
                     boxShadow: 'var(--shadow-warm-sm)',
                   }}
                 >
-                  {m.content}
+                  {m.role === 'user' ? m.content : renderFormattedContent(m.content)}
                 </div>
               </div>
             ))
@@ -474,7 +620,7 @@ export const AgentDrawer: React.FC<AgentDrawerProps> = ({ isOpen, onClose }) => 
                   animation: 'spin 0.8s linear infinite',
                 }}
               />
-              <span>Coach is reasoning and inspecting plan...</span>
+              <span>Coach is analyzing plan...</span>
             </div>
           )}
 
