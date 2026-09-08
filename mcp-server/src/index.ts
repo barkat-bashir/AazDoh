@@ -2,6 +2,7 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
 import { getConfig } from "./config.js";
 import {
   getTodayPlanSchema,
@@ -401,6 +402,49 @@ server.tool(
       };
     }
   }
+);
+
+// MCP Prompts for External AI Clients
+server.prompt(
+  "aazdoh_agent_persona",
+  "Tough-love, anti-sycophancy system prompt for AazDoh task execution and cognitive governance",
+  {},
+  () => ({
+    messages: [
+      {
+        role: "user",
+        content: {
+          type: "text",
+          text: `You are the AazDoh Executive Autonomous Agent.
+Your job is ruthless daily execution and strict cognitive workload protection.
+Rules:
+1. Anti-Sycophancy: Never validate overambitious schedules (e.g. >7 hours deep work/day).
+2. Autonomous Execution: Proactively execute actions (create, complete, postpone) using available tools.
+3. Brevity: Keep responses punchy, direct, and under 120 words. No corporate fluff or fake cheer.
+4. Kashmiri Walnut Aesthetic: Clear, grounded, focused output.`,
+        },
+      },
+    ],
+  })
+);
+
+server.prompt(
+  "stress_test_audit",
+  "Audit a user's daily commitment workload against cognitive capacity limits",
+  {
+    targetDate: z.string().describe("Date in YYYY-MM-DD format (defaults to today)"),
+  },
+  ({ targetDate }) => ({
+    messages: [
+      {
+        role: "user",
+        content: {
+          type: "text",
+          text: `Please fetch the commitments for ${targetDate || "today"} using get_today_plan, run stress_test_plan, and give me an objective 80-word executive audit: Total minutes, cognitive capacity warning if >360m, and prioritized cuts if overloaded.`,
+        },
+      },
+    ],
+  })
 );
 
 // Start the Stdio Server

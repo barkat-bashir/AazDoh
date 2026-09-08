@@ -1,0 +1,226 @@
+package com.aazdoh.ai.config;
+
+import com.aazdoh.ai.agent.AgentTools;
+import com.aazdoh.auth.service.CustomUserDetails;
+import com.aazdoh.commitment.entity.CommitmentPriority;
+import com.fasterxml.jackson.annotation.JsonClassDescription;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Description;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Function;
+
+@Configuration
+public class AgentFunctionConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(AgentFunctionConfig.class);
+
+    private UUID getAuthenticatedUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof CustomUserDetails userDetails) {
+            return userDetails.getId();
+        }
+        throw new IllegalStateException("User must be authenticated to invoke agent tools");
+    }
+
+    // --- 1. Create Commitment Function ---
+    @JsonClassDescription("Request to create a new daily commitment")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record CreateCommitmentFunctionRequest(
+            @JsonProperty(required = true) @JsonPropertyDescription("Title of the commitment (e.g. 'Solve 1 Leetcode Problem', 'Tahajjud Prayers')") String title,
+            @JsonPropertyDescription("Estimated duration in minutes (e.g. 15, 30, 45, 60)") Integer estimatedMinutes,
+            @JsonPropertyDescription("Priority level: URGENT, HIGH, MEDIUM, LOW. Default: MEDIUM") String priority,
+            @JsonPropertyDescription("Category: ROUTINE, DEEP_WORK, LEARNING, FITNESS_HEALTH, COMMUNICATION. Default: DEEP_WORK") String category,
+            @JsonPropertyDescription("Definition of done or expected outcome") String expectedOutcome,
+            @JsonPropertyDescription("Target date (YYYY-MM-DD). Defaults to today") String targetDate
+    ) {}
+
+    public record CreateCommitmentFunctionResponse(boolean success, UUID commitmentId, String title, int estimatedMinutes, String message) {}
+
+    @Bean
+    @Description("Create a new daily commitment for the user with title, estimated minutes, priority, category, and definition of done")
+    public Function<CreateCommitmentFunctionRequest, CreateCommitmentFunctionResponse> createCommitmentFunction(AgentTools agentTools) {
+        return request -> {
+            try {
+                UUID userId = getAuthenticatedUserId();
+                CommitmentPriority prio = CommitmentPriority.MEDIUM;
+                if (request.priority() != null) {
+                    try { prio = CommitmentPriority.valueOf(request.priority().toUpperCase().trim()); } catch (Exception ignored) {}
+                }
+                LocalDate date = LocalDate.now();
+                if (request.targetDate() != null && !request.targetDate().isBlank()) {
+                    try { date = LocalDate.parse(request.targetDate().trim()); } catch (Exception ignored) {}
+                }
+
+                Map<String, Object> result = agentTools.createCommitment(
+                        userId,
+                        request.title(),
+                        request.estimatedMinutes() != null ? request.estimatedMinutes() : 30,
+                        prio,
+                        request.category() != null ? request.category() : "DEEP_WORK",
+                        request.expectedOutcome(),
+                        date
+                );
+
+                return new CreateCommitmentFunctionResponse(
+                        true,
+                        (UUID) result.get("commitmentId"),
+                        (String) result.get("title"),
+                        (int) result.get("estimatedMinutes"),
+                        "Commitment created successfully."
+                );
+            } catch (Exception e) {
+                log.error("Error in createCommitmentFunction: {}", e.getMessage());
+                return new CreateCommitmentFunctionResponse(false, null, request.title(), 0, "Failed: " + e.getMessage());
+            }
+        };
+    }
+
+    // --- 2. Get Plan Function ---
+    @JsonClassDescription("Request to retrieve commitment schedule for a specific date")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record GetPlanFunctionRequest(
+            @JsonPropertyDescription("Date in YYYY-MM-DD format (e.g. today or yesterday). If omitted, defaults to today.") String targetDate
+    ) {}
+
+    public record GetPlanFunctionResponse(boolean success, String date, int totalCommitments, long pendingCommitments, long completedCommitments, int totalEstimatedMinutes, String capacityStatus, List<Map<String, Object>> commitments) {}
+
+    @SuppressWarnings("unchecked")
+    @Bean
+    @Description("Get the user's daily commitment schedule, progress, and cognitive load for a specific date (today, yesterday, or any YYYY-MM-DD)")
+    public Function<GetPlanFunctionRequest, GetPlanFunctionResponse> getPlanFunction(AgentTools agentTools) {
+        return request -> {
+            try {
+                UUID userId = getAuthenticatedUserId();
+                LocalDate date = LocalDate.now();
+                if (request != null && request.targetDate() != null && !request.targetDate().isBlank()) {
+                    try { date = LocalDate.parse(request.targetDate().trim()); } catch (Exception ignored) {}
+                }
+
+                Map<String, Object> plan = agentTools.getPlanForDate(userId, date);
+                return new GetPlanFunctionResponse(
+                        true,
+                        (String) plan.get("date"),
+                        (int) plan.get("totalCommitments"),
+                        (long) plan.get("pendingCommitments"),
+                        (long) plan.get("completedCommitments"),
+                        (int) plan.get("totalEstimatedMinutes"),
+                        (String) plan.get("capacityStatus"),
+                        (List<Map<String, Object>>) plan.get("commitments")
+                );
+            } catch (Exception e) {
+                log.error("Error in getPlanFunction: {}", e.getMessage());
+                return new GetPlanFunctionResponse(false, LocalDate.now().toString(), 0, 0, 0, 0, "ERROR", List.of());
+            }
+        };
+    }
+
+    // --- 3. Postpone Commitment Function ---
+    @JsonClassDescription("Request to postpone a commitment to a future date")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record PostponeCommitmentFunctionRequest(
+            @JsonProperty(required = true) @JsonPropertyDescription("UUID ID of the commitment to postpone") String commitmentId,
+            @JsonPropertyDescription("Reason for postponement") String reason,
+            @JsonPropertyDescription("Target date (YYYY-MM-DD). Defaults to tomorrow") String newDate
+    ) {}
+
+    public record PostponeCommitmentFunctionResponse(boolean success, UUID commitmentId, String title, String newDate, String message) {}
+
+    @Bean
+    @Description("Postpone a commitment to a future date with an audited reason")
+    public Function<PostponeCommitmentFunctionRequest, PostponeCommitmentFunctionResponse> postponeCommitmentFunction(AgentTools agentTools) {
+        return request -> {
+            try {
+                UUID userId = getAuthenticatedUserId();
+                UUID cid = UUID.fromString(request.commitmentId().trim());
+                LocalDate newDate = LocalDate.now().plusDays(1);
+                if (request.newDate() != null && !request.newDate().isBlank()) {
+                    try { newDate = LocalDate.parse(request.newDate().trim()); } catch (Exception ignored) {}
+                }
+
+                Map<String, Object> result = agentTools.postponeCommitment(userId, cid, request.reason(), newDate);
+                return new PostponeCommitmentFunctionResponse(
+                        true,
+                        (UUID) result.get("commitmentId"),
+                        (String) result.get("title"),
+                        (String) result.get("newDate"),
+                        "Commitment postponed successfully."
+                );
+            } catch (Exception e) {
+                log.error("Error in postponeCommitmentFunction: {}", e.getMessage());
+                return new PostponeCommitmentFunctionResponse(false, null, null, null, "Failed: " + e.getMessage());
+            }
+        };
+    }
+
+    // --- 4. Complete Commitment Function ---
+    @JsonClassDescription("Request to mark a commitment as completed")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record CompleteCommitmentFunctionRequest(
+            @JsonProperty(required = true) @JsonPropertyDescription("UUID ID of the commitment to mark complete") String commitmentId
+    ) {}
+
+    public record CompleteCommitmentFunctionResponse(boolean success, UUID commitmentId, String title, String message) {}
+
+    @Bean
+    @Description("Mark a commitment as completed and update streaks")
+    public Function<CompleteCommitmentFunctionRequest, CompleteCommitmentFunctionResponse> completeCommitmentFunction(AgentTools agentTools) {
+        return request -> {
+            try {
+                UUID userId = getAuthenticatedUserId();
+                UUID cid = UUID.fromString(request.commitmentId().trim());
+                Map<String, Object> result = agentTools.completeCommitment(userId, cid);
+                return new CompleteCommitmentFunctionResponse(
+                        true,
+                        (UUID) result.get("commitmentId"),
+                        (String) result.get("title"),
+                        "Commitment completed successfully."
+                );
+            } catch (Exception e) {
+                log.error("Error in completeCommitmentFunction: {}", e.getMessage());
+                return new CompleteCommitmentFunctionResponse(false, null, null, "Failed: " + e.getMessage());
+            }
+        };
+    }
+
+    // --- 5. Stress Test Schedule Function ---
+    @JsonClassDescription("Request to run cognitive load stress test on schedule")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record StressTestFunctionRequest(
+            @JsonPropertyDescription("Optional defense or context for high load") String quickDefense
+    ) {}
+
+    public record StressTestFunctionResponse(boolean success, int riskScore, String riskLevel, String diagnosticSummary) {}
+
+    @Bean
+    @Description("Run cognitive capacity stress-test on today's schedule to diagnose bottlenecks")
+    public Function<StressTestFunctionRequest, StressTestFunctionResponse> stressTestScheduleFunction(AgentTools agentTools) {
+        return request -> {
+            try {
+                UUID userId = getAuthenticatedUserId();
+                String defense = request != null ? request.quickDefense() : null;
+                Map<String, Object> result = agentTools.stressTestSchedule(userId, defense);
+                return new StressTestFunctionResponse(
+                        true,
+                        (int) result.getOrDefault("riskScore", 25),
+                        (String) result.getOrDefault("riskLevel", "LOW"),
+                        (String) result.getOrDefault("diagnosticSummary", "Schedule reviewed.")
+                );
+            } catch (Exception e) {
+                log.error("Error in stressTestScheduleFunction: {}", e.getMessage());
+                return new StressTestFunctionResponse(false, 0, "LOW", "Failed: " + e.getMessage());
+            }
+        };
+    }
+}

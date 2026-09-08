@@ -22,6 +22,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
@@ -81,39 +85,53 @@ public class AgentChatService {
 
         // 1. Inspect user's current context
         Map<String, Object> todayPlan = agentTools.getTodayPlan(userId);
+        Map<String, Object> yesterdayPlan = agentTools.getPlanForDate(userId, LocalDate.now().minusDays(1));
 
         // 2. Build system prompt with persona
-        String systemPromptText = buildSystemPrompt(persona, todayPlan);
+        String systemPromptText = buildSystemPrompt(persona, todayPlan, yesterdayPlan);
 
         String userMessage = request.getMessage().trim();
         String reply;
 
         try {
             if (aiEnabled && chatClient != null) {
-                // Call Spring AI ChatClient with full context
-                StringBuilder conversationContext = new StringBuilder();
+                // Build standard Spring AI messages list
+                List<Message> messages = new ArrayList<>();
+                messages.add(new SystemMessage(systemPromptText));
+
                 if (request.getHistory() != null && !request.getHistory().isEmpty()) {
                     for (AgentChatMessageDto turn : request.getHistory()) {
-                        conversationContext.append(turn.getRole().toUpperCase()).append(": ").append(turn.getContent()).append("\n");
+                        if ("user".equalsIgnoreCase(turn.getRole())) {
+                            messages.add(new UserMessage(turn.getContent()));
+                        } else if ("assistant".equalsIgnoreCase(turn.getRole())) {
+                            messages.add(new AssistantMessage(turn.getContent()));
+                        }
                     }
                 }
-                conversationContext.append("USER: ").append(userMessage);
+                messages.add(new UserMessage(userMessage));
 
+                // Call Spring AI ChatClient with native Function Calling tools
                 reply = chatClient.prompt()
-                        .system(systemPromptText)
-                        .user(conversationContext.toString())
+                        .messages(messages)
+                        .functions(
+                                "createCommitmentFunction",
+                                "getPlanFunction",
+                                "postponeCommitmentFunction",
+                                "completeCommitmentFunction",
+                                "stressTestScheduleFunction"
+                        )
                         .call()
                         .content();
 
                 if (reply == null || reply.isBlank()) {
-                    reply = generateHeuristicResponse(user, todayPlan, userMessage);
+                    reply = handleHeuristicExecutionAndReply(user, todayPlan, yesterdayPlan, userMessage);
                 }
             } else {
-                reply = generateHeuristicResponse(user, todayPlan, userMessage);
+                reply = handleHeuristicExecutionAndReply(user, todayPlan, yesterdayPlan, userMessage);
             }
         } catch (Exception e) {
-            log.warn("Spring AI chat invocation failed for user {}, falling back to heuristic execution: {}", userId, e.getMessage());
-            reply = generateHeuristicResponse(user, todayPlan, userMessage);
+            log.warn("Spring AI native tool execution failed for user {}, falling back to heuristic execution: {}", userId, e.getMessage());
+            reply = handleHeuristicExecutionAndReply(user, todayPlan, yesterdayPlan, userMessage);
         }
 
         // 3. Find any action logs created in this turn
@@ -138,7 +156,7 @@ public class AgentChatService {
 
         boolean undoAvailable = actionLogRepository.findFirstByUserIdAndUndoneFalseOrderByCreatedAtDesc(userId).isPresent();
 
-        return new AgentChatResponse(reply, receipts, undoAvailable, cognitiveWarning);
+        return new AgentChatResponse(reply != null ? reply.trim() : "", receipts, undoAvailable, cognitiveWarning);
     }
 
     @Transactional
@@ -232,7 +250,7 @@ public class AgentChatService {
         }
     }
 
-    private String buildSystemPrompt(AiPersona persona, Map<String, Object> todayPlan) {
+    private String buildSystemPrompt(AiPersona persona, Map<String, Object> todayPlan, Map<String, Object> yesterdayPlan) {
         String basePrompt = "";
         try {
             if (agentSystemPrompt != null) {
@@ -245,39 +263,57 @@ public class AgentChatService {
             basePrompt = "You are the AazDoh Cognitive Accountability Coach. Help the user execute daily commitments with zero BS.";
         }
 
-        String planJson;
+        String todayJson = "{}";
+        String yesterdayJson = "{}";
         try {
-            planJson = objectMapper.writeValueAsString(todayPlan);
-        } catch (Exception e) {
-            planJson = "{}";
-        }
+            todayJson = objectMapper.writeValueAsString(todayPlan);
+            yesterdayJson = objectMapper.writeValueAsString(yesterdayPlan);
+        } catch (Exception ignored) {}
 
-        return basePrompt.replace("{persona}", persona.name()) + "\n\nCURRENT USER TODAY STATE:\n" + planJson;
+        return basePrompt.replace("{persona}", persona.name()) +
+                "\n\nCURRENT USER TODAY STATE:\n" + todayJson +
+                "\n\nYESTERDAY STATE:\n" + yesterdayJson;
     }
 
-    private String generateHeuristicResponse(User user, Map<String, Object> plan, String prompt) {
+    @SuppressWarnings("unchecked")
+    private String handleHeuristicExecutionAndReply(User user, Map<String, Object> todayPlan, Map<String, Object> yesterdayPlan, String prompt) {
         String lower = prompt.toLowerCase();
-        int pending = (int) (long) plan.getOrDefault("pendingCommitments", 0L);
-        int totalMinutes = (int) plan.getOrDefault("totalEstimatedMinutes", 0);
+
+        // Check if user asks to copy/repeat yesterday morning routine
+        if (lower.contains("morning") && (lower.contains("yesterday") || lower.contains("same as") || lower.contains("repeat") || lower.contains("add"))) {
+            List<Map<String, Object>> yCommitments = (List<Map<String, Object>>) yesterdayPlan.getOrDefault("commitments", new ArrayList<>());
+            List<Map<String, Object>> morningTasks = yCommitments.stream()
+                    .filter(c -> "ROUTINE".equalsIgnoreCase((String) c.get("category")) || ((String) c.get("title")).toLowerCase().contains("morning") || ((String) c.get("title")).toLowerCase().contains("tahajjud") || ((String) c.get("title")).toLowerCase().contains("breakfast"))
+                    .collect(Collectors.toList());
+
+            if (!morningTasks.isEmpty()) {
+                for (Map<String, Object> t : morningTasks) {
+                    String title = (String) t.get("title");
+                    int mins = (int) t.getOrDefault("estimatedMinutes", 30);
+                    String priorityStr = t.get("priority") != null ? t.get("priority").toString() : "HIGH";
+                    CommitmentPriority prio = CommitmentPriority.HIGH;
+                    try { prio = CommitmentPriority.valueOf(priorityStr); } catch (Exception ignored) {}
+                    String outcome = (String) t.get("expectedOutcome");
+                    agentTools.createCommitment(user.getId(), title, mins, prio, "ROUTINE", outcome, LocalDate.now());
+                }
+                return String.format("⚡ **Added %d morning commitments** from yesterday's routine to your schedule. Your momentum is locked in for today.", morningTasks.size());
+            }
+        }
+
+        // Audit check
+        int pending = (int) (long) todayPlan.getOrDefault("pendingCommitments", 0L);
+        int totalMinutes = (int) todayPlan.getOrDefault("totalEstimatedMinutes", 0);
 
         if (lower.contains("audit") || lower.contains("plan") || lower.contains("today") || lower.contains("schedule")) {
             if (pending == 0) {
-                return "You currently have no pending commitments for today. Add 2-3 focused priorities to establish your execution baseline.";
+                return "⚡ **Progress:** 0 pending commitments for today. Add 2-3 focused priorities to establish your execution baseline.";
             }
             if (totalMinutes > 360) {
-                return String.format("You have %d pending commitments totaling %d minutes (>6 hours). Your cognitive capacity is overloaded. Pick your top 2 priorities and postpone non-essentials.", pending, totalMinutes);
+                return String.format("⚡ **Status:** %d pending (%d mins scheduled).\n* **Risk:** Exceeds daily cognitive capacity (>6h).\n* **Action:** Prune or postpone non-essential tasks to tomorrow.", pending, totalMinutes);
             }
-            return String.format("You have %d pending commitments totaling %d minutes. Your schedule is well-calibrated. Tackle your highest friction task first while your energy is fresh.", pending, totalMinutes);
+            return String.format("⚡ **Status:** %d pending commitments (%d mins scheduled).\n* **Calibration:** Optimal cognitive load.\n* **Action:** Execute your highest friction task first while fresh.", pending, totalMinutes);
         }
 
-        if (lower.contains("procrastinat") || lower.contains("stuck") || lower.contains("friction")) {
-            return "When friction is high, don't negotiate with resistance. Commit to a 15-minute micro-sprint right now: set a timer, close all tabs, and just begin.";
-        }
-
-        if (lower.contains("review") || lower.contains("evening") || lower.contains("debrief")) {
-            return "Evening check-in: Did you follow through on what you promised yourself today? Reflect on the friction points so tomorrow starts sharper.";
-        }
-
-        return String.format("I am tracking your %d commitments for today. Let's stay focused on direct execution. What is your immediate next step?", pending);
+        return String.format("⚡ **Tracking:** %d active commitments today (%d mins). Let's stay focused on direct execution. What is your immediate next step?", pending, totalMinutes);
     }
 }

@@ -11,6 +11,7 @@ import com.aazdoh.commitment.dto.CommitmentResponse;
 import com.aazdoh.commitment.dto.CreateCommitmentRequest;
 import com.aazdoh.commitment.dto.PostponeCommitmentRequest;
 import com.aazdoh.commitment.entity.Commitment;
+import com.aazdoh.commitment.entity.CommitmentCategory;
 import com.aazdoh.commitment.entity.CommitmentPriority;
 import com.aazdoh.commitment.entity.CommitmentStatus;
 import com.aazdoh.commitment.entity.CommitmentVisibility;
@@ -26,6 +27,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,8 +67,13 @@ public class AgentTools {
 
     @Transactional(readOnly = true)
     public Map<String, Object> getTodayPlan(UUID userId) {
-        LocalDate today = LocalDate.now();
-        List<CommitmentResponse> commitments = commitmentService.getTodayCommitments(userId, today);
+        return getPlanForDate(userId, LocalDate.now());
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getPlanForDate(UUID userId, LocalDate date) {
+        LocalDate target = date != null ? date : LocalDate.now();
+        List<CommitmentResponse> commitments = commitmentService.getTodayCommitments(userId, target);
         UserExecutionStats stats = statsService.getOrComputeStats(userId);
 
         int totalEstimatedMinutes = commitments.stream()
@@ -77,7 +84,7 @@ public class AgentTools {
         long completedCount = commitments.stream().filter(c -> c.getStatus() == CommitmentStatus.COMPLETED).count();
 
         Map<String, Object> result = new HashMap<>();
-        result.put("date", today.toString());
+        result.put("date", target.toString());
         result.put("totalCommitments", commitments.size());
         result.put("pendingCommitments", pendingCount);
         result.put("completedCommitments", completedCount);
@@ -92,7 +99,9 @@ public class AgentTools {
             m.put("title", c.getTitle());
             m.put("status", c.getStatus());
             m.put("priority", c.getPriority());
+            m.put("category", c.getCategory() != null ? c.getCategory().name() : "DEEP_WORK");
             m.put("estimatedMinutes", c.getEstimatedMinutes());
+            m.put("expectedOutcome", c.getExpectedOutcome());
             m.put("postponementCount", c.getPostponementCount());
             return m;
         }).collect(Collectors.toList());
@@ -109,13 +118,35 @@ public class AgentTools {
             CommitmentPriority priority,
             String expectedOutcome
     ) {
+        return createCommitment(userId, title, estimatedMinutes, priority, "DEEP_WORK", expectedOutcome, LocalDate.now());
+    }
+
+    @Transactional
+    public Map<String, Object> createCommitment(
+            UUID userId,
+            String title,
+            Integer estimatedMinutes,
+            CommitmentPriority priority,
+            String categoryStr,
+            String expectedOutcome,
+            LocalDate targetDate
+    ) {
         User user = userService.findUserById(userId);
+
+        CommitmentCategory category = CommitmentCategory.DEEP_WORK;
+        if (categoryStr != null) {
+            try {
+                category = CommitmentCategory.valueOf(categoryStr.toUpperCase().trim());
+            } catch (Exception ignored) {
+            }
+        }
 
         CreateCommitmentRequest request = new CreateCommitmentRequest();
         request.setTitle(title.trim());
         request.setEstimatedMinutes(estimatedMinutes != null && estimatedMinutes > 0 ? estimatedMinutes : 30);
         request.setPriority(priority != null ? priority : CommitmentPriority.MEDIUM);
-        request.setCommitmentDate(LocalDate.now());
+        request.setCategory(category);
+        request.setCommitmentDate(targetDate != null ? targetDate : LocalDate.now());
         request.setVisibility(CommitmentVisibility.PRIVATE);
         request.setExpectedOutcome(expectedOutcome);
 
