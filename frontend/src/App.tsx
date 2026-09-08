@@ -13,6 +13,7 @@ import { TodayPage } from './pages/TodayPage';
 import { PartnersPage } from './pages/PartnersPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { SettingsModal } from './components/settings/SettingsModal';
+import { AgentDrawer } from './components/agent/AgentDrawer';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { discussionApi } from './api/discussionApi';
 import { useQuery } from '@tanstack/react-query';
@@ -50,7 +51,9 @@ const AuthenticatedLayout: React.FC<{
   unreadSummary: any;
   isSettingsOpen: boolean;
   setIsSettingsOpen: (open: boolean) => void;
-}> = ({ unreadSummary, isSettingsOpen, setIsSettingsOpen }) => {
+  isAgentOpen: boolean;
+  setIsAgentOpen: (open: boolean) => void;
+}> = ({ unreadSummary, isSettingsOpen, setIsSettingsOpen, isAgentOpen, setIsAgentOpen }) => {
   const unreadTodayCount = unreadSummary?.unreadTodayMessages || 0;
   const unreadPartnerCount = unreadSummary?.unreadPartnerMessages !== undefined
     ? unreadSummary.unreadPartnerMessages
@@ -59,7 +62,10 @@ const AuthenticatedLayout: React.FC<{
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-walnut-deep)', position: 'relative' }}>
       <ChinarLeavesCanvas />
-      <Header onOpenSettings={() => setIsSettingsOpen(true)} />
+      <Header
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenAgent={() => setIsAgentOpen(true)}
+      />
       <Navigation
         unreadTodayCount={unreadTodayCount}
         unreadPartnerCount={unreadPartnerCount}
@@ -72,6 +78,12 @@ const AuthenticatedLayout: React.FC<{
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+      />
+
+      {/* Autonomous AI Coach Drawer */}
+      <AgentDrawer
+        isOpen={isAgentOpen}
+        onClose={() => setIsAgentOpen(false)}
       />
 
       {/* Integrated Task Pomodoro / Focus Sprint Cockpit & Minimized Floating Bar */}
@@ -104,6 +116,21 @@ const AuthenticatedLayout: React.FC<{
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAgentOpen, setIsAgentOpen] = useState(false);
+
+  // Global Cmd+K / Ctrl+K keyboard shortcut to toggle AI Coach
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        if (user) {
+          setIsAgentOpen((prev) => !prev);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [user]);
 
   // TanStack Query for unread notifications & background sync
   const { data: unreadSummary } = useQuery({
@@ -199,6 +226,8 @@ const AppContent: React.FC = () => {
               unreadSummary={unreadSummary}
               isSettingsOpen={isSettingsOpen}
               setIsSettingsOpen={setIsSettingsOpen}
+              isAgentOpen={isAgentOpen}
+              setIsAgentOpen={setIsAgentOpen}
             />
           ) : (
             <Navigate to="/login" replace />
