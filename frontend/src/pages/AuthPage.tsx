@@ -143,8 +143,8 @@ export const AuthPage: React.FC = () => {
             {authMode === 'forgot'
               ? 'Enter your email to receive a password reset link'
               : authMode === 'register'
-              ? 'Create your private accountability account'
-              : 'Welcome back. Did you keep your word today?'}
+                ? 'Create your private accountability account'
+                : 'Welcome back. Did you keep your word today?'}
           </p>
         </div>
 
@@ -200,7 +200,7 @@ export const AuthPage: React.FC = () => {
                 <input
                   type="text"
                   className="input-field"
-                  placeholder="Barkat Ali"
+                  placeholder="john Done"
                   value={fullName}
                   onChange={(e) => { setFullName(e.target.value); setErrorMessage(null); }}
                   required={authMode === 'register'}
@@ -273,10 +273,10 @@ export const AuthPage: React.FC = () => {
                 {loading
                   ? 'Processing...'
                   : authMode === 'forgot'
-                  ? 'Send Reset Link'
-                  : authMode === 'register'
-                  ? 'Create Account'
-                  : 'Sign In'}
+                    ? 'Send Reset Link'
+                    : authMode === 'register'
+                      ? 'Create Account'
+                      : 'Sign In'}
               </span>
               <ArrowRight size={16} />
             </button>
