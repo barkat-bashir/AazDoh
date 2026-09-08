@@ -46,6 +46,7 @@ export const AgentDrawer: React.FC<AgentDrawerProps> = ({ isOpen, onClose }) => 
     }
   });
   const [loading, setLoading] = useState(false);
+  const [liveSteps, setLiveSteps] = useState<string[]>([]);
   const [recentActions, setRecentActions] = useState<AgentActionReceipt[]>([]);
   const [undoAvailable, setUndoAvailable] = useState(false);
   const [cognitiveWarning, setCognitiveWarning] = useState<string | null>(null);
@@ -60,7 +61,7 @@ export const AgentDrawer: React.FC<AgentDrawerProps> = ({ isOpen, onClose }) => 
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       inputRef.current?.focus();
     }
-  }, [messages, isOpen, loading]);
+  }, [messages, isOpen, loading, liveSteps]);
 
   // Persist session messages
   useEffect(() => {
@@ -88,42 +89,54 @@ export const AgentDrawer: React.FC<AgentDrawerProps> = ({ isOpen, onClose }) => 
     const newHistory: AgentChatMessage[] = [...messages, { role: 'user', content: text }];
     setMessages(newHistory);
     setLoading(true);
+    setLiveSteps([]);
     setCognitiveWarning(null);
 
-    try {
-      const res = await agentApi.chat({
+    await agentApi.streamChat(
+      {
         message: text,
-        history: messages.slice(-6), // Keep recent turns for context
-      });
+        history: messages.slice(-6),
+      },
+      (stepMessage) => {
+        setLiveSteps((prev) => {
+          if (!prev.includes(stepMessage)) {
+            return [...prev, stepMessage];
+          }
+          return prev;
+        });
+      },
+      (res) => {
+        setMessages([...newHistory, { role: 'assistant', content: res.reply }]);
+        setLiveSteps([]);
+        setLoading(false);
 
-      setMessages([...newHistory, { role: 'assistant', content: res.reply }]);
+        if (res.executedActions && res.executedActions.length > 0) {
+          setRecentActions(res.executedActions);
+          setUndoAvailable(true);
+          queryClient.invalidateQueries({ queryKey: ['commitments'] });
+          queryClient.invalidateQueries({ queryKey: ['stats'] });
+          showToast(`Agent executed ${res.executedActions.length} action(s)`, 'info');
+        } else {
+          setUndoAvailable(res.undoAvailable);
+        }
 
-      if (res.executedActions && res.executedActions.length > 0) {
-        setRecentActions(res.executedActions);
-        setUndoAvailable(true);
-        // Refresh commitments and stats across the app in real time
-        queryClient.invalidateQueries({ queryKey: ['commitments'] });
-        queryClient.invalidateQueries({ queryKey: ['stats'] });
-        showToast(`Agent executed ${res.executedActions.length} action(s)`, 'info');
-      } else {
-        setUndoAvailable(res.undoAvailable);
+        if (res.cognitiveWarning) {
+          setCognitiveWarning(res.cognitiveWarning);
+        }
+      },
+      (errMessage) => {
+        setMessages([
+          ...newHistory,
+          {
+            role: 'assistant',
+            content: `Sorry, I encountered an issue: ${errMessage}`,
+          },
+        ]);
+        setLiveSteps([]);
+        setLoading(false);
+        showToast(errMessage || 'Failed to communicate with AI Coach', 'error');
       }
-
-      if (res.cognitiveWarning) {
-        setCognitiveWarning(res.cognitiveWarning);
-      }
-    } catch (err: any) {
-      setMessages([
-        ...newHistory,
-        {
-          role: 'assistant',
-          content: 'Sorry, I encountered an issue connecting to the execution engine. Please try again.',
-        },
-      ]);
-      showToast(err.message || 'Failed to communicate with AI Coach', 'error');
-    } finally {
-      setLoading(false);
-    }
+    );
   };
 
   const handleUndo = async () => {
@@ -607,20 +620,88 @@ export const AgentDrawer: React.FC<AgentDrawerProps> = ({ isOpen, onClose }) => 
             </div>
           )}
 
-          {/* Loading Indicator */}
+          {/* Live Execution Stepper */}
           {loading && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-tweed-dim)', fontSize: '0.8rem' }}>
-              <div
-                style={{
-                  width: '16px',
-                  height: '16px',
-                  border: '2px solid var(--border-walnut-faint)',
-                  borderTopColor: 'var(--saffron-ember)',
-                  borderRadius: '50%',
-                  animation: 'spin 0.8s linear infinite',
-                }}
-              />
-              <span>Coach is analyzing plan...</span>
+            <div
+              style={{
+                padding: '12px 14px',
+                background: 'rgba(25, 17, 13, 0.85)',
+                border: '1px solid var(--border-copper-subtle)',
+                borderRadius: '10px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)',
+                animation: 'fadeIn 0.2s ease-out',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: 'var(--saffron-ember)',
+                    boxShadow: '0 0 8px var(--saffron-ember)',
+                    animation: 'pulse 1.5s infinite',
+                  }}
+                />
+                <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-kehwa-cream)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Executing Plan & Tools
+                </span>
+              </div>
+
+              {liveSteps.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '2px' }}>
+                  {liveSteps.map((step, idx) => {
+                    const isLast = idx === liveSteps.length - 1;
+                    return (
+                      <div
+                        key={idx}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          fontSize: '0.78rem',
+                          color: isLast ? 'var(--text-kehwa-cream)' : 'var(--text-parchment-muted)',
+                        }}
+                      >
+                        {isLast ? (
+                          <div
+                            style={{
+                              width: '12px',
+                              height: '12px',
+                              border: '2px solid var(--border-walnut-faint)',
+                              borderTopColor: 'var(--saffron-ember)',
+                              borderRadius: '50%',
+                              animation: 'spin 0.8s linear infinite',
+                              flexShrink: 0,
+                            }}
+                          />
+                        ) : (
+                          <CheckCircle2 size={13} color="#10B981" style={{ flexShrink: 0 }} />
+                        )}
+                        <span style={{ fontWeight: isLast ? 600 : 400 }}>{step}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-tweed-dim)', fontSize: '0.78rem' }}>
+                  <div
+                    style={{
+                      width: '12px',
+                      height: '12px',
+                      border: '2px solid var(--border-walnut-faint)',
+                      borderTopColor: 'var(--saffron-ember)',
+                      borderRadius: '50%',
+                      animation: 'spin 0.8s linear infinite',
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span>Initializing agent reasoning...</span>
+                </div>
+              )}
             </div>
           )}
 

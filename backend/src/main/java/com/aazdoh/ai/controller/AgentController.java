@@ -34,6 +34,15 @@ public class AgentController {
         this.agentChatService = agentChatService;
     }
 
+    @PostMapping(value = "/chat/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "Stream agent execution steps and real-time response via Server-Sent Events (SSE)")
+    public org.springframework.web.servlet.mvc.method.annotation.SseEmitter chatStream(
+            @Valid @RequestBody AgentChatRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return agentChatService.chatStream(userDetails.getId(), request);
+    }
+
     @PostMapping("/chat")
     @Operation(summary = "Send a message to the autonomous AI accountability agent")
     public ResponseEntity<ApiResponse<AgentChatResponse>> chat(

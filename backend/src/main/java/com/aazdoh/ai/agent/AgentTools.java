@@ -73,6 +73,7 @@ public class AgentTools {
     @Transactional(readOnly = true)
     public Map<String, Object> getPlanForDate(UUID userId, LocalDate date) {
         LocalDate target = date != null ? date : LocalDate.now();
+        AgentProgressListener.emit("🔍 Inspecting schedule for " + target + "...");
         List<CommitmentResponse> commitments = commitmentService.getTodayCommitments(userId, target);
         UserExecutionStats stats = statsService.getOrComputeStats(userId);
 
@@ -151,6 +152,7 @@ public class AgentTools {
         request.setExpectedOutcome(expectedOutcome);
 
         CommitmentResponse created = commitmentService.createCommitment(userId, request);
+        AgentProgressListener.emit("⚡ Adding commitment: '" + created.getTitle() + "' (" + created.getEstimatedMinutes() + "m)...");
 
         // Record action log
         AgentActionLog actionLog = new AgentActionLog(
@@ -179,6 +181,7 @@ public class AgentTools {
         Commitment existing = commitmentRepository.findActiveByIdAndUserId(commitmentId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Commitment not found: " + commitmentId));
 
+        AgentProgressListener.emit("✓ Completing commitment: '" + existing.getTitle() + "'...");
         String beforeState = toJson(existing);
 
         CommitmentResponse updated = commitmentService.completeCommitment(userId, commitmentId);
@@ -218,6 +221,8 @@ public class AgentTools {
         LocalDate nextDate = targetDate != null ? targetDate : LocalDate.now().plusDays(1);
         String postponeReason = (reason != null && !reason.isBlank()) ? reason.trim() : "Rescheduled by AI Coach";
 
+        AgentProgressListener.emit("⏳ Postponing commitment: '" + existing.getTitle() + "' to " + nextDate + "...");
+
         PostponeCommitmentRequest request = new PostponeCommitmentRequest();
         request.setReason(postponeReason);
         request.setNewDate(nextDate);
@@ -248,6 +253,7 @@ public class AgentTools {
     @Transactional(readOnly = true)
     public Map<String, Object> stressTestSchedule(UUID userId, String quickDefense) {
         try {
+            AgentProgressListener.emit("🧠 Auditing schedule against cognitive limits...");
             PlanStressTestRequest req = new PlanStressTestRequest();
             req.setDate(LocalDate.now());
             req.setQuickDefense(quickDefense);

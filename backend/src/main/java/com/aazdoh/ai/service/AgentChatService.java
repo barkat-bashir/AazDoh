@@ -1,10 +1,12 @@
 package com.aazdoh.ai.service;
 
+import com.aazdoh.ai.agent.AgentProgressListener;
 import com.aazdoh.ai.agent.AgentTools;
 import com.aazdoh.ai.dto.AgentActionReceipt;
 import com.aazdoh.ai.dto.AgentChatMessageDto;
 import com.aazdoh.ai.dto.AgentChatRequest;
 import com.aazdoh.ai.dto.AgentChatResponse;
+import com.aazdoh.ai.dto.AgentStreamEvent;
 import com.aazdoh.ai.entity.AgentActionLog;
 import com.aazdoh.ai.repository.AgentActionLogRepository;
 import com.aazdoh.analytics.service.UserExecutionStatsService;
@@ -30,6 +32,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -38,6 +41,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
@@ -111,6 +115,7 @@ public class AgentChatService {
                 messages.add(new UserMessage(userMessage));
 
                 // Call Spring AI ChatClient with native Function Calling tools
+                AgentProgressListener.emit("🤖 Reasoning over execution options and cognitive constraints...");
                 reply = chatClient.prompt()
                         .messages(messages)
                         .functions(
@@ -157,6 +162,52 @@ public class AgentChatService {
         boolean undoAvailable = actionLogRepository.findFirstByUserIdAndUndoneFalseOrderByCreatedAtDesc(userId).isPresent();
 
         return new AgentChatResponse(reply != null ? reply.trim() : "", receipts, undoAvailable, cognitiveWarning);
+    }
+
+    public SseEmitter chatStream(UUID userId, AgentChatRequest request) {
+        SseEmitter emitter = new SseEmitter(120_000L);
+
+        CompletableFuture.runAsync(() -> {
+            try {
+                AgentProgressListener.setListener(step -> {
+                    try {
+                        emitter.send(SseEmitter.event()
+                                .name("STEP")
+                                .data(AgentStreamEvent.step(step)));
+                    } catch (Exception e) {
+                        log.debug("SSE step emission failed: {}", e.getMessage());
+                    }
+                });
+
+                AgentProgressListener.emit("🔍 Initializing agent context & cognitive profile...");
+
+                AgentChatResponse response = chat(userId, request);
+
+                emitter.send(SseEmitter.event()
+                        .name("DONE")
+                        .data(AgentStreamEvent.done(
+                                response.getReply(),
+                                response.getExecutedActions(),
+                                response.isUndoAvailable(),
+                                response.getCognitiveWarning()
+                        )));
+
+                emitter.complete();
+            } catch (Exception e) {
+                log.error("Streaming chat failed for user {}: {}", userId, e.getMessage());
+                try {
+                    emitter.send(SseEmitter.event()
+                            .name("ERROR")
+                            .data(AgentStreamEvent.error(e.getMessage() != null ? e.getMessage() : "Agent execution error.")));
+                    emitter.completeWithError(e);
+                } catch (Exception ignored) {
+                }
+            } finally {
+                AgentProgressListener.clear();
+            }
+        });
+
+        return emitter;
     }
 
     @Transactional
