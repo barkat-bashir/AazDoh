@@ -3,6 +3,9 @@ package com.aazdoh.ai.config;
 import com.aazdoh.ai.agent.AgentTools;
 import com.aazdoh.auth.service.CustomUserDetails;
 import com.aazdoh.commitment.entity.CommitmentPriority;
+import com.aazdoh.commitment.entity.CommitmentStatus;
+import com.aazdoh.review.entity.FailureReason;
+import com.aazdoh.review.entity.NextAction;
 import com.fasterxml.jackson.annotation.JsonClassDescription;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -256,6 +259,101 @@ public class AgentFunctionConfig {
             } catch (Exception e) {
                 log.error("Error in detectExcuseFunction: {}", e.getMessage());
                 return new DetectExcuseFunctionResponse(false, false, "ERROR", "Analysis unavailable: " + e.getMessage(), "Start 15m sprint", 15);
+            }
+        };
+    }
+
+    // --- 7. Generate Partner Brief Function ---
+    @JsonClassDescription("Request to generate a concise progress digest for accountability partners")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record GeneratePartnerBriefFunctionRequest(
+            @JsonPropertyDescription("Optional UUID of a specific accountability partner") String partnerId
+    ) {}
+
+    public record GeneratePartnerBriefFunctionResponse(boolean success, boolean hasPartners, String partnerName, double completionRate, int completedTasks, int pendingTasks, int missedTasks, String brief) {}
+
+    @Bean
+    @Description("Generate an objective peer accountability progress brief for accountability partners")
+    public Function<GeneratePartnerBriefFunctionRequest, GeneratePartnerBriefFunctionResponse> generatePartnerBriefFunction(AgentTools agentTools) {
+        return request -> {
+            try {
+                UUID userId = getAuthenticatedUserId();
+                UUID pid = null;
+                if (request != null && request.partnerId() != null && !request.partnerId().isBlank()) {
+                    try { pid = UUID.fromString(request.partnerId().trim()); } catch (Exception ignored) {}
+                }
+                Map<String, Object> result = agentTools.generatePartnerBrief(userId, pid);
+                return new GeneratePartnerBriefFunctionResponse(
+                        true,
+                        (boolean) result.getOrDefault("hasPartners", false),
+                        (String) result.getOrDefault("partnerName", "Partner"),
+                        result.get("completionRate") instanceof Number n ? n.doubleValue() : 0.0,
+                        result.get("completedTasks") instanceof Number n ? n.intValue() : 0,
+                        result.get("pendingTasks") instanceof Number n ? n.intValue() : 0,
+                        result.get("missedTasks") instanceof Number n ? n.intValue() : 0,
+                        (String) result.getOrDefault("brief", "No partner updates available.")
+                );
+            } catch (Exception e) {
+                log.error("Error in generatePartnerBriefFunction: {}", e.getMessage());
+                return new GeneratePartnerBriefFunctionResponse(false, false, "Partner", 0.0, 0, 0, 0, "Failed: " + e.getMessage());
+            }
+        };
+    }
+
+    // --- 8. Submit Evening Review Function ---
+    @JsonClassDescription("Request to record an end-of-day retrospective review for a commitment")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record SubmitEveningReviewFunctionRequest(
+            @JsonProperty(required = true) @JsonPropertyDescription("UUID of the commitment being reviewed") String commitmentId,
+            @JsonPropertyDescription("Status: COMPLETED, MISSED, PARTIALLY_COMPLETED. Default: COMPLETED") String status,
+            @JsonPropertyDescription("Root cause failure reason if missed: FORGOT, UNDERESTIMATED_EFFORT, DISTRACTED, BLOCKED, LOW_ENERGY, PROCRASTINATION, UNEXPECTED_EMERGENCY, DIDNT_PRIORITIZE, OTHER") String failureReason,
+            @JsonPropertyDescription("Retrospective self-reflection notes") String reflection,
+            @JsonPropertyDescription("Next action: MOVE_TO_TOMORROW, RESCHEDULE, BREAK_DOWN, DROP, NONE") String nextAction,
+            @JsonPropertyDescription("Reschedule date (YYYY-MM-DD) if moving to a specific date") String rescheduleDate
+    ) {}
+
+    public record SubmitEveningReviewFunctionResponse(boolean success, UUID commitmentId, String title, String status, String reflection, String message) {}
+
+    @Bean
+    @Description("Submit end-of-day retrospective review, classify root causes of missed tasks, and record reflection")
+    public Function<SubmitEveningReviewFunctionRequest, SubmitEveningReviewFunctionResponse> submitEveningReviewFunction(AgentTools agentTools) {
+        return request -> {
+            try {
+                UUID userId = getAuthenticatedUserId();
+                UUID cid = UUID.fromString(request.commitmentId().trim());
+
+                CommitmentStatus status = CommitmentStatus.COMPLETED;
+                if (request.status() != null) {
+                    try { status = CommitmentStatus.valueOf(request.status().toUpperCase().trim()); } catch (Exception ignored) {}
+                }
+
+                FailureReason reason = null;
+                if (request.failureReason() != null) {
+                    try { reason = FailureReason.valueOf(request.failureReason().toUpperCase().trim()); } catch (Exception ignored) {}
+                }
+
+                NextAction nextAction = NextAction.MOVE_TO_TOMORROW;
+                if (request.nextAction() != null) {
+                    try { nextAction = NextAction.valueOf(request.nextAction().toUpperCase().trim()); } catch (Exception ignored) {}
+                }
+
+                LocalDate reschedDate = null;
+                if (request.rescheduleDate() != null && !request.rescheduleDate().isBlank()) {
+                    try { reschedDate = LocalDate.parse(request.rescheduleDate().trim()); } catch (Exception ignored) {}
+                }
+
+                Map<String, Object> result = agentTools.submitEveningReview(userId, cid, status, reason, request.reflection(), nextAction, reschedDate);
+                return new SubmitEveningReviewFunctionResponse(
+                        true,
+                        (UUID) result.get("commitmentId"),
+                        (String) result.get("title"),
+                        (String) result.get("status"),
+                        (String) result.get("reflection"),
+                        "Evening review recorded successfully."
+                );
+            } catch (Exception e) {
+                log.error("Error in submitEveningReviewFunction: {}", e.getMessage());
+                return new SubmitEveningReviewFunctionResponse(false, null, null, null, null, "Failed: " + e.getMessage());
             }
         };
     }

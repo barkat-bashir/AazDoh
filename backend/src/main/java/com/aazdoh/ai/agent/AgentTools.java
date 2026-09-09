@@ -20,6 +20,14 @@ import com.aazdoh.commitment.entity.CommitmentVisibility;
 import com.aazdoh.commitment.repository.CommitmentRepository;
 import com.aazdoh.commitment.service.CommitmentService;
 import com.aazdoh.common.exception.ResourceNotFoundException;
+import com.aazdoh.partnership.dto.PartnerDailyOverviewDto;
+import com.aazdoh.partnership.dto.PartnershipResponse;
+import com.aazdoh.partnership.service.PartnershipService;
+import com.aazdoh.review.dto.ReviewCommitmentRequest;
+import com.aazdoh.review.dto.ReviewResponse;
+import com.aazdoh.review.entity.FailureReason;
+import com.aazdoh.review.entity.NextAction;
+import com.aazdoh.review.service.ReviewService;
 import com.aazdoh.user.entity.User;
 import com.aazdoh.user.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,6 +55,8 @@ public class AgentTools {
     private final UserExecutionStatsService statsService;
     private final AiAccountabilityService aiAccountabilityService;
     private final AgentActionLogRepository actionLogRepository;
+    private final PartnershipService partnershipService;
+    private final ReviewService reviewService;
     private final ObjectMapper objectMapper;
 
     public AgentTools(
@@ -56,6 +66,8 @@ public class AgentTools {
             UserExecutionStatsService statsService,
             AiAccountabilityService aiAccountabilityService,
             AgentActionLogRepository actionLogRepository,
+            PartnershipService partnershipService,
+            ReviewService reviewService,
             ObjectMapper objectMapper
     ) {
         this.commitmentService = commitmentService;
@@ -64,6 +76,8 @@ public class AgentTools {
         this.statsService = statsService;
         this.aiAccountabilityService = aiAccountabilityService;
         this.actionLogRepository = actionLogRepository;
+        this.partnershipService = partnershipService;
+        this.reviewService = reviewService;
         this.objectMapper = objectMapper;
     }
 
@@ -302,6 +316,89 @@ public class AgentTools {
             fallback.put("mirrorCallout", "Acknowledge the friction and commit to a 15-minute micro sprint.");
             return fallback;
         }
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> generatePartnerBrief(UUID userId, UUID partnerId) {
+        try {
+            AgentProgressListener.emit("🤝 Synthesizing partner accountability overview & progress brief...");
+            List<PartnershipResponse> partnerships = partnershipService.getActivePartnerships(userId);
+            if (partnerships.isEmpty()) {
+                Map<String, Object> res = new HashMap<>();
+                res.put("success", true);
+                res.put("hasPartners", false);
+                res.put("brief", "No active accountability partners found. Invite a partner to unlock mutual peer accountability.");
+                return res;
+            }
+
+            UUID targetPartner = partnerId != null ? partnerId : (partnerships.get(0).getPartnerId().equals(userId) ? partnerships.get(0).getRequesterId() : partnerships.get(0).getPartnerId());
+            PartnerDailyOverviewDto overview = partnershipService.getPartnerDailyOverview(userId, targetPartner, LocalDate.now());
+
+            Map<String, Object> res = new HashMap<>();
+            res.put("success", true);
+            res.put("hasPartners", true);
+            res.put("partnerName", overview.getPartnerName());
+            res.put("completionRate", overview.getCompletionRate());
+            res.put("completedTasks", overview.getCompletedCommitments());
+            res.put("totalTasks", overview.getTotalCommitments());
+            res.put("aiRiskLevel", overview.getAiRiskLevel() != null ? overview.getAiRiskLevel() : "LOW");
+            res.put("brief", overview.getAiDiagnosticSummary() != null ? overview.getAiDiagnosticSummary() : "Partner progress on track.");
+            return res;
+        } catch (Exception e) {
+            log.warn("Partner brief tool error for user {}: {}", userId, e.getMessage());
+            Map<String, Object> fallback = new HashMap<>();
+            fallback.put("success", true);
+            fallback.put("hasPartners", false);
+            fallback.put("brief", "Partner digest currently unavailable: " + e.getMessage());
+            return fallback;
+        }
+    }
+
+    @Transactional
+    public Map<String, Object> submitEveningReview(
+            UUID userId,
+            UUID commitmentId,
+            CommitmentStatus status,
+            FailureReason failureReason,
+            String reflection,
+            NextAction nextAction,
+            LocalDate rescheduleDate
+    ) {
+        User user = userService.findUserById(userId);
+        Commitment existing = commitmentRepository.findActiveByIdAndUserId(commitmentId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Commitment not found: " + commitmentId));
+
+        AgentProgressListener.emit("🌅 Submitting evening review & reflection for '" + existing.getTitle() + "'...");
+        String beforeState = toJson(existing);
+
+        ReviewCommitmentRequest req = new ReviewCommitmentRequest();
+        req.setStatus(status != null ? status : CommitmentStatus.COMPLETED);
+        req.setFailureReason(failureReason);
+        req.setReflection(reflection);
+        req.setNextAction(nextAction != null ? nextAction : NextAction.MOVE_TO_TOMORROW);
+        req.setRescheduleDate(rescheduleDate);
+
+        ReviewResponse review = reviewService.reviewCommitment(userId, commitmentId, req);
+
+        AgentActionLog actionLog = new AgentActionLog(
+                user,
+                "REVIEW_COMMITMENT",
+                "COMMITMENT",
+                commitmentId,
+                "Submitted review for '" + existing.getTitle() + "' (" + (status != null ? status.name() : "COMPLETED") + ")",
+                beforeState,
+                toJson(review)
+        );
+        AgentActionLog savedLog = actionLogRepository.save(actionLog);
+
+        Map<String, Object> res = new HashMap<>();
+        res.put("success", true);
+        res.put("commitmentId", commitmentId);
+        res.put("title", existing.getTitle());
+        res.put("status", review.getStatus() != null ? review.getStatus().name() : "COMPLETED");
+        res.put("reflection", review.getReflection());
+        res.put("logId", savedLog.getId());
+        return res;
     }
 
     private String toJson(Object obj) {

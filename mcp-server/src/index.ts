@@ -484,6 +484,23 @@ server.prompt(
   })
 );
 
+server.prompt(
+  "generate_partner_digest",
+  "Synthesize an objective progress overview and risk diagnostic for accountability partners",
+  {},
+  () => ({
+    messages: [
+      {
+        role: "user",
+        content: {
+          type: "text",
+          text: `Please fetch active partnerships using get_partnerships and view today's progress using get_partner_feed. Synthesize an objective, punchy 60-word accountability digest: partner name, completion rate, key wins, and any flagged cognitive risks.`,
+        },
+      },
+    ],
+  })
+);
+
 // Start the Stdio Server
 async function runServer() {
   const transport = new StdioServerTransport();

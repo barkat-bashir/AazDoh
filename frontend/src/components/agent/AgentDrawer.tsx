@@ -26,9 +26,10 @@ interface AgentDrawerProps {
 
 const QUICK_PROMPTS = [
   { label: 'Audit my day', prompt: 'Audit my day in 2-3 short bullet points: progress, capacity bottleneck, and next step.' },
-  { label: 'I am procrastinating', prompt: 'I am feeling stuck on my highest friction task. Break it down into a 15-minute micro-sprint right now.' },
+  { label: 'Evening debrief & review', prompt: 'Conduct my evening debrief: inspect completed vs missed commitments, analyze blockers, and submit my reflections.' },
+  { label: 'Partner progress digest', prompt: 'Generate an objective accountability progress brief for my partner based on today’s shared commitments.' },
+  { label: 'I am procrastinating', prompt: 'I am feeling friction on my priority task. Break it down into a 15-minute micro-sprint right now.' },
   { label: 'Short on time (90m)', prompt: 'I only have 90 minutes remaining today. Postpone non-essential tasks to tomorrow and prioritize my main focus.' },
-  { label: 'Evening debrief', prompt: 'Conduct my evening accountability reflection in 2 short bullet points.' },
 ];
 
 export const AgentDrawer: React.FC<AgentDrawerProps> = ({ isOpen, onClose }) => {

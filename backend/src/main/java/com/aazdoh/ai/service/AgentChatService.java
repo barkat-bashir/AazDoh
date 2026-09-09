@@ -124,7 +124,9 @@ public class AgentChatService {
                                 "postponeCommitmentFunction",
                                 "completeCommitmentFunction",
                                 "stressTestScheduleFunction",
-                                "detectExcuseFunction"
+                                "detectExcuseFunction",
+                                "generatePartnerBriefFunction",
+                                "submitEveningReviewFunction"
                         )
                         .call()
                         .content();
