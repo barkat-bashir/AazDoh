@@ -183,17 +183,113 @@ public class AgentChatService {
                     }
                 });
 
-                AgentProgressListener.emit("🔍 Initializing agent context & cognitive profile...");
+                User user = userService.findUserById(userId);
+                AiPersona persona = user.getAiPersona() != null ? user.getAiPersona() : AiPersona.BALANCED;
+                OffsetDateTime turnStart = OffsetDateTime.now();
 
-                AgentChatResponse response = chat(userId, request);
+                AgentProgressListener.emit("🔍 Inspecting active schedule & cognitive load...");
+
+                // 1. Inspect user context
+                Map<String, Object> todayPlan = agentTools.getTodayPlan(userId);
+                Map<String, Object> yesterdayPlan = agentTools.getPlanForDate(userId, LocalDate.now().minusDays(1));
+
+                // 2. Build system prompt
+                String systemPromptText = buildSystemPrompt(persona, todayPlan, yesterdayPlan);
+                String userMessage = request.getMessage().trim();
+                StringBuilder replyBuffer = new StringBuilder();
+
+                try {
+                    if (aiEnabled && chatClient != null) {
+                        List<Message> messages = new ArrayList<>();
+                        messages.add(new SystemMessage(systemPromptText));
+                        if (request.getHistory() != null && !request.getHistory().isEmpty()) {
+                            for (AgentChatMessageDto turn : request.getHistory()) {
+                                if ("user".equalsIgnoreCase(turn.getRole())) {
+                                    messages.add(new UserMessage(turn.getContent()));
+                                } else if ("assistant".equalsIgnoreCase(turn.getRole())) {
+                                    messages.add(new AssistantMessage(turn.getContent()));
+                                }
+                            }
+                        }
+                        messages.add(new UserMessage(userMessage));
+
+                        AgentProgressListener.emit("🤖 Reasoning over execution options and cognitive constraints...");
+
+                        // Stream tokens incrementally in real time
+                        reactor.core.publisher.Flux<String> streamFlux = chatClient.prompt()
+                                .messages(messages)
+                                .functions(
+                                        "createCommitmentFunction",
+                                        "getPlanFunction",
+                                        "postponeCommitmentFunction",
+                                        "completeCommitmentFunction",
+                                        "markCommitmentMissedFunction",
+                                        "stressTestScheduleFunction",
+                                        "detectExcuseFunction",
+                                        "generatePartnerBriefFunction",
+                                        "submitEveningReviewFunction"
+                                )
+                                .stream()
+                                .content();
+
+                        streamFlux.doOnNext(chunk -> {
+                            if (chunk != null && !chunk.isEmpty()) {
+                                replyBuffer.append(chunk);
+                                try {
+                                    emitter.send(SseEmitter.event()
+                                            .name("DELTA")
+                                            .data(AgentStreamEvent.delta(chunk)));
+                                } catch (Exception ignored) {
+                                }
+                            }
+                        }).blockLast();
+
+                        if (replyBuffer.isEmpty()) {
+                            String heuristic = handleHeuristicExecutionAndReply(user, todayPlan, yesterdayPlan, userMessage);
+                            replyBuffer.append(heuristic);
+                            emitter.send(SseEmitter.event().name("DELTA").data(AgentStreamEvent.delta(heuristic)));
+                        }
+                    } else {
+                        String heuristic = handleHeuristicExecutionAndReply(user, todayPlan, yesterdayPlan, userMessage);
+                        replyBuffer.append(heuristic);
+                        emitter.send(SseEmitter.event().name("DELTA").data(AgentStreamEvent.delta(heuristic)));
+                    }
+                } catch (Exception e) {
+                    log.warn("Streaming execution fallback: {}", e.getMessage());
+                    String heuristic = handleHeuristicExecutionAndReply(user, todayPlan, yesterdayPlan, userMessage);
+                    replyBuffer.setLength(0);
+                    replyBuffer.append(heuristic);
+                    emitter.send(SseEmitter.event().name("DELTA").data(AgentStreamEvent.delta(heuristic)));
+                }
+
+                // Collect executed actions in this turn
+                List<AgentActionLog> turnLogs = actionLogRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
+                        .filter(l -> l.getCreatedAt().isAfter(turnStart.minusSeconds(2)))
+                        .collect(Collectors.toList());
+
+                List<AgentActionReceipt> receipts = turnLogs.stream().map(l -> new AgentActionReceipt(
+                        l.getId(),
+                        l.getActionType(),
+                        l.getDescription(),
+                        l.isUndone(),
+                        l.getCreatedAt()
+                )).collect(Collectors.toList());
+
+                int totalMinutes = (int) todayPlan.getOrDefault("totalEstimatedMinutes", 0);
+                String cognitiveWarning = null;
+                if (totalMinutes > 360) {
+                    cognitiveWarning = "Warning: You have " + totalMinutes + " minutes scheduled today (> 6 hours). Consider pruning non-essential commitments.";
+                }
+
+                boolean undoAvailable = !receipts.isEmpty();
 
                 emitter.send(SseEmitter.event()
                         .name("DONE")
                         .data(AgentStreamEvent.done(
-                                response.getReply(),
-                                response.getExecutedActions(),
-                                response.isUndoAvailable(),
-                                response.getCognitiveWarning()
+                                replyBuffer.toString().trim(),
+                                receipts,
+                                undoAvailable,
+                                cognitiveWarning
                         )));
 
                 emitter.complete();

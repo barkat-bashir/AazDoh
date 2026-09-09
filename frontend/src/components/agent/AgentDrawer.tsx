@@ -48,6 +48,7 @@ export const AgentDrawer: React.FC<AgentDrawerProps> = ({ isOpen, onClose }) => 
   });
   const [loading, setLoading] = useState(false);
   const [liveSteps, setLiveSteps] = useState<string[]>([]);
+  const [streamingReply, setStreamingReply] = useState<string>('');
   const [recentActions, setRecentActions] = useState<AgentActionReceipt[]>([]);
   const [undoAvailable, setUndoAvailable] = useState(false);
   const [cognitiveWarning, setCognitiveWarning] = useState<string | null>(null);
@@ -62,7 +63,7 @@ export const AgentDrawer: React.FC<AgentDrawerProps> = ({ isOpen, onClose }) => 
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       inputRef.current?.focus();
     }
-  }, [messages, isOpen, loading, liveSteps]);
+  }, [messages, isOpen, loading, liveSteps, streamingReply]);
 
   // Persist session messages
   useEffect(() => {
@@ -91,6 +92,7 @@ export const AgentDrawer: React.FC<AgentDrawerProps> = ({ isOpen, onClose }) => 
     setMessages(newHistory);
     setLoading(true);
     setLiveSteps([]);
+    setStreamingReply('');
     setCognitiveWarning(null);
 
     await agentApi.streamChat(
@@ -106,9 +108,13 @@ export const AgentDrawer: React.FC<AgentDrawerProps> = ({ isOpen, onClose }) => 
           return prev;
         });
       },
+      (deltaChunk) => {
+        setStreamingReply((prev) => prev + deltaChunk);
+      },
       (res) => {
         setMessages([...newHistory, { role: 'assistant', content: res.reply }]);
         setLiveSteps([]);
+        setStreamingReply('');
         setLoading(false);
 
         if (res.executedActions && res.executedActions.length > 0) {
@@ -135,6 +141,7 @@ export const AgentDrawer: React.FC<AgentDrawerProps> = ({ isOpen, onClose }) => 
           },
         ]);
         setLiveSteps([]);
+        setStreamingReply('');
         setLoading(false);
         showToast(errMessage || 'Failed to communicate with AI Coach', 'error');
       }
@@ -592,6 +599,45 @@ export const AgentDrawer: React.FC<AgentDrawerProps> = ({ isOpen, onClose }) => 
                 </div>
               </div>
             ))
+          )}
+
+          {/* Live Streaming Response Bubble (Word-by-word) */}
+          {streamingReply && (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                animation: 'fadeIn 0.15s ease-out',
+              }}
+            >
+              <div
+                style={{
+                  maxWidth: '88%',
+                  padding: '12px 16px',
+                  borderRadius: '12px 12px 12px 2px',
+                  background: 'var(--bg-walnut-card)',
+                  color: 'var(--text-kehwa-cream)',
+                  border: '1px solid var(--border-copper-subtle)',
+                  fontSize: '0.84rem',
+                  lineHeight: 1.55,
+                  boxShadow: 'var(--shadow-warm-sm)',
+                }}
+              >
+                {renderFormattedContent(streamingReply)}
+                <span
+                  style={{
+                    display: 'inline-block',
+                    width: '6px',
+                    height: '13px',
+                    background: 'var(--saffron-ember)',
+                    marginLeft: '4px',
+                    verticalAlign: 'middle',
+                    animation: 'pulse 1s infinite',
+                  }}
+                />
+              </div>
+            </div>
           )}
 
           {/* Action Pills from most recent response */}

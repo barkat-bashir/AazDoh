@@ -47,6 +47,7 @@ export const agentApi = {
   streamChat: async (
     data: AgentChatRequest,
     onStep: (step: string) => void,
+    onDelta: (chunk: string) => void,
     onDone: (res: AgentChatResponse) => void,
     onError: (err: string) => void
   ) => {
@@ -92,6 +93,8 @@ export const agentApi = {
               const event: AgentStreamEvent = JSON.parse(jsonStr);
               if (event.type === 'STEP' && event.message) {
                 onStep(event.message);
+              } else if (event.type === 'DELTA' && event.delta) {
+                onDelta(event.delta);
               } else if (event.type === 'DONE') {
                 onDone({
                   reply: event.message || '',
