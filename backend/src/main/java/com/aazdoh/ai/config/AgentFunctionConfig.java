@@ -223,4 +223,40 @@ public class AgentFunctionConfig {
             }
         };
     }
+
+    // --- 6. Detect Excuse Function ---
+    @JsonClassDescription("Request to analyze an excuse or explanation for postponing or missing a commitment")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record DetectExcuseFunctionRequest(
+            @JsonProperty(required = true) @JsonPropertyDescription("The stated explanation, rationalization, or excuse") String excuseText,
+            @JsonPropertyDescription("Optional UUID of the relevant commitment") String commitmentId
+    ) {}
+
+    public record DetectExcuseFunctionResponse(boolean success, boolean patternDetected, String patternType, String mirrorCallout, String microActionTitle, int suggestedMicroMinutes) {}
+
+    @Bean
+    @Description("Analyze a stated reason/excuse for missing or postponing work to identify avoidance patterns and micro actions")
+    public Function<DetectExcuseFunctionRequest, DetectExcuseFunctionResponse> detectExcuseFunction(AgentTools agentTools) {
+        return request -> {
+            try {
+                UUID userId = getAuthenticatedUserId();
+                UUID cid = null;
+                if (request.commitmentId() != null && !request.commitmentId().isBlank()) {
+                    try { cid = UUID.fromString(request.commitmentId().trim()); } catch (Exception ignored) {}
+                }
+                Map<String, Object> result = agentTools.detectExcuse(userId, request.excuseText(), cid);
+                return new DetectExcuseFunctionResponse(
+                        true,
+                        (boolean) result.getOrDefault("patternDetected", false),
+                        (String) result.getOrDefault("patternType", "NO_PATTERN"),
+                        (String) result.getOrDefault("mirrorCallout", "Acknowledge friction."),
+                        (String) result.getOrDefault("microActionTitle", "Take immediate 15m micro action"),
+                        (int) result.getOrDefault("suggestedMicroMinutes", 15)
+                );
+            } catch (Exception e) {
+                log.error("Error in detectExcuseFunction: {}", e.getMessage());
+                return new DetectExcuseFunctionResponse(false, false, "ERROR", "Analysis unavailable: " + e.getMessage(), "Start 15m sprint", 15);
+            }
+        };
+    }
 }

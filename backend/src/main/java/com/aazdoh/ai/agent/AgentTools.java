@@ -1,5 +1,7 @@
 package com.aazdoh.ai.agent;
 
+import com.aazdoh.ai.dto.ExcuseAnalysisRequest;
+import com.aazdoh.ai.dto.ExcuseAnalysisResponse;
 import com.aazdoh.ai.dto.PlanStressTestRequest;
 import com.aazdoh.ai.dto.PlanStressTestResponse;
 import com.aazdoh.ai.entity.AgentActionLog;
@@ -273,6 +275,31 @@ public class AgentTools {
             fallback.put("success", true);
             fallback.put("riskLevel", "LOW");
             fallback.put("diagnosticSummary", "Schedule reviewed against cognitive limits.");
+            return fallback;
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> detectExcuse(UUID userId, String excuseText, UUID commitmentId) {
+        try {
+            AgentProgressListener.emit("🔍 Analyzing excuse against historical behavioral patterns...");
+            ExcuseAnalysisRequest req = new ExcuseAnalysisRequest(commitmentId, excuseText, "POSTPONE");
+            ExcuseAnalysisResponse response = aiAccountabilityService.detectExcusePatternAsync(userId, req).get();
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("patternDetected", response.isPatternDetected());
+            result.put("patternType", response.getPatternType());
+            result.put("mirrorCallout", response.getMirrorCallout());
+            result.put("microActionTitle", response.getMicroActionTitle());
+            result.put("suggestedMicroMinutes", response.getSuggestedMicroMinutes());
+            return result;
+        } catch (Exception e) {
+            log.warn("Excuse analysis fallback for user {}: {}", userId, e.getMessage());
+            Map<String, Object> fallback = new HashMap<>();
+            fallback.put("success", true);
+            fallback.put("patternDetected", false);
+            fallback.put("mirrorCallout", "Acknowledge the friction and commit to a 15-minute micro sprint.");
             return fallback;
         }
     }

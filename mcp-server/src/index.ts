@@ -447,6 +447,43 @@ server.prompt(
   })
 );
 
+server.prompt(
+  "evening_reflection_debrief",
+  "Conduct an honest end-of-day commitment retrospective, failure categorization, and momentum review",
+  {},
+  () => ({
+    messages: [
+      {
+        role: "user",
+        content: {
+          type: "text",
+          text: `Please fetch today's plan using get_today_plan, check completed vs missed commitments, and conduct an end-of-day reflection. If any commitments were missed, ask for the real reason, run detect_excuse, and submit the review with submit_review. Keep it strictly focused and under 100 words.`,
+        },
+      },
+    ],
+  })
+);
+
+server.prompt(
+  "excuse_audit",
+  "Evaluate a stated excuse for a missed commitment against behavioral patterns and provide ruthless feedback",
+  {
+    commitmentTitle: z.string().describe("The commitment that was missed or postponed"),
+    statedReason: z.string().describe("The user's stated explanation or excuse"),
+  },
+  ({ commitmentTitle, statedReason }) => ({
+    messages: [
+      {
+        role: "user",
+        content: {
+          type: "text",
+          text: `The user missed/postponed the commitment '${commitmentTitle}' with the stated reason: "${statedReason}". Call detect_excuse on this reason, categorize the validity, and deliver an objective, high-candor critique on whether this is an excuse or a genuine blocker.`,
+        },
+      },
+    ],
+  })
+);
+
 // Start the Stdio Server
 async function runServer() {
   const transport = new StdioServerTransport();
