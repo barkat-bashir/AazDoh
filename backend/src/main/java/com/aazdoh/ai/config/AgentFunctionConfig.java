@@ -219,12 +219,42 @@ public class AgentFunctionConfig {
                         true,
                         (UUID) result.get("commitmentId"),
                         (String) result.get("title"),
-                        "MISSED",
+                        (String) result.get("status"),
                         "Commitment marked as missed."
                 );
             } catch (Exception e) {
                 log.error("Error in markCommitmentMissedFunction: {}", e.getMessage());
-                return new MarkCommitmentMissedFunctionResponse(false, null, null, "ERROR", "Failed: " + e.getMessage());
+                return new MarkCommitmentMissedFunctionResponse(false, null, "", "ERROR", "Failed: " + e.getMessage());
+            }
+        };
+    }
+
+    // --- Delete Commitment Function ---
+    @JsonClassDescription("Request to delete/remove a commitment")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record DeleteCommitmentFunctionRequest(
+            @JsonProperty(required = true) @JsonPropertyDescription("UUID ID of the commitment to delete") String commitmentId
+    ) {}
+
+    public record DeleteCommitmentFunctionResponse(boolean success, UUID commitmentId, String title, String message) {}
+
+    @Bean
+    @Description("Delete or remove a commitment by its UUID ID")
+    public Function<DeleteCommitmentFunctionRequest, DeleteCommitmentFunctionResponse> deleteCommitmentFunction(AgentTools agentTools) {
+        return request -> {
+            try {
+                UUID userId = getAuthenticatedUserId();
+                UUID cid = UUID.fromString(request.commitmentId().trim());
+                Map<String, Object> result = agentTools.deleteCommitment(userId, cid);
+                return new DeleteCommitmentFunctionResponse(
+                        true,
+                        cid,
+                        (String) result.get("title"),
+                        "Commitment deleted successfully."
+                );
+            } catch (Exception e) {
+                log.error("Error in deleteCommitmentFunction: {}", e.getMessage());
+                return new DeleteCommitmentFunctionResponse(false, null, "", "Failed: " + e.getMessage());
             }
         };
     }

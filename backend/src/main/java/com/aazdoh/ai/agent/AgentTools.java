@@ -256,6 +256,36 @@ public class AgentTools {
     }
 
     @Transactional
+    public Map<String, Object> deleteCommitment(UUID userId, UUID commitmentId) {
+        User user = userService.findUserById(userId);
+        Commitment existing = commitmentRepository.findActiveByIdAndUserId(commitmentId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Commitment not found: " + commitmentId));
+
+        AgentProgressListener.emit("🗑️ Deleting commitment: '" + existing.getTitle() + "'...");
+        String beforeState = toJson(existing);
+
+        commitmentService.deleteCommitment(userId, commitmentId);
+
+        AgentActionLog actionLog = new AgentActionLog(
+                user,
+                "DELETE_COMMITMENT",
+                "COMMITMENT",
+                commitmentId,
+                "Deleted commitment '" + existing.getTitle() + "'",
+                beforeState,
+                null
+        );
+        AgentActionLog savedLog = actionLogRepository.save(actionLog);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("commitmentId", commitmentId);
+        result.put("title", existing.getTitle());
+        result.put("logId", savedLog.getId());
+        return result;
+    }
+
+    @Transactional
     public Map<String, Object> postponeCommitment(
             UUID userId,
             UUID commitmentId,
