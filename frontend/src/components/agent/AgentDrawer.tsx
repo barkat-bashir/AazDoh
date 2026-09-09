@@ -118,7 +118,8 @@ export const AgentDrawer: React.FC<AgentDrawerProps> = ({ isOpen, onClose }) => 
           queryClient.invalidateQueries({ queryKey: ['stats'] });
           showToast(`Agent executed ${res.executedActions.length} action(s)`, 'info');
         } else {
-          setUndoAvailable(res.undoAvailable);
+          setRecentActions([]);
+          setUndoAvailable(false);
         }
 
         if (res.cognitiveWarning) {

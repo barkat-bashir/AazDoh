@@ -13,7 +13,8 @@ import {
   AlertTriangle,
   RotateCcw,
   Zap,
-  Pencil
+  Pencil,
+  XCircle
 } from 'lucide-react';
 import { useFocusTimer } from '../../context/FocusTimerContext';
 
@@ -41,9 +42,9 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
   const handleToggleComplete = async () => {
     try {
       setLoading(true);
-      if (commitment.status === 'COMPLETED') {
+      if (commitment.status === 'COMPLETED' || commitment.status === 'MISSED') {
         await commitmentApi.update(commitment.id, { status: 'PENDING' });
-        showToast('Commitment marked pending', 'info');
+        showToast('Commitment reset to pending', 'info');
       } else {
         await commitmentApi.complete(commitment.id);
         showToast('Commitment kept! Well done.', 'success');
@@ -51,6 +52,19 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
       onRefresh();
     } catch (err: any) {
       showToast(err.message || 'Failed to update commitment status', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMarkMissed = async () => {
+    try {
+      setLoading(true);
+      await commitmentApi.update(commitment.id, { status: 'MISSED' });
+      showToast(`Marked "${commitment.title}" as missed.`, 'info');
+      onRefresh();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to mark commitment as missed', 'error');
     } finally {
       setLoading(false);
     }
@@ -118,23 +132,25 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
       }}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-        {/* Toggle Complete Checkbox */}
+        {/* Toggle Complete / Status Checkbox */}
         <button
           onClick={handleToggleComplete}
           disabled={loading}
           style={{
             background: 'none',
             border: 'none',
-            color: isCompleted ? '#4ADE80' : isPostponed ? 'var(--saffron-ember)' : 'var(--text-tweed-dim)',
+            color: isCompleted ? '#4ADE80' : isMissed ? '#F87171' : isPostponed ? 'var(--saffron-ember)' : 'var(--text-tweed-dim)',
             cursor: loading ? 'wait' : 'pointer',
             padding: '2px',
             marginTop: '2px',
             transition: 'var(--transition-smooth)',
           }}
-          title={isCompleted ? 'Mark as pending' : isPostponed ? 'Complete today (cancel postpone)' : 'Mark as completed'}
+          title={isCompleted ? 'Mark as pending' : isMissed ? 'Missed commitment. Click to reset to pending.' : isPostponed ? 'Complete today (cancel postpone)' : 'Mark as completed'}
         >
           {isCompleted ? (
             <CheckCircle size={24} color="#4ADE80" />
+          ) : isMissed ? (
+            <XCircle size={24} color="#F87171" />
           ) : (
             <Circle size={24} />
           )}
@@ -309,7 +325,7 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
                 </span>
               </button>
 
-              {!isCompleted && !isPostponed && (
+              {!isCompleted && !isPostponed && !isMissed && (
                 <button
                   onClick={() => onPostponeClick(commitment)}
                   className="btn-outline"
@@ -318,6 +334,52 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
                 >
                   <CalendarClock size={14} />
                   <span>Postpone</span>
+                </button>
+              )}
+
+              {/* Mark as Missed Button for time-bound tasks */}
+              {!isCompleted && !isPostponed && !isMissed && (
+                <button
+                  onClick={handleMarkMissed}
+                  disabled={loading}
+                  className="btn-outline"
+                  style={{
+                    padding: '5px 10px',
+                    fontSize: '0.78rem',
+                    color: '#F87171',
+                    borderColor: 'rgba(239, 68, 68, 0.35)',
+                    background: 'rgba(239, 68, 68, 0.06)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title="Mark as missed (e.g. time-bound window elapsed)"
+                >
+                  <XCircle size={13} color="#F87171" />
+                  <span>Missed</span>
+                </button>
+              )}
+
+              {/* Reopen if Missed */}
+              {isMissed && (
+                <button
+                  onClick={handleReopen}
+                  disabled={loading}
+                  className="btn-outline"
+                  style={{
+                    padding: '5px 10px',
+                    fontSize: '0.78rem',
+                    borderColor: 'rgba(239, 68, 68, 0.4)',
+                    color: '#F87171',
+                    background: 'rgba(239, 68, 68, 0.08)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title="Reopen commitment for today"
+                >
+                  <RotateCcw size={13} />
+                  <span>Reopen</span>
                 </button>
               )}
 

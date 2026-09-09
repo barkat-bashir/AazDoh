@@ -223,6 +223,39 @@ public class AgentTools {
     }
 
     @Transactional
+    public Map<String, Object> markCommitmentMissed(UUID userId, UUID commitmentId, String reason) {
+        User user = userService.findUserById(userId);
+        Commitment existing = commitmentRepository.findActiveByIdAndUserId(commitmentId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Commitment not found: " + commitmentId));
+
+        AgentProgressListener.emit("❌ Marking commitment as missed: '" + existing.getTitle() + "'...");
+        String beforeState = toJson(existing);
+
+        existing.setStatus(CommitmentStatus.MISSED);
+        Commitment saved = commitmentRepository.save(existing);
+        statsService.refreshStatsAsync(userId);
+
+        AgentActionLog actionLog = new AgentActionLog(
+                user,
+                "MARK_MISSED",
+                "COMMITMENT",
+                commitmentId,
+                "Marked '" + existing.getTitle() + "' as MISSED" + (reason != null && !reason.isBlank() ? " (" + reason + ")" : ""),
+                beforeState,
+                toJson(saved)
+        );
+        AgentActionLog savedLog = actionLogRepository.save(actionLog);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("commitmentId", commitmentId);
+        result.put("title", existing.getTitle());
+        result.put("status", "MISSED");
+        result.put("logId", savedLog.getId());
+        return result;
+    }
+
+    @Transactional
     public Map<String, Object> postponeCommitment(
             UUID userId,
             UUID commitmentId,

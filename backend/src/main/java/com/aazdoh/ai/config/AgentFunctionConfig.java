@@ -197,6 +197,38 @@ public class AgentFunctionConfig {
         };
     }
 
+    // --- Mark Commitment Missed Function ---
+    @JsonClassDescription("Request to mark a time-sensitive commitment as missed")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record MarkCommitmentMissedFunctionRequest(
+            @JsonProperty(required = true) @JsonPropertyDescription("UUID ID of the commitment to mark as missed") String commitmentId,
+            @JsonPropertyDescription("Optional reason or explanation for missing it") String reason
+    ) {}
+
+    public record MarkCommitmentMissedFunctionResponse(boolean success, UUID commitmentId, String title, String status, String message) {}
+
+    @Bean
+    @Description("Mark a time-sensitive commitment (such as prayers, scheduled meetings, or morning routines) as missed")
+    public Function<MarkCommitmentMissedFunctionRequest, MarkCommitmentMissedFunctionResponse> markCommitmentMissedFunction(AgentTools agentTools) {
+        return request -> {
+            try {
+                UUID userId = getAuthenticatedUserId();
+                UUID cid = UUID.fromString(request.commitmentId().trim());
+                Map<String, Object> result = agentTools.markCommitmentMissed(userId, cid, request.reason());
+                return new MarkCommitmentMissedFunctionResponse(
+                        true,
+                        (UUID) result.get("commitmentId"),
+                        (String) result.get("title"),
+                        "MISSED",
+                        "Commitment marked as missed."
+                );
+            } catch (Exception e) {
+                log.error("Error in markCommitmentMissedFunction: {}", e.getMessage());
+                return new MarkCommitmentMissedFunctionResponse(false, null, null, "ERROR", "Failed: " + e.getMessage());
+            }
+        };
+    }
+
     // --- 5. Stress Test Schedule Function ---
     @JsonClassDescription("Request to run cognitive load stress test on schedule")
     @JsonInclude(JsonInclude.Include.NON_NULL)

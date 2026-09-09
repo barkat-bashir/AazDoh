@@ -123,6 +123,7 @@ public class AgentChatService {
                                 "getPlanFunction",
                                 "postponeCommitmentFunction",
                                 "completeCommitmentFunction",
+                                "markCommitmentMissedFunction",
                                 "stressTestScheduleFunction",
                                 "detectExcuseFunction",
                                 "generatePartnerBriefFunction",
@@ -162,7 +163,7 @@ public class AgentChatService {
             cognitiveWarning = "Warning: You have " + totalMinutes + " minutes scheduled today (> 6 hours). Consider pruning non-essential commitments.";
         }
 
-        boolean undoAvailable = actionLogRepository.findFirstByUserIdAndUndoneFalseOrderByCreatedAtDesc(userId).isPresent();
+        boolean undoAvailable = !receipts.isEmpty();
 
         return new AgentChatResponse(reply != null ? reply.trim() : "", receipts, undoAvailable, cognitiveWarning);
     }
@@ -292,6 +293,14 @@ public class AgentChatService {
                                 .orElseThrow(() -> new ResourceNotFoundException("Commitment not found"));
                         c.setStatus(CommitmentStatus.PENDING);
                         c.setCompletedAt(null);
+                        commitmentRepository.save(c);
+                    }
+                }
+                case "MARK_MISSED" -> {
+                    if (log.getTargetEntityId() != null) {
+                        Commitment c = commitmentRepository.findActiveByIdAndUserId(log.getTargetEntityId(), userId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Commitment not found"));
+                        c.setStatus(CommitmentStatus.PENDING);
                         commitmentRepository.save(c);
                     }
                 }
