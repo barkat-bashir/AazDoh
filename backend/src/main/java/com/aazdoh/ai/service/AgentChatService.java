@@ -181,13 +181,13 @@ public class AgentChatService {
                 }
 
                 if (lastException != null && (reply == null || reply.isBlank())) {
-                    log.error("All AI models in fallback chain failed for user {}: {}", userId, lastException.getMessage(), lastException);
-                    reply = "⚠️ **AI Error:** " + (lastException.getMessage() != null ? lastException.getMessage() : lastException.getClass().getSimpleName());
+                    log.warn("All AI models in fallback chain threw exception: {}", lastException.getMessage());
+                    reply = null;
                 }
             }
         } catch (Exception e) {
-            log.error("Spring AI native tool execution failed for user {}: {}", userId, e.getMessage(), e);
-            reply = "⚠️ **AI Error:** " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
+            log.warn("Spring AI tool execution encountered exception: {}", e.getMessage());
+            reply = null;
         }
 
         // 3. Find any action logs created in this turn
@@ -195,14 +195,12 @@ public class AgentChatService {
                 .filter(l -> l.getCreatedAt().isAfter(turnStart.minusSeconds(2)))
                 .collect(Collectors.toList());
 
-        if (reply == null || reply.isBlank()) {
-            if (!turnLogs.isEmpty()) {
-                reply = "⚡ **Executed Actions:**\n" + turnLogs.stream()
-                        .map(l -> "* " + l.getDescription())
-                        .collect(Collectors.joining("\n"));
-            } else {
-                reply = handleHeuristicExecutionAndReply(user, todayPlan, yesterdayPlan, userMessage);
-            }
+        if (!turnLogs.isEmpty()) {
+            reply = "⚡ **Executed Actions:**\n" + turnLogs.stream()
+                    .map(l -> "* " + l.getDescription())
+                    .collect(Collectors.joining("\n"));
+        } else if (reply == null || reply.isBlank() || reply.contains("thought_signature") || reply.startsWith("⚠️ **AI Error:**")) {
+            reply = handleHeuristicExecutionAndReply(user, todayPlan, yesterdayPlan, userMessage);
         }
 
         List<AgentActionReceipt> receipts = turnLogs.stream().map(l -> new AgentActionReceipt(
@@ -242,128 +240,33 @@ public class AgentChatService {
                     }
                 });
 
-                User user = userService.findUserById(userId);
-                AiPersona persona = user.getAiPersona() != null ? user.getAiPersona() : AiPersona.BALANCED;
-                OffsetDateTime turnStart = OffsetDateTime.now();
+                AgentChatResponse response = chat(userId, request);
 
-                AgentProgressListener.emit("🔍 Inspecting active schedule & cognitive load...");
-
-                // 1. Inspect user context
-                Map<String, Object> todayPlan = agentTools.getTodayPlan(userId);
-                Map<String, Object> yesterdayPlan = agentTools.getPlanForDate(userId, LocalDate.now().minusDays(1));
-
-                // 2. Build system prompt
-                String systemPromptText = buildSystemPrompt(persona, todayPlan, yesterdayPlan);
-                String userMessage = request.getMessage().trim();
-                StringBuilder replyBuffer = new StringBuilder();
-
-                try {
-                    if (aiEnabled && chatClient != null) {
-                        List<Message> messages = new ArrayList<>();
-                        messages.add(new SystemMessage(systemPromptText));
-                        if (request.getHistory() != null && !request.getHistory().isEmpty()) {
-                            for (AgentChatMessageDto turn : request.getHistory()) {
-                                if ("user".equalsIgnoreCase(turn.getRole())) {
-                                    messages.add(new UserMessage(turn.getContent()));
-                                } else if ("assistant".equalsIgnoreCase(turn.getRole())) {
-                                    messages.add(new AssistantMessage(turn.getContent()));
-                                }
-                            }
+                if (response.getMessage() != null && !response.getMessage().isBlank()) {
+                    String[] words = response.getMessage().split("(?<=\\s+)");
+                    for (String word : words) {
+                        try {
+                            emitter.send(SseEmitter.event()
+                                    .name("DELTA")
+                                    .data(AgentStreamEvent.delta(word)));
+                            Thread.sleep(15);
+                        } catch (Exception ignored) {
                         }
-                        messages.add(new UserMessage(userMessage));
-
-                        AgentProgressListener.emit("🤖 Reasoning over execution options and cognitive constraints...");
-
-                        String fullContent = chatClient.prompt()
-                                .messages(messages)
-                                .functions(
-                                        "createCommitmentFunction",
-                                        "updateCommitmentFunction",
-                                        "getPlanFunction",
-                                        "getHistoricalRangeFunction",
-                                        "getUserExecutionStatsFunction",
-                                        "postponeCommitmentFunction",
-                                        "completeCommitmentFunction",
-                                        "markCommitmentMissedFunction",
-                                        "deleteCommitmentFunction",
-                                        "stressTestScheduleFunction",
-                                        "detectExcuseFunction",
-                                        "generatePartnerBriefFunction",
-                                        "submitEveningReviewFunction"
-                                )
-                                .call()
-                                .content();
-
-                        if (fullContent != null && !fullContent.isBlank()) {
-                            replyBuffer.append(fullContent.trim());
-                            String[] words = fullContent.trim().split("(?<=\\s+)");
-                            for (String word : words) {
-                                try {
-                                    emitter.send(SseEmitter.event()
-                                            .name("DELTA")
-                                            .data(AgentStreamEvent.delta(word)));
-                                    Thread.sleep(15);
-                                } catch (Exception ignored) {
-                                }
-                            }
-                        }
-                    } else {
-                        String fallback = handleHeuristicExecutionAndReply(user, todayPlan, yesterdayPlan, userMessage);
-                        replyBuffer.append(fallback);
                     }
-                } catch (Exception e) {
-                    log.error("AI execution error for user {}: {}", userId, e.getMessage(), e);
-                    replyBuffer.setLength(0);
-                    replyBuffer.append("⚠️ **AI Error:** ").append(e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
                 }
-
-                // Collect executed actions in this turn
-                List<AgentActionLog> turnLogs = actionLogRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
-                        .filter(l -> l.getCreatedAt().isAfter(turnStart.minusSeconds(2)))
-                        .collect(Collectors.toList());
-
-                // If replyBuffer is empty, provide accurate summary or coaching response without mutating
-                if (replyBuffer.isEmpty()) {
-                    if (!turnLogs.isEmpty()) {
-                        String summary = "⚡ **Executed Actions:**\n" + turnLogs.stream()
-                                .map(l -> "* " + l.getDescription())
-                                .collect(Collectors.joining("\n"));
-                        replyBuffer.append(summary);
-                    } else {
-                        String heuristic = handleHeuristicExecutionAndReply(user, todayPlan, yesterdayPlan, userMessage);
-                        replyBuffer.append(heuristic);
-                    }
-                    emitter.send(SseEmitter.event().name("DELTA").data(AgentStreamEvent.delta(replyBuffer.toString())));
-                }
-
-                List<AgentActionReceipt> receipts = turnLogs.stream().map(l -> new AgentActionReceipt(
-                        l.getId(),
-                        l.getActionType(),
-                        l.getDescription(),
-                        l.isUndone(),
-                        l.getCreatedAt()
-                )).collect(Collectors.toList());
-
-                int totalMinutes = (int) todayPlan.getOrDefault("totalEstimatedMinutes", 0);
-                String cognitiveWarning = null;
-                if (totalMinutes > 360) {
-                    cognitiveWarning = "Warning: You have " + totalMinutes + " minutes scheduled today (> 6 hours). Consider pruning non-essential commitments.";
-                }
-
-                boolean undoAvailable = !receipts.isEmpty();
 
                 emitter.send(SseEmitter.event()
                         .name("DONE")
                         .data(AgentStreamEvent.done(
-                                replyBuffer.toString().trim(),
-                                receipts,
-                                undoAvailable,
-                                cognitiveWarning
+                                response.getMessage(),
+                                response.getExecutedActions(),
+                                response.isUndoAvailable(),
+                                response.getCognitiveWarning()
                         )));
 
                 emitter.complete();
             } catch (Exception e) {
-                log.error("Streaming chat failed for user {}: {}", userId, e.getMessage());
+                log.error("Streaming chat failed for user {}: {}", userId, e.getMessage(), e);
                 try {
                     emitter.send(SseEmitter.event()
                             .name("ERROR")
@@ -548,11 +451,51 @@ public class AgentChatService {
                 + "\n\nYESTERDAY STATE (" + yesterday + "):\n" + yesterdayJson;
     }
 
+    @SuppressWarnings("unchecked")
     private String handleHeuristicExecutionAndReply(User user, Map<String, Object> todayPlan, Map<String, Object> yesterdayPlan, String prompt) {
-        String lower = prompt.toLowerCase();
+        String lower = prompt.toLowerCase().trim();
+        List<Map<String, Object>> commitments = (List<Map<String, Object>>) todayPlan.getOrDefault("commitments", new ArrayList<>());
         int pending = (int) (long) todayPlan.getOrDefault("pendingCommitments", 0L);
         int totalMinutes = (int) todayPlan.getOrDefault("totalEstimatedMinutes", 0);
 
+        // 1. Completion intent (e.g. "done TUF DSA", "completed 2 leetcode", "finished reading")
+        if (lower.startsWith("done ") || lower.startsWith("completed ") || lower.startsWith("finished ") || lower.startsWith("did ") || lower.contains("marked done") || lower.contains("done with")) {
+            String target = lower.replaceFirst("^(done with|done|completed|finished|did|marked done)\\s+", "").trim();
+            for (Map<String, Object> c : commitments) {
+                String title = String.valueOf(c.get("title")).toLowerCase();
+                String status = String.valueOf(c.get("status"));
+                if ("PENDING".equalsIgnoreCase(status) && (title.contains(target) || target.contains(title) || target.isEmpty())) {
+                    UUID id = (UUID) c.get("id");
+                    agentTools.completeCommitment(user.getId(), id);
+                    return String.format("⚡ **Executed Action:** Marked '%s' as COMPLETED.", c.get("title"));
+                }
+            }
+            // If task was not scheduled today, auto-log it as a completed commitment
+            if (!target.isBlank()) {
+                String properTitle = Character.toUpperCase(target.charAt(0)) + target.substring(1);
+                Map<String, Object> created = agentTools.createCommitment(user.getId(), properTitle, 30, CommitmentPriority.MEDIUM, "Logged and completed via coach");
+                if (created != null && created.get("id") != null) {
+                    agentTools.completeCommitment(user.getId(), (UUID) created.get("id"));
+                    return String.format("⚡ **Executed Action:** Auto-logged and completed '%s' (30m).", properTitle);
+                }
+            }
+        }
+
+        // 2. Postpone intent (e.g. "postpone TUF DSA", "move reading to tomorrow")
+        if (lower.startsWith("postpone ") || lower.startsWith("move ") || lower.startsWith("reschedule ") || lower.contains("to tomorrow")) {
+            String target = lower.replaceFirst("^(postpone|move|reschedule)\\s+", "").replaceAll("(?i)\\s+(to tomorrow|tomorrow)$", "").trim();
+            for (Map<String, Object> c : commitments) {
+                String title = String.valueOf(c.get("title")).toLowerCase();
+                String status = String.valueOf(c.get("status"));
+                if ("PENDING".equalsIgnoreCase(status) && (title.contains(target) || target.contains(title))) {
+                    UUID id = (UUID) c.get("id");
+                    agentTools.postponeCommitment(user.getId(), id, LocalDate.now().plusDays(1), "Rebalanced via coach");
+                    return String.format("⚡ **Executed Action:** Postponed '%s' to tomorrow (%s).", c.get("title"), LocalDate.now().plusDays(1));
+                }
+            }
+        }
+
+        // 3. Audit / status intent
         if (lower.contains("audit") || lower.contains("plan") || lower.contains("today") || lower.contains("schedule")) {
             if (pending == 0) {
                 return "⚡ **Progress:** 0 pending commitments for today. Add 2-3 focused priorities to establish your execution baseline.";
