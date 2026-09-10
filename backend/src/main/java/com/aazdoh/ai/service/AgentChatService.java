@@ -226,8 +226,7 @@ public class AgentChatService {
 
                         AgentProgressListener.emit("🤖 Reasoning over execution options and cognitive constraints...");
 
-                        // Stream tokens incrementally in real time
-                        reactor.core.publisher.Flux<String> streamFlux = chatClient.prompt()
+                        String fullContent = chatClient.prompt()
                                 .messages(messages)
                                 .functions(
                                         "createCommitmentFunction",
@@ -244,20 +243,22 @@ public class AgentChatService {
                                         "generatePartnerBriefFunction",
                                         "submitEveningReviewFunction"
                                 )
-                                .stream()
+                                .call()
                                 .content();
 
-                        streamFlux.doOnNext(chunk -> {
-                            if (chunk != null && !chunk.isEmpty()) {
-                                replyBuffer.append(chunk);
+                        if (fullContent != null && !fullContent.isBlank()) {
+                            replyBuffer.append(fullContent.trim());
+                            String[] words = fullContent.trim().split("(?<=\\s+)");
+                            for (String word : words) {
                                 try {
                                     emitter.send(SseEmitter.event()
                                             .name("DELTA")
-                                            .data(AgentStreamEvent.delta(chunk)));
+                                            .data(AgentStreamEvent.delta(word)));
+                                    Thread.sleep(15);
                                 } catch (Exception ignored) {
                                 }
                             }
-                        }).blockLast();
+                        }
                     }
                 } catch (Exception e) {
                     log.error("AI execution error for user {}: {}", userId, e.getMessage(), e);
