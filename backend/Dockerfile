@@ -2,12 +2,15 @@
 FROM maven:3.9.6-eclipse-temurin-17-alpine AS build
 WORKDIR /app
 
-# Copy pom.xml and source code
+# 1. Copy only pom.xml and pre-fetch dependencies (Cached layer)
 COPY pom.xml .
+RUN mvn dependency:go-offline -B
+
+# 2. Copy source code after dependencies are cached
 COPY src ./src
 
-# Build the application skipping tests for deployment speed
-RUN mvn clean package -DskipTests
+# 3. Build application using cached dependencies
+RUN mvn package -DskipTests
 
 # Runtime stage
 FROM eclipse-temurin:17-jre-alpine
