@@ -2,10 +2,12 @@ package com.aazdoh.ai.service;
 
 import com.aazdoh.ai.agent.AgentProgressListener;
 import com.aazdoh.ai.agent.AgentTools;
+import com.aazdoh.ai.dto.AgentActionItem;
 import com.aazdoh.ai.dto.AgentActionReceipt;
 import com.aazdoh.ai.dto.AgentChatMessageDto;
 import com.aazdoh.ai.dto.AgentChatRequest;
 import com.aazdoh.ai.dto.AgentChatResponse;
+import com.aazdoh.ai.dto.AgentDecisionPlan;
 import com.aazdoh.ai.dto.AgentStreamEvent;
 import com.aazdoh.ai.entity.AgentActionLog;
 import com.aazdoh.ai.repository.AgentActionLogRepository;
@@ -125,7 +127,6 @@ public class AgentChatService {
 
         try {
             if (aiEnabled && chatClient != null) {
-                // Build standard Spring AI messages list
                 List<Message> messages = new ArrayList<>();
                 messages.add(new SystemMessage(systemPromptText));
 
@@ -149,28 +150,20 @@ public class AgentChatService {
                         log.info("Executing Agent reasoning with model: {}", modelName);
                         AgentProgressListener.emit("🤖 Reasoning over execution options with " + modelName + "...");
 
-                        reply = chatClient.prompt()
+                        String rawResponse = chatClient.prompt()
                                 .options(OpenAiChatOptions.builder().withModel(modelName).build())
                                 .messages(messages)
-                                .functions(
-                                        "createCommitmentFunction",
-                                        "updateCommitmentFunction",
-                                        "getPlanFunction",
-                                        "getHistoricalRangeFunction",
-                                        "getUserExecutionStatsFunction",
-                                        "postponeCommitmentFunction",
-                                        "completeCommitmentFunction",
-                                        "markCommitmentMissedFunction",
-                                        "deleteCommitmentFunction",
-                                        "stressTestScheduleFunction",
-                                        "detectExcuseFunction",
-                                        "generatePartnerBriefFunction",
-                                        "submitEveningReviewFunction"
-                                )
                                 .call()
                                 .content();
 
-                        if (reply != null && !reply.isBlank()) {
+                        if (rawResponse != null && !rawResponse.isBlank()) {
+                            AgentDecisionPlan plan = parseDecisionPlan(rawResponse);
+                            if (plan != null) {
+                                executeActionPlan(userId, plan, todayPlan);
+                                reply = plan.getReply();
+                            } else {
+                                reply = rawResponse.trim();
+                            }
                             lastException = null;
                             break;
                         }
@@ -191,7 +184,7 @@ public class AgentChatService {
                 }
             }
         } catch (Exception e) {
-            log.warn("Spring AI tool execution encountered exception: {}", e.getMessage());
+            log.warn("Spring AI execution encountered exception: {}", e.getMessage());
             reply = null;
         }
 
@@ -200,12 +193,14 @@ public class AgentChatService {
                 .filter(l -> l.getCreatedAt().isAfter(turnStart.minusSeconds(2)))
                 .collect(Collectors.toList());
 
-        if (!turnLogs.isEmpty()) {
-            reply = "⚡ **Executed Actions:**\n" + turnLogs.stream()
-                    .map(l -> "* " + l.getDescription())
-                    .collect(Collectors.joining("\n"));
-        } else if (reply == null || reply.isBlank() || reply.contains("thought_signature") || reply.startsWith("⚠️ **AI Error:**")) {
-            reply = handleHeuristicExecutionAndReply(user, todayPlan, yesterdayPlan, userMessage);
+        if (reply == null || reply.isBlank() || reply.contains("thought_signature") || reply.startsWith("⚠️ **AI Error:**")) {
+            if (!turnLogs.isEmpty()) {
+                reply = "⚡ **Executed Actions:**\n" + turnLogs.stream()
+                        .map(l -> "* " + l.getDescription())
+                        .collect(Collectors.joining("\n"));
+            } else {
+                reply = handleHeuristicExecutionAndReply(user, todayPlan, yesterdayPlan, userMessage);
+            }
         }
 
         List<AgentActionReceipt> receipts = turnLogs.stream().map(l -> new AgentActionReceipt(
@@ -515,5 +510,157 @@ public class AgentChatService {
         }
 
         return String.format("⚡ **Tracking:** %d active commitments today (%d mins). What is your immediate focus?", pending, totalMinutes);
+    }
+
+    private AgentDecisionPlan parseDecisionPlan(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            String clean = raw.trim();
+            if (clean.startsWith("```json")) {
+                clean = clean.substring(7);
+            } else if (clean.startsWith("```")) {
+                clean = clean.substring(3);
+            }
+            if (clean.endsWith("```")) {
+                clean = clean.substring(0, clean.length() - 3);
+            }
+            clean = clean.trim();
+            int firstBrace = clean.indexOf('{');
+            int lastBrace = clean.lastIndexOf('}');
+            if (firstBrace != -1 && lastBrace > firstBrace) {
+                clean = clean.substring(firstBrace, lastBrace + 1);
+                return objectMapper.readValue(clean, AgentDecisionPlan.class);
+            }
+        } catch (Exception e) {
+            log.debug("Could not parse AgentDecisionPlan JSON from LLM: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void executeActionPlan(UUID userId, AgentDecisionPlan plan, Map<String, Object> todayPlan) {
+        if (plan == null || plan.getActions() == null || plan.getActions().isEmpty()) {
+            return;
+        }
+
+        List<Map<String, Object>> commitments = (List<Map<String, Object>>) todayPlan.getOrDefault("commitments", new ArrayList<>());
+
+        for (AgentActionItem item : plan.getActions()) {
+            if (item == null || item.getActionType() == null) continue;
+            String type = item.getActionType().toUpperCase().trim();
+
+            try {
+                switch (type) {
+                    case "COMPLETE_COMMITMENT" -> {
+                        UUID targetId = item.getTargetId();
+                        if (targetId == null && item.getTargetTitle() != null) {
+                            targetId = findMatchingCommitmentId(commitments, item.getTargetTitle(), "PENDING");
+                        }
+                        if (targetId != null) {
+                            agentTools.completeCommitment(userId, targetId);
+                        } else if (item.getTargetTitle() != null && !item.getTargetTitle().isBlank()) {
+                            String title = item.getTargetTitle().trim();
+                            int minutes = item.getEstimatedMinutes() != null ? item.getEstimatedMinutes() : 30;
+                            Map<String, Object> created = agentTools.createCommitment(userId, title, minutes, CommitmentPriority.MEDIUM, "Logged via coach");
+                            if (created != null && created.get("id") != null) {
+                                agentTools.completeCommitment(userId, (UUID) created.get("id"));
+                            }
+                        }
+                    }
+                    case "CREATE_COMMITMENT" -> {
+                        String title = item.getTitle() != null ? item.getTitle() : item.getTargetTitle();
+                        if (title != null && !title.isBlank()) {
+                            int minutes = item.getEstimatedMinutes() != null ? item.getEstimatedMinutes() : 30;
+                            CommitmentPriority priority = parsePriority(item.getPriority());
+                            String category = item.getCategory() != null ? item.getCategory() : "DEEP_WORK";
+                            String outcome = item.getExpectedOutcome();
+                            LocalDate targetDate = parseDate(item.getTargetDate());
+                            agentTools.createCommitment(userId, title, minutes, priority, category, outcome, targetDate != null ? targetDate : LocalDate.now());
+                        }
+                    }
+                    case "POSTPONE_COMMITMENT" -> {
+                        UUID targetId = item.getTargetId();
+                        if (targetId == null && item.getTargetTitle() != null) {
+                            targetId = findMatchingCommitmentId(commitments, item.getTargetTitle(), "PENDING");
+                        }
+                        if (targetId != null) {
+                            LocalDate targetDate = parseDate(item.getTargetDate());
+                            if (targetDate == null) targetDate = LocalDate.now().plusDays(1);
+                            PostponeCommitmentRequest req = new PostponeCommitmentRequest();
+                            req.setNewDate(targetDate);
+                            req.setReason(item.getReason() != null ? item.getReason() : "Postponed via coach");
+                            commitmentService.postponeCommitment(userId, targetId, req);
+                        }
+                    }
+                    case "UPDATE_COMMITMENT" -> {
+                        UUID targetId = item.getTargetId();
+                        if (targetId == null && item.getTargetTitle() != null) {
+                            targetId = findMatchingCommitmentId(commitments, item.getTargetTitle(), null);
+                        }
+                        if (targetId != null) {
+                            CommitmentPriority priority = item.getPriority() != null ? parsePriority(item.getPriority()) : null;
+                            LocalDate targetDate = parseDate(item.getTargetDate());
+                            agentTools.updateCommitment(userId, targetId, item.getTitle(), item.getEstimatedMinutes(), priority, item.getCategory(), item.getExpectedOutcome(), targetDate);
+                        }
+                    }
+                    case "DELETE_COMMITMENT" -> {
+                        UUID targetId = item.getTargetId();
+                        if (targetId == null && item.getTargetTitle() != null) {
+                            targetId = findMatchingCommitmentId(commitments, item.getTargetTitle(), null);
+                        }
+                        if (targetId != null) {
+                            agentTools.deleteCommitment(userId, targetId);
+                        }
+                    }
+                    case "MARK_MISSED" -> {
+                        UUID targetId = item.getTargetId();
+                        if (targetId == null && item.getTargetTitle() != null) {
+                            targetId = findMatchingCommitmentId(commitments, item.getTargetTitle(), "PENDING");
+                        }
+                        if (targetId != null) {
+                            agentTools.markCommitmentMissed(userId, targetId, item.getReason() != null ? item.getReason() : "Marked missed via coach");
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                log.warn("Failed executing action {} for user {}: {}", type, userId, ex.getMessage());
+            }
+        }
+    }
+
+    private UUID findMatchingCommitmentId(List<Map<String, Object>> commitments, String targetTitle, String requiredStatus) {
+        if (targetTitle == null || targetTitle.isBlank()) return null;
+        String lowerTarget = targetTitle.toLowerCase().trim();
+        for (Map<String, Object> c : commitments) {
+            String title = String.valueOf(c.get("title")).toLowerCase();
+            String status = String.valueOf(c.get("status"));
+            if ((requiredStatus == null || requiredStatus.equalsIgnoreCase(status))
+                    && (title.contains(lowerTarget) || lowerTarget.contains(title))) {
+                return (UUID) c.get("id");
+            }
+        }
+        return null;
+    }
+
+    private CommitmentPriority parsePriority(String p) {
+        if (p == null) return CommitmentPriority.MEDIUM;
+        try {
+            return CommitmentPriority.valueOf(p.toUpperCase().trim());
+        } catch (Exception e) {
+            return CommitmentPriority.MEDIUM;
+        }
+    }
+
+    private LocalDate parseDate(String d) {
+        if (d == null || d.isBlank()) return null;
+        try {
+            String trimmed = d.trim();
+            if ("today".equalsIgnoreCase(trimmed)) return LocalDate.now();
+            if ("tomorrow".equalsIgnoreCase(trimmed)) return LocalDate.now().plusDays(1);
+            if ("yesterday".equalsIgnoreCase(trimmed)) return LocalDate.now().minusDays(1);
+            return LocalDate.parse(trimmed);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }
