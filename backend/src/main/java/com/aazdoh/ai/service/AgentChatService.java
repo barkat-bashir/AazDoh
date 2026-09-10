@@ -139,7 +139,8 @@ public class AgentChatService {
                         .content();
             }
         } catch (Exception e) {
-            log.warn("Spring AI native tool execution failed for user {}: {}", userId, e.getMessage());
+            log.error("Spring AI native tool execution failed for user {}: {}", userId, e.getMessage(), e);
+            reply = "⚠️ **AI Error:** " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
         }
 
         // 3. Find any action logs created in this turn
@@ -259,17 +260,14 @@ public class AgentChatService {
                                 }
                             }
                         }
+                    } else {
+                        String fallback = handleHeuristicExecutionAndReply(user, todayPlan, yesterdayPlan, userMessage);
+                        replyBuffer.append(fallback);
                     }
                 } catch (Exception e) {
                     log.error("AI execution error for user {}: {}", userId, e.getMessage(), e);
-                    if (replyBuffer.isEmpty()) {
-                        String errMsg = e.getMessage() != null ? e.getMessage() : "Unknown AI error";
-                        if (errMsg.contains("404") || errMsg.contains("not found")) {
-                            replyBuffer.append("⚠️ **AI Model Error:** The configured model was not found. Please verify the `AI_MODEL` setting in configuration.");
-                        } else if (errMsg.contains("401") || errMsg.contains("API key") || errMsg.contains("Unauthorized")) {
-                            replyBuffer.append("⚠️ **AI Authentication Error:** Invalid API Key. Please verify `AI_API_KEY` in your environment.");
-                        }
-                    }
+                    replyBuffer.setLength(0);
+                    replyBuffer.append("⚠️ **AI Error:** ").append(e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
                 }
 
                 // Collect executed actions in this turn
