@@ -58,8 +58,22 @@ public class GlobalExceptionHandler {
                 .body(new ApiResponse<>(false, "Validation failed", errors));
     }
 
+    @ExceptionHandler(org.springframework.web.context.request.async.AsyncRequestTimeoutException.class)
+    public ResponseEntity<Void> handleAsyncRequestTimeout(
+            org.springframework.web.context.request.async.AsyncRequestTimeoutException ex,
+            jakarta.servlet.http.HttpServletResponse response
+    ) {
+        return null;
+    }
+
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleGeneralException(Exception ex) {
+    public ResponseEntity<ApiResponse<Void>> handleGeneralException(
+            Exception ex,
+            jakarta.servlet.http.HttpServletResponse response
+    ) {
+        if (response.isCommitted()) {
+            return null;
+        }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error("An unexpected error occurred: " + ex.getMessage()));
     }

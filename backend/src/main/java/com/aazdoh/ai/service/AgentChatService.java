@@ -45,6 +45,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -159,7 +160,7 @@ public class AgentChatService {
                         if (rawResponse != null && !rawResponse.isBlank()) {
                             AgentDecisionPlan plan = parseDecisionPlan(rawResponse);
                             if (plan != null) {
-                                executeActionPlan(userId, plan, todayPlan);
+                                executeActionPlan(userId, plan, todayPlan, yesterdayPlan);
                                 reply = plan.getReply();
                             } else {
                                 reply = rawResponse.trim();
@@ -224,7 +225,21 @@ public class AgentChatService {
     }
 
     public SseEmitter chatStream(UUID userId, AgentChatRequest request) {
-        SseEmitter emitter = new SseEmitter(120_000L);
+        SseEmitter emitter = new SseEmitter(180_000L);
+        emitter.onCompletion(() -> log.debug("SSE stream completed for user {}", userId));
+        emitter.onTimeout(() -> {
+            log.warn("SSE stream timed out for user {}", userId);
+            try {
+                emitter.complete();
+            } catch (Exception ignored) {}
+        });
+        emitter.onError(e -> {
+            log.debug("SSE stream error for user {}: {}", userId, e.getMessage());
+            try {
+                emitter.complete();
+            } catch (Exception ignored) {}
+        });
+
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
         CompletableFuture.runAsync(() -> {
@@ -271,8 +286,11 @@ public class AgentChatService {
                     emitter.send(SseEmitter.event()
                             .name("ERROR")
                             .data(AgentStreamEvent.error(e.getMessage() != null ? e.getMessage() : "Agent execution error.")));
-                    emitter.completeWithError(e);
                 } catch (Exception ignored) {
+                } finally {
+                    try {
+                        emitter.complete();
+                    } catch (Exception ignored) {}
                 }
             } finally {
                 SecurityContextHolder.clearContext();
@@ -454,23 +472,38 @@ public class AgentChatService {
     @SuppressWarnings("unchecked")
     private String handleHeuristicExecutionAndReply(User user, Map<String, Object> todayPlan, Map<String, Object> yesterdayPlan, String prompt) {
         String lower = prompt.toLowerCase().trim();
-        List<Map<String, Object>> commitments = (List<Map<String, Object>>) todayPlan.getOrDefault("commitments", new ArrayList<>());
+        List<Map<String, Object>> todayCommitments = (List<Map<String, Object>>) todayPlan.getOrDefault("commitments", new ArrayList<>());
+        List<Map<String, Object>> yesterdayCommitments = yesterdayPlan != null
+                ? (List<Map<String, Object>>) yesterdayPlan.getOrDefault("commitments", new ArrayList<>())
+                : Collections.emptyList();
+
         int pending = (int) (long) todayPlan.getOrDefault("pendingCommitments", 0L);
         int totalMinutes = (int) todayPlan.getOrDefault("totalEstimatedMinutes", 0);
 
         // 1. Completion intent (e.g. "done TUF DSA", "completed 2 leetcode", "finished reading")
         if (lower.startsWith("done ") || lower.startsWith("completed ") || lower.startsWith("finished ") || lower.startsWith("did ") || lower.contains("marked done") || lower.contains("done with")) {
             String target = lower.replaceFirst("^(done with|done|completed|finished|did|marked done)\\s+", "").trim();
-            for (Map<String, Object> c : commitments) {
-                String title = String.valueOf(c.get("title")).toLowerCase();
-                String status = String.valueOf(c.get("status"));
-                if ("PENDING".equalsIgnoreCase(status) && (title.contains(target) || target.contains(title) || target.isEmpty())) {
-                    UUID id = (UUID) c.get("id");
-                    agentTools.completeCommitment(user.getId(), id);
-                    return String.format("⚡ **Executed Action:** Marked '%s' as COMPLETED.", c.get("title"));
-                }
+
+            // Check today first
+            UUID matchId = findMatchingCommitmentId(todayCommitments, target, "ACTIVE_OR_MISSED");
+            String matchedTitle = target;
+            if (matchId != null) {
+                Map<String, Object> match = findCommitmentById(todayCommitments, matchId);
+                if (match != null && match.get("title") != null) matchedTitle = String.valueOf(match.get("title"));
+                agentTools.completeCommitment(user.getId(), matchId);
+                return String.format("⚡ **Executed Action:** Marked '%s' as COMPLETED.", matchedTitle);
             }
-            // If task was not scheduled today, auto-log it as a completed commitment
+
+            // Check yesterday
+            UUID yMatchId = findMatchingCommitmentId(yesterdayCommitments, target, "ACTIVE_OR_MISSED");
+            if (yMatchId != null) {
+                Map<String, Object> match = findCommitmentById(yesterdayCommitments, yMatchId);
+                if (match != null && match.get("title") != null) matchedTitle = String.valueOf(match.get("title"));
+                agentTools.completeCommitment(user.getId(), yMatchId);
+                return String.format("⚡ **Executed Action:** Marked yesterday's '%s' as COMPLETED.", matchedTitle);
+            }
+
+            // If task was not scheduled today or yesterday, auto-log it as a completed commitment
             if (!target.isBlank()) {
                 String properTitle = Character.toUpperCase(target.charAt(0)) + target.substring(1);
                 Map<String, Object> created = agentTools.createCommitment(user.getId(), properTitle, 30, CommitmentPriority.MEDIUM, "Logged and completed via coach");
@@ -484,17 +517,20 @@ public class AgentChatService {
         // 2. Postpone intent (e.g. "postpone TUF DSA", "move reading to tomorrow")
         if (lower.startsWith("postpone ") || lower.startsWith("move ") || lower.startsWith("reschedule ") || lower.contains("to tomorrow")) {
             String target = lower.replaceFirst("^(postpone|move|reschedule)\\s+", "").replaceAll("(?i)\\s+(to tomorrow|tomorrow)$", "").trim();
-            for (Map<String, Object> c : commitments) {
-                String title = String.valueOf(c.get("title")).toLowerCase();
-                String status = String.valueOf(c.get("status"));
-                if ("PENDING".equalsIgnoreCase(status) && (title.contains(target) || target.contains(title))) {
-                    UUID id = (UUID) c.get("id");
-                    PostponeCommitmentRequest req = new PostponeCommitmentRequest();
-                    req.setNewDate(LocalDate.now().plusDays(1));
-                    req.setReason("Rebalanced via coach");
-                    commitmentService.postponeCommitment(user.getId(), id, req);
-                    return String.format("⚡ **Executed Action:** Postponed '%s' to tomorrow (%s).", c.get("title"), LocalDate.now().plusDays(1));
-                }
+            UUID matchId = findMatchingCommitmentId(todayCommitments, target, "ACTIVE_OR_MISSED");
+            if (matchId == null) {
+                matchId = findMatchingCommitmentId(yesterdayCommitments, target, "ACTIVE_OR_MISSED");
+            }
+            if (matchId != null) {
+                Map<String, Object> match = findCommitmentById(todayCommitments, matchId);
+                if (match == null) match = findCommitmentById(yesterdayCommitments, matchId);
+                String title = match != null && match.get("title") != null ? String.valueOf(match.get("title")) : target;
+
+                PostponeCommitmentRequest req = new PostponeCommitmentRequest();
+                req.setNewDate(LocalDate.now().plusDays(1));
+                req.setReason("Rebalanced via coach");
+                commitmentService.postponeCommitment(user.getId(), matchId, req);
+                return String.format("⚡ **Executed Action:** Postponed '%s' to tomorrow (%s).", title, LocalDate.now().plusDays(1));
             }
         }
 
@@ -538,12 +574,15 @@ public class AgentChatService {
     }
 
     @SuppressWarnings("unchecked")
-    private void executeActionPlan(UUID userId, AgentDecisionPlan plan, Map<String, Object> todayPlan) {
+    private void executeActionPlan(UUID userId, AgentDecisionPlan plan, Map<String, Object> todayPlan, Map<String, Object> yesterdayPlan) {
         if (plan == null || plan.getActions() == null || plan.getActions().isEmpty()) {
             return;
         }
 
-        List<Map<String, Object>> commitments = (List<Map<String, Object>>) todayPlan.getOrDefault("commitments", new ArrayList<>());
+        List<Map<String, Object>> todayCommitments = (List<Map<String, Object>>) todayPlan.getOrDefault("commitments", new ArrayList<>());
+        List<Map<String, Object>> yesterdayCommitments = yesterdayPlan != null
+                ? (List<Map<String, Object>>) yesterdayPlan.getOrDefault("commitments", new ArrayList<>())
+                : Collections.emptyList();
 
         for (AgentActionItem item : plan.getActions()) {
             if (item == null || item.getActionType() == null) continue;
@@ -554,7 +593,10 @@ public class AgentChatService {
                     case "COMPLETE_COMMITMENT" -> {
                         UUID targetId = item.getTargetId();
                         if (targetId == null && item.getTargetTitle() != null) {
-                            targetId = findMatchingCommitmentId(commitments, item.getTargetTitle(), "PENDING");
+                            targetId = findMatchingCommitmentId(todayCommitments, item.getTargetTitle(), "ACTIVE_OR_MISSED");
+                            if (targetId == null) {
+                                targetId = findMatchingCommitmentId(yesterdayCommitments, item.getTargetTitle(), "ACTIVE_OR_MISSED");
+                            }
                         }
                         if (targetId != null) {
                             agentTools.completeCommitment(userId, targetId);
@@ -581,7 +623,10 @@ public class AgentChatService {
                     case "POSTPONE_COMMITMENT" -> {
                         UUID targetId = item.getTargetId();
                         if (targetId == null && item.getTargetTitle() != null) {
-                            targetId = findMatchingCommitmentId(commitments, item.getTargetTitle(), "PENDING");
+                            targetId = findMatchingCommitmentId(todayCommitments, item.getTargetTitle(), "ACTIVE_OR_MISSED");
+                            if (targetId == null) {
+                                targetId = findMatchingCommitmentId(yesterdayCommitments, item.getTargetTitle(), "ACTIVE_OR_MISSED");
+                            }
                         }
                         if (targetId != null) {
                             LocalDate targetDate = parseDate(item.getTargetDate());
@@ -595,7 +640,10 @@ public class AgentChatService {
                     case "UPDATE_COMMITMENT" -> {
                         UUID targetId = item.getTargetId();
                         if (targetId == null && item.getTargetTitle() != null) {
-                            targetId = findMatchingCommitmentId(commitments, item.getTargetTitle(), null);
+                            targetId = findMatchingCommitmentId(todayCommitments, item.getTargetTitle(), null);
+                            if (targetId == null) {
+                                targetId = findMatchingCommitmentId(yesterdayCommitments, item.getTargetTitle(), null);
+                            }
                         }
                         if (targetId != null) {
                             CommitmentPriority priority = item.getPriority() != null ? parsePriority(item.getPriority()) : null;
@@ -606,7 +654,10 @@ public class AgentChatService {
                     case "DELETE_COMMITMENT" -> {
                         UUID targetId = item.getTargetId();
                         if (targetId == null && item.getTargetTitle() != null) {
-                            targetId = findMatchingCommitmentId(commitments, item.getTargetTitle(), null);
+                            targetId = findMatchingCommitmentId(todayCommitments, item.getTargetTitle(), null);
+                            if (targetId == null) {
+                                targetId = findMatchingCommitmentId(yesterdayCommitments, item.getTargetTitle(), null);
+                            }
                         }
                         if (targetId != null) {
                             agentTools.deleteCommitment(userId, targetId);
@@ -615,7 +666,7 @@ public class AgentChatService {
                     case "MARK_MISSED" -> {
                         UUID targetId = item.getTargetId();
                         if (targetId == null && item.getTargetTitle() != null) {
-                            targetId = findMatchingCommitmentId(commitments, item.getTargetTitle(), "PENDING");
+                            targetId = findMatchingCommitmentId(todayCommitments, item.getTargetTitle(), "PENDING");
                         }
                         if (targetId != null) {
                             agentTools.markCommitmentMissed(userId, targetId, item.getReason() != null ? item.getReason() : "Marked missed via coach");
@@ -628,18 +679,59 @@ public class AgentChatService {
         }
     }
 
-    private UUID findMatchingCommitmentId(List<Map<String, Object>> commitments, String targetTitle, String requiredStatus) {
-        if (targetTitle == null || targetTitle.isBlank()) return null;
-        String lowerTarget = targetTitle.toLowerCase().trim();
+    private Map<String, Object> findCommitmentById(List<Map<String, Object>> commitments, UUID id) {
+        if (commitments == null || id == null) return null;
         for (Map<String, Object> c : commitments) {
-            String title = String.valueOf(c.get("title")).toLowerCase();
-            String status = String.valueOf(c.get("status"));
-            if ((requiredStatus == null || requiredStatus.equalsIgnoreCase(status))
-                    && (title.contains(lowerTarget) || lowerTarget.contains(title))) {
-                return (UUID) c.get("id");
-            }
+            if (id.equals(c.get("id"))) return c;
         }
         return null;
+    }
+
+    private UUID findMatchingCommitmentId(List<Map<String, Object>> commitments, String targetTitle, String allowedStatus) {
+        if (targetTitle == null || targetTitle.isBlank() || commitments == null) return null;
+        String cleanTarget = targetTitle.replaceAll("[^a-zA-Z0-9\\s]", " ").trim().toLowerCase();
+        String[] targetTokens = cleanTarget.split("\\s+");
+
+        UUID bestMatch = null;
+        int maxScore = 0;
+
+        for (Map<String, Object> c : commitments) {
+            String status = String.valueOf(c.get("status"));
+            if (allowedStatus != null && !allowedStatus.equalsIgnoreCase("ANY")) {
+                if ("ACTIVE_OR_MISSED".equalsIgnoreCase(allowedStatus)) {
+                    if ("COMPLETED".equalsIgnoreCase(status) || "DELETED".equalsIgnoreCase(status)) continue;
+                } else if (!allowedStatus.equalsIgnoreCase(status)) {
+                    continue;
+                }
+            } else if ("DELETED".equalsIgnoreCase(status)) {
+                continue;
+            }
+
+            String title = String.valueOf(c.get("title"));
+            String cleanTitle = title.replaceAll("[^a-zA-Z0-9\\s]", " ").trim().toLowerCase();
+
+            if (cleanTitle.equals(cleanTarget)) {
+                return (UUID) c.get("id"); // Exact match
+            }
+
+            if (cleanTitle.contains(cleanTarget) || cleanTarget.contains(cleanTitle)) {
+                return (UUID) c.get("id"); // Substring match
+            }
+
+            // Token overlap score
+            int score = 0;
+            for (String token : targetTokens) {
+                if (token.length() > 1 && cleanTitle.contains(token)) {
+                    score++;
+                }
+            }
+            if (score > maxScore) {
+                maxScore = score;
+                bestMatch = (UUID) c.get("id");
+            }
+        }
+
+        return maxScore > 0 ? bestMatch : null;
     }
 
     private CommitmentPriority parsePriority(String p) {
