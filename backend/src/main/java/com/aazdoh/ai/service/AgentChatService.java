@@ -10,10 +10,12 @@ import com.aazdoh.ai.dto.AgentStreamEvent;
 import com.aazdoh.ai.entity.AgentActionLog;
 import com.aazdoh.ai.repository.AgentActionLogRepository;
 import com.aazdoh.analytics.service.UserExecutionStatsService;
+import com.aazdoh.commitment.dto.PostponeCommitmentRequest;
 import com.aazdoh.commitment.entity.Commitment;
 import com.aazdoh.commitment.entity.CommitmentPriority;
 import com.aazdoh.commitment.entity.CommitmentStatus;
 import com.aazdoh.commitment.repository.CommitmentRepository;
+import com.aazdoh.commitment.service.CommitmentService;
 import com.aazdoh.common.exception.BadRequestException;
 import com.aazdoh.common.exception.ResourceNotFoundException;
 import com.aazdoh.user.entity.AiPersona;
@@ -56,6 +58,7 @@ public class AgentChatService {
     private final AgentTools agentTools;
     private final AgentActionLogRepository actionLogRepository;
     private final CommitmentRepository commitmentRepository;
+    private final CommitmentService commitmentService;
     private final UserService userService;
     private final UserExecutionStatsService statsService;
     private final ObjectMapper objectMapper;
@@ -74,6 +77,7 @@ public class AgentChatService {
             AgentTools agentTools,
             AgentActionLogRepository actionLogRepository,
             CommitmentRepository commitmentRepository,
+            CommitmentService commitmentService,
             UserService userService,
             UserExecutionStatsService statsService,
             ObjectMapper objectMapper
@@ -82,6 +86,7 @@ public class AgentChatService {
         this.agentTools = agentTools;
         this.actionLogRepository = actionLogRepository;
         this.commitmentRepository = commitmentRepository;
+        this.commitmentService = commitmentService;
         this.userService = userService;
         this.statsService = statsService;
         this.objectMapper = objectMapper;
@@ -242,8 +247,8 @@ public class AgentChatService {
 
                 AgentChatResponse response = chat(userId, request);
 
-                if (response.getMessage() != null && !response.getMessage().isBlank()) {
-                    String[] words = response.getMessage().split("(?<=\\s+)");
+                if (response.getReply() != null && !response.getReply().isBlank()) {
+                    String[] words = response.getReply().split("(?<=\\s+)");
                     for (String word : words) {
                         try {
                             emitter.send(SseEmitter.event()
@@ -258,7 +263,7 @@ public class AgentChatService {
                 emitter.send(SseEmitter.event()
                         .name("DONE")
                         .data(AgentStreamEvent.done(
-                                response.getMessage(),
+                                response.getReply(),
                                 response.getExecutedActions(),
                                 response.isUndoAvailable(),
                                 response.getCognitiveWarning()
@@ -489,7 +494,10 @@ public class AgentChatService {
                 String status = String.valueOf(c.get("status"));
                 if ("PENDING".equalsIgnoreCase(status) && (title.contains(target) || target.contains(title))) {
                     UUID id = (UUID) c.get("id");
-                    agentTools.postponeCommitment(user.getId(), id, LocalDate.now().plusDays(1), "Rebalanced via coach");
+                    PostponeCommitmentRequest req = new PostponeCommitmentRequest();
+                    req.setNewDate(LocalDate.now().plusDays(1));
+                    req.setReason("Rebalanced via coach");
+                    commitmentService.postponeCommitment(user.getId(), id, req);
                     return String.format("⚡ **Executed Action:** Postponed '%s' to tomorrow (%s).", c.get("title"), LocalDate.now().plusDays(1));
                 }
             }
