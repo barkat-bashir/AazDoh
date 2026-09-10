@@ -260,7 +260,15 @@ public class AgentChatService {
                         }).blockLast();
                     }
                 } catch (Exception e) {
-                    log.warn("Streaming execution fallback for user {}: {}", userId, e.getMessage());
+                    log.error("AI execution error for user {}: {}", userId, e.getMessage(), e);
+                    if (replyBuffer.isEmpty()) {
+                        String errMsg = e.getMessage() != null ? e.getMessage() : "Unknown AI error";
+                        if (errMsg.contains("404") || errMsg.contains("not found")) {
+                            replyBuffer.append("⚠️ **AI Model Error:** The configured model was not found. Please verify the `AI_MODEL` setting in configuration.");
+                        } else if (errMsg.contains("401") || errMsg.contains("API key") || errMsg.contains("Unauthorized")) {
+                            replyBuffer.append("⚠️ **AI Authentication Error:** Invalid API Key. Please verify `AI_API_KEY` in your environment.");
+                        }
+                    }
                 }
 
                 // Collect executed actions in this turn
