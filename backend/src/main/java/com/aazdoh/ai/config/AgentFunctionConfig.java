@@ -259,6 +259,145 @@ public class AgentFunctionConfig {
         };
     }
 
+    // --- Update Commitment Function ---
+    @JsonClassDescription("Request to edit or adjust details of an existing commitment")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record UpdateCommitmentFunctionRequest(
+            @JsonProperty(required = true) @JsonPropertyDescription("UUID ID of the commitment to edit") String commitmentId,
+            @JsonPropertyDescription("Updated title") String title,
+            @JsonPropertyDescription("Updated estimated duration in minutes") Integer estimatedMinutes,
+            @JsonPropertyDescription("Updated priority (URGENT, HIGH, MEDIUM, LOW)") String priority,
+            @JsonPropertyDescription("Updated category (ROUTINE, DEEP_WORK, LEARNING, FITNESS_HEALTH, COMMUNICATION)") String category,
+            @JsonPropertyDescription("Updated definition of done or expected outcome") String expectedOutcome,
+            @JsonPropertyDescription("Updated target date (YYYY-MM-DD)") String targetDate
+    ) {}
+
+    public record UpdateCommitmentFunctionResponse(boolean success, UUID commitmentId, String title, int estimatedMinutes, String message) {}
+
+    @Bean
+    @Description("Update details of an existing commitment (e.g. adjust title, duration estimate in minutes, priority, or category)")
+    public Function<UpdateCommitmentFunctionRequest, UpdateCommitmentFunctionResponse> updateCommitmentFunction(AgentTools agentTools) {
+        return request -> {
+            try {
+                UUID userId = getAuthenticatedUserId();
+                UUID cid = UUID.fromString(request.commitmentId().trim());
+                CommitmentPriority prio = null;
+                if (request.priority() != null && !request.priority().isBlank()) {
+                    try { prio = CommitmentPriority.valueOf(request.priority().toUpperCase().trim()); } catch (Exception ignored) {}
+                }
+                LocalDate date = null;
+                if (request.targetDate() != null && !request.targetDate().isBlank()) {
+                    try { date = LocalDate.parse(request.targetDate().trim()); } catch (Exception ignored) {}
+                }
+
+                Map<String, Object> result = agentTools.updateCommitment(
+                        userId,
+                        cid,
+                        request.title(),
+                        request.estimatedMinutes(),
+                        prio,
+                        request.category(),
+                        request.expectedOutcome(),
+                        date
+                );
+
+                return new UpdateCommitmentFunctionResponse(
+                        true,
+                        (UUID) result.get("commitmentId"),
+                        (String) result.get("title"),
+                        (int) result.get("estimatedMinutes"),
+                        "Commitment updated successfully."
+                );
+            } catch (Exception e) {
+                log.error("Error in updateCommitmentFunction: {}", e.getMessage());
+                return new UpdateCommitmentFunctionResponse(false, null, "", 0, "Failed: " + e.getMessage());
+            }
+        };
+    }
+
+    // --- User Execution Stats Function ---
+    @JsonClassDescription("Request to retrieve the user's longitudinal performance metrics, active streak, and completion rate")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record GetUserExecutionStatsFunctionRequest() {}
+
+    public record GetUserExecutionStatsFunctionResponse(
+            boolean success,
+            long rolling7dTotalTasks,
+            long rolling7dCompletedTasks,
+            double rolling7dCompletionRate,
+            int rolling7dFocusMinutes,
+            double rolling7dAvgDailyFocusMinutes,
+            String primaryFailureTrap,
+            String message
+    ) {}
+
+    @Bean
+    @Description("Get user's 7-day execution analytics, completion rate percentage, active focus minutes, and failure traps")
+    public Function<GetUserExecutionStatsFunctionRequest, GetUserExecutionStatsFunctionResponse> getUserExecutionStatsFunction(AgentTools agentTools) {
+        return request -> {
+            try {
+                UUID userId = getAuthenticatedUserId();
+                Map<String, Object> res = agentTools.getUserExecutionStats(userId);
+                return new GetUserExecutionStatsFunctionResponse(
+                        true,
+                        (long) res.get("rolling7dTotalTasks"),
+                        (long) res.get("rolling7dCompletedTasks"),
+                        (double) res.get("rolling7dCompletionRate"),
+                        (int) res.get("rolling7dFocusMinutes"),
+                        (double) res.get("rolling7dAvgDailyFocusMinutes"),
+                        (String) res.get("primaryFailureTrap"),
+                        "User stats retrieved successfully."
+                );
+            } catch (Exception e) {
+                log.error("Error in getUserExecutionStatsFunction: {}", e.getMessage());
+                return new GetUserExecutionStatsFunctionResponse(false, 0, 0, 0, 0, 0, "NONE", "Failed: " + e.getMessage());
+            }
+        };
+    }
+
+    // --- Historical Range Function ---
+    @JsonClassDescription("Request to query commitments across a multi-day date range")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record GetHistoricalRangeFunctionRequest(
+            @JsonProperty(required = true) @JsonPropertyDescription("Start date in YYYY-MM-DD format") String startDate,
+            @JsonProperty(required = true) @JsonPropertyDescription("End date in YYYY-MM-DD format") String endDate
+    ) {}
+
+    @SuppressWarnings("unchecked")
+    public record GetHistoricalRangeFunctionResponse(
+            boolean success,
+            String startDate,
+            String endDate,
+            int count,
+            List<Map<String, Object>> commitments,
+            String message
+    ) {}
+
+    @SuppressWarnings("unchecked")
+    @Bean
+    @Description("Query historical commitment schedule across a date range (e.g. past 7 days) to evaluate streaks and patterns")
+    public Function<GetHistoricalRangeFunctionRequest, GetHistoricalRangeFunctionResponse> getHistoricalRangeFunction(AgentTools agentTools) {
+        return request -> {
+            try {
+                UUID userId = getAuthenticatedUserId();
+                LocalDate start = LocalDate.parse(request.startDate().trim());
+                LocalDate end = LocalDate.parse(request.endDate().trim());
+                Map<String, Object> res = agentTools.getCommitmentsRange(userId, start, end);
+                return new GetHistoricalRangeFunctionResponse(
+                        true,
+                        (String) res.get("startDate"),
+                        (String) res.get("endDate"),
+                        (int) res.get("count"),
+                        (List<Map<String, Object>>) res.get("commitments"),
+                        "Historical range retrieved."
+                );
+            } catch (Exception e) {
+                log.error("Error in getHistoricalRangeFunction: {}", e.getMessage());
+                return new GetHistoricalRangeFunctionResponse(false, "", "", 0, List.of(), "Failed: " + e.getMessage());
+            }
+        };
+    }
+
     // --- 5. Stress Test Schedule Function ---
     @JsonClassDescription("Request to run cognitive load stress test on schedule")
     @JsonInclude(JsonInclude.Include.NON_NULL)

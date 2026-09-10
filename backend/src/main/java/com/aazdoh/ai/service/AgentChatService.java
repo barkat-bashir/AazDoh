@@ -30,6 +30,8 @@ import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -120,7 +122,10 @@ public class AgentChatService {
                         .messages(messages)
                         .functions(
                                 "createCommitmentFunction",
+                                "updateCommitmentFunction",
                                 "getPlanFunction",
+                                "getHistoricalRangeFunction",
+                                "getUserExecutionStatsFunction",
                                 "postponeCommitmentFunction",
                                 "completeCommitmentFunction",
                                 "markCommitmentMissedFunction",
@@ -226,7 +231,10 @@ public class AgentChatService {
                                 .messages(messages)
                                 .functions(
                                         "createCommitmentFunction",
+                                        "updateCommitmentFunction",
                                         "getPlanFunction",
+                                        "getHistoricalRangeFunction",
+                                        "getUserExecutionStatsFunction",
                                         "postponeCommitmentFunction",
                                         "completeCommitmentFunction",
                                         "markCommitmentMissedFunction",
@@ -412,10 +420,32 @@ public class AgentChatService {
                     if (log.getTargetEntityId() != null) {
                         commitmentRepository.findById(log.getTargetEntityId()).ifPresent(c -> {
                             if (c.getUser().getId().equals(userId)) {
-                                c.setDeleted(false);
+                                c.setDeletedAt(null);
                                 commitmentRepository.save(c);
                             }
                         });
+                    }
+                }
+                case "UPDATE_COMMITMENT" -> {
+                    if (log.getTargetEntityId() != null && log.getBeforeStateJson() != null) {
+                        Commitment c = commitmentRepository.findActiveByIdAndUserId(log.getTargetEntityId(), userId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Commitment not found"));
+                        JsonNode before = objectMapper.readTree(log.getBeforeStateJson());
+                        if (before.has("title")) c.setTitle(before.get("title").asText());
+                        if (before.has("estimatedMinutes")) c.setEstimatedMinutes(before.get("estimatedMinutes").asInt());
+                        if (before.has("priority")) {
+                            try { c.setPriority(com.aazdoh.commitment.entity.CommitmentPriority.valueOf(before.get("priority").asText())); } catch (Exception ignored) {}
+                        }
+                        if (before.has("category")) {
+                            try { c.setCategory(com.aazdoh.commitment.entity.CommitmentCategory.valueOf(before.get("category").asText())); } catch (Exception ignored) {}
+                        }
+                        if (before.has("expectedOutcome")) {
+                            c.setExpectedOutcome(before.get("expectedOutcome").isNull() ? null : before.get("expectedOutcome").asText());
+                        }
+                        if (before.has("commitmentDate")) {
+                            c.setCommitmentDate(LocalDate.parse(before.get("commitmentDate").asText()));
+                        }
+                        commitmentRepository.save(c);
                     }
                 }
                 default -> throw new BadRequestException("Action type " + log.getActionType() + " cannot be automatically reverted.");

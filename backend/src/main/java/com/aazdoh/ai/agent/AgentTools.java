@@ -149,6 +149,25 @@ public class AgentTools {
             LocalDate targetDate
     ) {
         User user = userService.findUserById(userId);
+        LocalDate target = targetDate != null ? targetDate : LocalDate.now();
+        int minutes = estimatedMinutes != null && estimatedMinutes > 0 ? estimatedMinutes : 30;
+
+        // 5-second idempotency safeguard
+        List<Commitment> recent = commitmentRepository.findByUserIdAndCommitmentDate(userId, target);
+        for (Commitment existing : recent) {
+            if (existing.getDeletedAt() == null && existing.getTitle().equalsIgnoreCase(title.trim())
+                    && existing.getEstimatedMinutes() == minutes
+                    && existing.getCreatedAt().isAfter(java.time.OffsetDateTime.now().minusSeconds(5))) {
+                log.info("Idempotent hit: Commitment '{}' was created within 5s, returning existing entity", title);
+                Map<String, Object> dupResult = new HashMap<>();
+                dupResult.put("success", true);
+                dupResult.put("commitmentId", existing.getId());
+                dupResult.put("title", existing.getTitle());
+                dupResult.put("estimatedMinutes", existing.getEstimatedMinutes());
+                dupResult.put("logId", null);
+                return dupResult;
+            }
+        }
 
         CommitmentCategory category = CommitmentCategory.DEEP_WORK;
         if (categoryStr != null) {
@@ -160,10 +179,10 @@ public class AgentTools {
 
         CreateCommitmentRequest request = new CreateCommitmentRequest();
         request.setTitle(title.trim());
-        request.setEstimatedMinutes(estimatedMinutes != null && estimatedMinutes > 0 ? estimatedMinutes : 30);
+        request.setEstimatedMinutes(minutes);
         request.setPriority(priority != null ? priority : CommitmentPriority.MEDIUM);
         request.setCategory(category);
-        request.setCommitmentDate(targetDate != null ? targetDate : LocalDate.now());
+        request.setCommitmentDate(target);
         request.setVisibility(CommitmentVisibility.PRIVATE);
         request.setExpectedOutcome(expectedOutcome);
 
@@ -189,6 +208,99 @@ public class AgentTools {
         result.put("estimatedMinutes", created.getEstimatedMinutes());
         result.put("logId", savedLog.getId());
         return result;
+    }
+
+    @Transactional
+    public Map<String, Object> updateCommitment(
+            UUID userId,
+            UUID commitmentId,
+            String title,
+            Integer estimatedMinutes,
+            CommitmentPriority priority,
+            String categoryStr,
+            String expectedOutcome,
+            LocalDate targetDate
+    ) {
+        User user = userService.findUserById(userId);
+        Commitment existing = commitmentRepository.findActiveByIdAndUserId(commitmentId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Commitment not found: " + commitmentId));
+
+        AgentProgressListener.emit("✏️ Updating commitment: '" + existing.getTitle() + "'...");
+        String beforeState = toJson(existing);
+
+        com.aazdoh.commitment.dto.UpdateCommitmentRequest request = new com.aazdoh.commitment.dto.UpdateCommitmentRequest();
+        if (title != null && !title.isBlank()) request.setTitle(title.trim());
+        if (estimatedMinutes != null && estimatedMinutes > 0) request.setEstimatedMinutes(estimatedMinutes);
+        if (priority != null) request.setPriority(priority);
+        if (categoryStr != null && !categoryStr.isBlank()) {
+            try {
+                request.setCategory(CommitmentCategory.valueOf(categoryStr.toUpperCase().trim()));
+            } catch (Exception ignored) {}
+        }
+        if (expectedOutcome != null) request.setExpectedOutcome(expectedOutcome.trim());
+        if (targetDate != null) request.setCommitmentDate(targetDate);
+
+        CommitmentResponse updated = commitmentService.updateCommitment(userId, commitmentId, request);
+
+        AgentActionLog actionLog = new AgentActionLog(
+                user,
+                "UPDATE_COMMITMENT",
+                "COMMITMENT",
+                commitmentId,
+                "Updated commitment '" + updated.getTitle() + "' (" + updated.getEstimatedMinutes() + " mins)",
+                beforeState,
+                toJson(updated)
+        );
+        AgentActionLog savedLog = actionLogRepository.save(actionLog);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("commitmentId", updated.getId());
+        result.put("title", updated.getTitle());
+        result.put("estimatedMinutes", updated.getEstimatedMinutes());
+        result.put("category", updated.getCategory() != null ? updated.getCategory().name() : "DEEP_WORK");
+        result.put("priority", updated.getPriority() != null ? updated.getPriority().name() : "MEDIUM");
+        result.put("commitmentDate", updated.getCommitmentDate() != null ? updated.getCommitmentDate().toString() : LocalDate.now().toString());
+        result.put("logId", savedLog.getId());
+        return result;
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getUserExecutionStats(UUID userId) {
+        AgentProgressListener.emit("📊 Retrieving performance telemetry & streak analytics...");
+        UserExecutionStats stats = statsService.getOrComputeStats(userId);
+        Map<String, Object> res = new HashMap<>();
+        res.put("success", true);
+        res.put("rolling7dTotalTasks", stats.getRolling7dTotalTasks());
+        res.put("rolling7dCompletedTasks", stats.getRolling7dCompletedTasks());
+        res.put("rolling7dCompletionRate", Math.round(stats.getRolling7dCompletionRate() * 100.0) / 100.0);
+        res.put("rolling7dFocusMinutes", stats.getRolling7dFocusMinutes());
+        res.put("rolling7dAvgDailyFocusMinutes", Math.round(stats.getRolling7dAvgDailyFocusMinutes() * 10.0) / 10.0);
+        res.put("primaryFailureTrap", stats.getPrimaryFailureTrap() != null ? stats.getPrimaryFailureTrap() : "NONE");
+        return res;
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getCommitmentsRange(UUID userId, LocalDate startDate, LocalDate endDate) {
+        LocalDate start = startDate != null ? startDate : LocalDate.now().minusDays(7);
+        LocalDate end = endDate != null ? endDate : LocalDate.now();
+        AgentProgressListener.emit("📅 Querying commitments from " + start + " to " + end + "...");
+        List<CommitmentResponse> list = commitmentService.getCommitmentsByRange(userId, start, end);
+        Map<String, Object> res = new HashMap<>();
+        res.put("success", true);
+        res.put("startDate", start.toString());
+        res.put("endDate", end.toString());
+        res.put("count", list.size());
+        res.put("commitments", list.stream().map(c -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", c.getId());
+            m.put("title", c.getTitle());
+            m.put("date", c.getCommitmentDate() != null ? c.getCommitmentDate().toString() : "");
+            m.put("status", c.getStatus() != null ? c.getStatus().name() : "PENDING");
+            m.put("estimatedMinutes", c.getEstimatedMinutes());
+            return m;
+        }).collect(Collectors.toList()));
+        return res;
     }
 
     @Transactional
