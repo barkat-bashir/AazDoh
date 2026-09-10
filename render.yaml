@@ -28,7 +28,9 @@ services:
       - key: AI_BASE_URL
         value: https://generativelanguage.googleapis.com/v1beta/openai/
       - key: AI_MODEL
-        value: gemini-2.5-flash
+        value: gemini-3.6-flash
+      - key: AI_FALLBACK_MODELS
+        value: gemini-3.6-flash,gemini-3.5-flash
       - key: AI_PROVIDER
         value: gemini
 

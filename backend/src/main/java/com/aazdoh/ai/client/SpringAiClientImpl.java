@@ -12,6 +12,7 @@ import com.aazdoh.user.entity.AiPersona;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
@@ -29,6 +30,9 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
 
     @Value("${aazdoh.ai.enabled:true}")
     private boolean aiEnabled;
+
+    @Value("${aazdoh.ai.fallback-models:gemini-3.6-flash,gemini-3.5-flash}")
+    private List<String> fallbackModels;
 
     @Value("classpath:/prompts/persona-rules.st")
     private Resource personaRulesPrompt;
@@ -61,6 +65,21 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
         this.chatClient = chatClient;
     }
 
+    private List<String> getCandidateModels() {
+        List<String> list = new ArrayList<>();
+        if (fallbackModels != null && !fallbackModels.isEmpty()) {
+            for (String m : fallbackModels) {
+                if (m != null && !m.trim().isEmpty() && !list.contains(m.trim())) {
+                    list.add(m.trim());
+                }
+            }
+        }
+        if (list.isEmpty()) {
+            list.add("gemini-3.6-flash");
+        }
+        return list;
+    }
+
     private String readResource(Resource resource) {
         if (resource == null) return "";
         try {
@@ -88,29 +107,33 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
                 .map(c -> String.format("- %s (~%d mins, Priority: %s)", c.getTitle(), c.getEstimatedMinutes(), c.getPriority()))
                 .collect(Collectors.joining("\n"));
 
-        try {
-            return chatClient.prompt()
-                    .system(s -> s.text(stressTestSystemPrompt)
-                            .param("personaRules", readResource(personaRulesPrompt))
-                            .param("persona", getPersonaName(persona)))
-                    .user(u -> u.text(stressTestUserPrompt)
-                            .param("userName", context.getUserFullName() != null ? context.getUserFullName() : "User")
-                            .param("capacityHours", String.format("%.1f", avgHoursLast7Days))
-                            .param("completionRate", String.format("%.1f", context.getCompletionRateLast7Days()))
-                            .param("completedTasks", String.valueOf(context.getCompletedCommitmentsLast7Days()))
-                            .param("totalTasks", String.valueOf(context.getTotalCommitmentsLast7Days()))
-                            .param("repeatedlyPostponed", context.getRepeatedlyPostponedTitles().isEmpty() ? "None" : String.join(", ", context.getRepeatedlyPostponedTitles()))
-                            .param("plannedHours", String.format("%.1f", totalHours))
-                            .param("taskCount", String.valueOf(todaysCommitments.size()))
-                            .param("commitmentsList", commitmentListStr)
-                            .param("riskScore", totalHours > avgHoursLast7Days ? "75" : "25")
-                            .param("riskLevel", totalHours > avgHoursLast7Days ? "HIGH" : "LOW"))
-                    .call()
-                    .content();
-        } catch (Exception ex) {
-            log.warn("Error calling Spring AI via ChatClient, falling back to heuristic analysis: {}", ex.getMessage());
-            return generateMockPlanReview(context, todaysCommitments);
+        for (String modelName : getCandidateModels()) {
+            try {
+                return chatClient.prompt()
+                        .options(OpenAiChatOptions.builder().model(modelName).build())
+                        .system(s -> s.text(stressTestSystemPrompt)
+                                .param("personaRules", readResource(personaRulesPrompt))
+                                .param("persona", getPersonaName(persona)))
+                        .user(u -> u.text(stressTestUserPrompt)
+                                .param("userName", context.getUserFullName() != null ? context.getUserFullName() : "User")
+                                .param("capacityHours", String.format("%.1f", avgHoursLast7Days))
+                                .param("completionRate", String.format("%.1f", context.getCompletionRateLast7Days()))
+                                .param("completedTasks", String.valueOf(context.getCompletedCommitmentsLast7Days()))
+                                .param("totalTasks", String.valueOf(context.getTotalCommitmentsLast7Days()))
+                                .param("repeatedlyPostponed", context.getRepeatedlyPostponedTitles().isEmpty() ? "None" : String.join(", ", context.getRepeatedlyPostponedTitles()))
+                                .param("plannedHours", String.format("%.1f", totalHours))
+                                .param("taskCount", String.valueOf(todaysCommitments.size()))
+                                .param("commitmentsList", commitmentListStr)
+                                .param("riskScore", totalHours > avgHoursLast7Days ? "75" : "25")
+                                .param("riskLevel", totalHours > avgHoursLast7Days ? "HIGH" : "LOW"))
+                        .call()
+                        .content();
+            } catch (Exception ex) {
+                log.warn("Model '{}' failed in reviewPlanFeasibility: {}. Trying fallback...", modelName, ex.getMessage());
+            }
         }
+
+        return generateMockPlanReview(context, todaysCommitments);
     }
 
     @Override
@@ -119,26 +142,30 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
             return generateMockMissedAnalysis(commitment, reason, reflection);
         }
 
-        try {
-            return chatClient.prompt()
-                    .system(s -> s.text(missedAnalysisSystemPrompt)
-                            .param("personaRules", readResource(personaRulesPrompt))
-                            .param("persona", getPersonaName(persona)))
-                    .user(u -> u.text(missedAnalysisUserPrompt)
-                            .param("userName", context.getUserFullName() != null ? context.getUserFullName() : "User")
-                            .param("title", commitment.getTitle())
-                            .param("estimatedMinutes", String.valueOf(commitment.getEstimatedMinutes()))
-                            .param("priority", commitment.getPriority() != null ? commitment.getPriority().name() : "MEDIUM")
-                            .param("reason", reason != null ? reason : "Unspecified")
-                            .param("reflection", reflection != null && !reflection.isBlank() ? reflection : "No detailed reflection provided")
-                            .param("topFailureReasons", context.getTopFailureReasons() != null ? context.getTopFailureReasons().toString() : "None")
-                            .param("completionRate", String.format("%.1f", context.getCompletionRateLast7Days())))
-                    .call()
-                    .content();
-        } catch (Exception ex) {
-            log.warn("Error executing missed analysis via ChatClient: {}", ex.getMessage());
-            return generateMockMissedAnalysis(commitment, reason, reflection);
+        for (String modelName : getCandidateModels()) {
+            try {
+                return chatClient.prompt()
+                        .options(OpenAiChatOptions.builder().model(modelName).build())
+                        .system(s -> s.text(missedAnalysisSystemPrompt)
+                                .param("personaRules", readResource(personaRulesPrompt))
+                                .param("persona", getPersonaName(persona)))
+                        .user(u -> u.text(missedAnalysisUserPrompt)
+                                .param("userName", context.getUserFullName() != null ? context.getUserFullName() : "User")
+                                .param("title", commitment.getTitle())
+                                .param("estimatedMinutes", String.valueOf(commitment.getEstimatedMinutes()))
+                                .param("priority", commitment.getPriority() != null ? commitment.getPriority().name() : "MEDIUM")
+                                .param("reason", reason != null ? reason : "Unspecified")
+                                .param("reflection", reflection != null && !reflection.isBlank() ? reflection : "No detailed reflection provided")
+                                .param("topFailureReasons", context.getTopFailureReasons() != null ? context.getTopFailureReasons().toString() : "None")
+                                .param("completionRate", String.format("%.1f", context.getCompletionRateLast7Days())))
+                        .call()
+                        .content();
+            } catch (Exception ex) {
+                log.warn("Model '{}' failed in analyzeMissedCommitment: {}. Trying fallback...", modelName, ex.getMessage());
+            }
         }
+
+        return generateMockMissedAnalysis(commitment, reason, reflection);
     }
 
     @Override
@@ -153,28 +180,31 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
             return generateMockBehavioralSynthesis(context, persona);
         }
 
-        try {
-            BehavioralSynthesisDto result = chatClient.prompt()
-                    .system(s -> s.text(behavioralInsightsSystemPrompt)
-                            .param("personaRules", readResource(personaRulesPrompt))
-                            .param("persona", getPersonaName(persona)))
-                    .user(u -> u.text(behavioralInsightsUserPrompt)
-                            .param("userName", context.getUserFullName() != null ? context.getUserFullName() : "User")
-                            .param("completionRate", String.format("%.1f", context.getCompletionRateLast7Days()))
-                            .param("totalCommitments", String.valueOf(context.getTotalCommitmentsLast7Days()))
-                            .param("completedCommitments", String.valueOf(context.getCompletedCommitmentsLast7Days()))
-                            .param("avgDailyHours", String.format("%.1f", context.getAvgDailyFocusMinutesLast7Days() / 60.0))
-                            .param("topFailureReasons", context.getTopFailureReasons() != null ? context.getTopFailureReasons().toString() : "None")
-                            .param("repeatedlyPostponed", context.getRepeatedlyPostponedTitles().isEmpty() ? "None" : String.join(", ", context.getRepeatedlyPostponedTitles()))
-                            .param("priorSynthesis", priorSynthesis != null && !priorSynthesis.isBlank() ? priorSynthesis : "None"))
-                    .call()
-                    .entity(BehavioralSynthesisDto.class);
+        for (String modelName : getCandidateModels()) {
+            try {
+                BehavioralSynthesisDto result = chatClient.prompt()
+                        .options(OpenAiChatOptions.builder().model(modelName).build())
+                        .system(s -> s.text(behavioralInsightsSystemPrompt)
+                                .param("personaRules", readResource(personaRulesPrompt))
+                                .param("persona", getPersonaName(persona)))
+                        .user(u -> u.text(behavioralInsightsUserPrompt)
+                                .param("userName", context.getUserFullName() != null ? context.getUserFullName() : "User")
+                                .param("completionRate", String.format("%.1f", context.getCompletionRateLast7Days()))
+                                .param("totalCommitments", String.valueOf(context.getTotalCommitmentsLast7Days()))
+                                .param("completedCommitments", String.valueOf(context.getCompletedCommitmentsLast7Days()))
+                                .param("avgDailyHours", String.format("%.1f", context.getAvgDailyFocusMinutesLast7Days() / 60.0))
+                                .param("topFailureReasons", context.getTopFailureReasons() != null ? context.getTopFailureReasons().toString() : "None")
+                                .param("repeatedlyPostponed", context.getRepeatedlyPostponedTitles().isEmpty() ? "None" : String.join(", ", context.getRepeatedlyPostponedTitles()))
+                                .param("priorSynthesis", priorSynthesis != null && !priorSynthesis.isBlank() ? priorSynthesis : "None"))
+                        .call()
+                        .entity(BehavioralSynthesisDto.class);
 
-            if (result != null && result.summary() != null) {
-                return result;
+                if (result != null && result.summary() != null) {
+                    return result;
+                }
+            } catch (Exception ex) {
+                log.warn("Model '{}' failed in generateBehavioralSynthesis: {}. Trying fallback...", modelName, ex.getMessage());
             }
-        } catch (Exception ex) {
-            log.warn("Error generating structured behavioral synthesis via ChatClient: {}", ex.getMessage());
         }
 
         return generateMockBehavioralSynthesis(context, persona);
@@ -311,32 +341,35 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
                     .map(c -> String.format("- %s (~%d mins, Priority: %s)", c.getTitle(), c.getEstimatedMinutes(), c.getPriority()))
                     .collect(Collectors.joining("\n"));
 
-            try {
-                String aiSummary = chatClient.prompt()
-                        .system(s -> s.text(stressTestSystemPrompt)
-                                .param("personaRules", readResource(personaRulesPrompt))
-                                .param("persona", getPersonaName(persona)))
-                        .user(u -> u.text(stressTestUserPrompt)
-                                .param("userName", context.getUserFullName() != null ? context.getUserFullName() : "User")
-                                .param("capacityHours", String.format("%.1f", capacityHours))
-                                .param("completionRate", String.format("%.1f", context.getCompletionRateLast7Days()))
-                                .param("completedTasks", String.valueOf(context.getCompletedCommitmentsLast7Days()))
-                                .param("totalTasks", String.valueOf(context.getTotalCommitmentsLast7Days()))
-                                .param("repeatedlyPostponed", context.getRepeatedlyPostponedTitles().isEmpty() ? "None" : String.join(", ", context.getRepeatedlyPostponedTitles()))
-                                .param("plannedHours", String.format("%.1f", plannedHours))
-                                .param("taskCount", String.valueOf(todaysCommitments.size()))
-                                .param("commitmentsList", commitmentListStr)
-                                .param("riskScore", String.valueOf(calculatedRisk))
-                                .param("riskLevel", response.getRiskLevel()))
-                        .call()
-                        .content();
+            for (String modelName : getCandidateModels()) {
+                try {
+                    String aiSummary = chatClient.prompt()
+                            .options(OpenAiChatOptions.builder().model(modelName).build())
+                            .system(s -> s.text(stressTestSystemPrompt)
+                                    .param("personaRules", readResource(personaRulesPrompt))
+                                    .param("persona", getPersonaName(persona)))
+                            .user(u -> u.text(stressTestUserPrompt)
+                                    .param("userName", context.getUserFullName() != null ? context.getUserFullName() : "User")
+                                    .param("capacityHours", String.format("%.1f", capacityHours))
+                                    .param("completionRate", String.format("%.1f", context.getCompletionRateLast7Days()))
+                                    .param("completedTasks", String.valueOf(context.getCompletedCommitmentsLast7Days()))
+                                    .param("totalTasks", String.valueOf(context.getTotalCommitmentsLast7Days()))
+                                    .param("repeatedlyPostponed", context.getRepeatedlyPostponedTitles().isEmpty() ? "None" : String.join(", ", context.getRepeatedlyPostponedTitles()))
+                                    .param("plannedHours", String.format("%.1f", plannedHours))
+                                    .param("taskCount", String.valueOf(todaysCommitments.size()))
+                                    .param("commitmentsList", commitmentListStr)
+                                    .param("riskScore", String.valueOf(calculatedRisk))
+                                    .param("riskLevel", response.getRiskLevel()))
+                            .call()
+                            .content();
 
-                if (aiSummary != null && !aiSummary.isBlank()) {
-                    response.setDiagnosticSummary(aiSummary);
-                    return response;
+                    if (aiSummary != null && !aiSummary.isBlank()) {
+                        response.setDiagnosticSummary(aiSummary);
+                        return response;
+                    }
+                } catch (Throwable e) {
+                    log.warn("Model '{}' failed in stress-test diagnostic from ChatClient: {}. Trying fallback...", modelName, e.getMessage());
                 }
-            } catch (Throwable e) {
-                log.warn("Error generating stress-test diagnostic from ChatClient: {}", e.getMessage());
             }
         }
 
@@ -390,29 +423,32 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
                 .collect(Collectors.joining("\n"));
 
         if (aiEnabled && chatClient != null) {
-            try {
-                String aiMirror = chatClient.prompt()
-                        .system(s -> s.text(excuseMirrorSystemPrompt)
-                                .param("personaRules", readResource(personaRulesPrompt))
-                                .param("persona", getPersonaName(persona)))
-                        .user(u -> u.text(excuseMirrorUserPrompt)
-                                .param("userName", context.getUserFullName() != null ? context.getUserFullName() : "User")
-                                .param("taskTitle", taskTitle != null ? taskTitle : "Task")
-                                .param("currentExcuse", currentExcuse)
-                                .param("receiptsContext", receiptsContext))
-                        .call()
-                        .content();
+            for (String modelName : getCandidateModels()) {
+                try {
+                    String aiMirror = chatClient.prompt()
+                            .options(OpenAiChatOptions.builder().model(modelName).build())
+                            .system(s -> s.text(excuseMirrorSystemPrompt)
+                                    .param("personaRules", readResource(personaRulesPrompt))
+                                    .param("persona", getPersonaName(persona)))
+                            .user(u -> u.text(excuseMirrorUserPrompt)
+                                    .param("userName", context.getUserFullName() != null ? context.getUserFullName() : "User")
+                                    .param("taskTitle", taskTitle != null ? taskTitle : "Task")
+                                    .param("currentExcuse", currentExcuse)
+                                    .param("receiptsContext", receiptsContext))
+                            .call()
+                            .content();
 
-                if (aiMirror != null && !aiMirror.isBlank()) {
-                    response.setMirrorCallout(aiMirror);
-                    response.setPatternDetected(true);
-                    response.setSimilarityScore(85);
-                    response.setRepetitionCount(historicalReceipts != null ? Math.max(historicalReceipts.size(), 1) : 1);
-                    response.setPatternType("AVOIDANCE_PATTERN_DETECTED");
-                    return response;
+                    if (aiMirror != null && !aiMirror.isBlank()) {
+                        response.setMirrorCallout(aiMirror);
+                        response.setPatternDetected(true);
+                        response.setSimilarityScore(85);
+                        response.setRepetitionCount(historicalReceipts != null ? Math.max(historicalReceipts.size(), 1) : 1);
+                        response.setPatternType("AVOIDANCE_PATTERN_DETECTED");
+                        return response;
+                    }
+                } catch (Throwable e) {
+                    log.warn("Model '{}' failed in excuse detector from ChatClient: {}. Trying fallback...", modelName, e.getMessage());
                 }
-            } catch (Throwable e) {
-                log.warn("Error running excuse detector via ChatClient: {}", e.getMessage());
             }
         }
 

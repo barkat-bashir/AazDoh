@@ -51,6 +51,7 @@ aazdoh:
   ai:
     provider: ${AI_PROVIDER:gemini}
     enabled: true
+    fallback-models: ${AI_FALLBACK_MODELS:gemini-3.6-flash,gemini-3.5-flash}
   resend:
     api-key: ${RESEND_API_KEY:}
     from-email: ${RESEND_FROM_EMAIL:AazDoh <onboarding@resend.dev>}

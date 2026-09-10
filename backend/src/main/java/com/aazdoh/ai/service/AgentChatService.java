@@ -28,6 +28,7 @@ import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.security.core.Authentication;
@@ -62,6 +63,9 @@ public class AgentChatService {
     @Value("${aazdoh.ai.enabled:true}")
     private boolean aiEnabled;
 
+    @Value("${aazdoh.ai.fallback-models:gemini-3.6-flash,gemini-3.5-flash}")
+    private List<String> fallbackModels;
+
     @Value("classpath:/prompts/agent-system.st")
     private Resource agentSystemPrompt;
 
@@ -81,6 +85,21 @@ public class AgentChatService {
         this.userService = userService;
         this.statsService = statsService;
         this.objectMapper = objectMapper;
+    }
+
+    private List<String> getCandidateModels() {
+        List<String> list = new ArrayList<>();
+        if (fallbackModels != null && !fallbackModels.isEmpty()) {
+            for (String m : fallbackModels) {
+                if (m != null && !m.trim().isEmpty() && !list.contains(m.trim())) {
+                    list.add(m.trim());
+                }
+            }
+        }
+        if (list.isEmpty()) {
+            list.add("gemini-3.6-flash");
+        }
+        return list;
     }
 
     @Transactional
@@ -116,27 +135,55 @@ public class AgentChatService {
                 }
                 messages.add(new UserMessage(userMessage));
 
-                // Call Spring AI ChatClient with native Function Calling tools
-                AgentProgressListener.emit("🤖 Reasoning over execution options and cognitive constraints...");
-                reply = chatClient.prompt()
-                        .messages(messages)
-                        .functions(
-                                "createCommitmentFunction",
-                                "updateCommitmentFunction",
-                                "getPlanFunction",
-                                "getHistoricalRangeFunction",
-                                "getUserExecutionStatsFunction",
-                                "postponeCommitmentFunction",
-                                "completeCommitmentFunction",
-                                "markCommitmentMissedFunction",
-                                "deleteCommitmentFunction",
-                                "stressTestScheduleFunction",
-                                "detectExcuseFunction",
-                                "generatePartnerBriefFunction",
-                                "submitEveningReviewFunction"
-                        )
-                        .call()
-                        .content();
+                List<String> candidateModels = getCandidateModels();
+                Exception lastException = null;
+
+                for (int i = 0; i < candidateModels.size(); i++) {
+                    String modelName = candidateModels.get(i);
+                    try {
+                        log.info("Executing Agent reasoning with model: {}", modelName);
+                        AgentProgressListener.emit("🤖 Reasoning over execution options with " + modelName + "...");
+
+                        reply = chatClient.prompt()
+                                .options(OpenAiChatOptions.builder().model(modelName).build())
+                                .messages(messages)
+                                .functions(
+                                        "createCommitmentFunction",
+                                        "updateCommitmentFunction",
+                                        "getPlanFunction",
+                                        "getHistoricalRangeFunction",
+                                        "getUserExecutionStatsFunction",
+                                        "postponeCommitmentFunction",
+                                        "completeCommitmentFunction",
+                                        "markCommitmentMissedFunction",
+                                        "deleteCommitmentFunction",
+                                        "stressTestScheduleFunction",
+                                        "detectExcuseFunction",
+                                        "generatePartnerBriefFunction",
+                                        "submitEveningReviewFunction"
+                                )
+                                .call()
+                                .content();
+
+                        if (reply != null && !reply.isBlank()) {
+                            lastException = null;
+                            break;
+                        }
+                    } catch (Exception ex) {
+                        lastException = ex;
+                        log.warn("Model '{}' failed ({}: {}). Failing over to next fallback...",
+                                modelName, ex.getClass().getSimpleName(), ex.getMessage());
+                        if (i < candidateModels.size() - 1) {
+                            String nextModel = candidateModels.get(i + 1);
+                            AgentProgressListener.emit("⚠️ " + modelName + " failed. Switching to fallback " + nextModel + "...");
+                        }
+                    }
+                }
+
+                if (lastException != null && (reply == null || reply.isBlank())) {
+                    log.error("All AI models in fallback chain failed for user {}: {}", userId, lastException.getMessage(), lastException);
+                    reply = "⚠️ **AI Error:** " + (lastException.getMessage() != null ? lastException.getMessage() : lastException.getClass().getSimpleName());
+                }
             }
         } catch (Exception e) {
             log.error("Spring AI native tool execution failed for user {}: {}", userId, e.getMessage(), e);
