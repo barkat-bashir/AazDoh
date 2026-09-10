@@ -145,7 +145,7 @@ public class AgentChatService {
                         AgentProgressListener.emit("🤖 Reasoning over execution options with " + modelName + "...");
 
                         reply = chatClient.prompt()
-                                .options(OpenAiChatOptions.builder().model(modelName).build())
+                                .options(OpenAiChatOptions.builder().withModel(modelName).build())
                                 .messages(messages)
                                 .functions(
                                         "createCommitmentFunction",

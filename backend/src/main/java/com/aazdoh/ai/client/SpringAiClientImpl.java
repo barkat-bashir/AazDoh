@@ -110,7 +110,7 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
         for (String modelName : getCandidateModels()) {
             try {
                 return chatClient.prompt()
-                        .options(OpenAiChatOptions.builder().model(modelName).build())
+                        .options(OpenAiChatOptions.builder().withModel(modelName).build())
                         .system(s -> s.text(stressTestSystemPrompt)
                                 .param("personaRules", readResource(personaRulesPrompt))
                                 .param("persona", getPersonaName(persona)))
@@ -145,7 +145,7 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
         for (String modelName : getCandidateModels()) {
             try {
                 return chatClient.prompt()
-                        .options(OpenAiChatOptions.builder().model(modelName).build())
+                        .options(OpenAiChatOptions.builder().withModel(modelName).build())
                         .system(s -> s.text(missedAnalysisSystemPrompt)
                                 .param("personaRules", readResource(personaRulesPrompt))
                                 .param("persona", getPersonaName(persona)))
@@ -183,7 +183,7 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
         for (String modelName : getCandidateModels()) {
             try {
                 BehavioralSynthesisDto result = chatClient.prompt()
-                        .options(OpenAiChatOptions.builder().model(modelName).build())
+                        .options(OpenAiChatOptions.builder().withModel(modelName).build())
                         .system(s -> s.text(behavioralInsightsSystemPrompt)
                                 .param("personaRules", readResource(personaRulesPrompt))
                                 .param("persona", getPersonaName(persona)))
@@ -344,7 +344,7 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
             for (String modelName : getCandidateModels()) {
                 try {
                     String aiSummary = chatClient.prompt()
-                            .options(OpenAiChatOptions.builder().model(modelName).build())
+                            .options(OpenAiChatOptions.builder().withModel(modelName).build())
                             .system(s -> s.text(stressTestSystemPrompt)
                                     .param("personaRules", readResource(personaRulesPrompt))
                                     .param("persona", getPersonaName(persona)))
@@ -426,7 +426,7 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
             for (String modelName : getCandidateModels()) {
                 try {
                     String aiMirror = chatClient.prompt()
-                            .options(OpenAiChatOptions.builder().model(modelName).build())
+                            .options(OpenAiChatOptions.builder().withModel(modelName).build())
                             .system(s -> s.text(excuseMirrorSystemPrompt)
                                     .param("personaRules", readResource(personaRulesPrompt))
                                     .param("persona", getPersonaName(persona)))
