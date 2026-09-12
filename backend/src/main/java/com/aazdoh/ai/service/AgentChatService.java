@@ -40,6 +40,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import reactor.core.publisher.Flux;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -50,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 @Service
@@ -254,28 +257,132 @@ public class AgentChatService {
                     }
                 });
 
-                AgentChatResponse response = chat(userId, request);
+                User user = userService.findUserById(userId);
+                AiPersona persona = user.getAiPersona() != null ? user.getAiPersona() : AiPersona.BALANCED;
+                OffsetDateTime turnStart = OffsetDateTime.now();
 
-                if (response.getReply() != null && !response.getReply().isBlank()) {
-                    String[] words = response.getReply().split("(?<=\\s+)");
-                    for (String word : words) {
+                Map<String, Object> todayPlan = agentTools.getTodayPlan(userId);
+                Map<String, Object> yesterdayPlan = agentTools.getPlanForDate(userId, LocalDate.now().minusDays(1));
+                String systemPromptText = buildSystemPrompt(persona, todayPlan, yesterdayPlan);
+
+                List<Message> messages = new ArrayList<>();
+                messages.add(new SystemMessage(systemPromptText));
+
+                if (request.getHistory() != null && !request.getHistory().isEmpty()) {
+                    for (AgentChatMessageDto turn : request.getHistory()) {
+                        if ("user".equalsIgnoreCase(turn.getRole())) {
+                            messages.add(new UserMessage(turn.getContent()));
+                        } else if ("assistant".equalsIgnoreCase(turn.getRole())) {
+                            messages.add(new AssistantMessage(turn.getContent()));
+                        }
+                    }
+                }
+                messages.add(new UserMessage(request.getMessage().trim()));
+
+                List<String> candidateModels = getCandidateModels();
+                String rawAccumulated = null;
+
+                if (aiEnabled && chatClient != null) {
+                    for (int i = 0; i < candidateModels.size(); i++) {
+                        String modelName = candidateModels.get(i);
                         try {
-                            emitter.send(SseEmitter.event()
-                                    .name("DELTA")
-                                    .data(AgentStreamEvent.delta(word)));
-                            Thread.sleep(15);
-                        } catch (Exception ignored) {
+                            log.info("Executing reactive streaming Agent with model: {}", modelName);
+                            AgentProgressListener.emit("🤖 Reasoning over execution options with " + modelName + "...");
+
+                            StringBuilder accumulated = new StringBuilder();
+                            AtomicBoolean isBufferingActions = new AtomicBoolean(false);
+
+                            Flux<String> streamFlux = chatClient.prompt()
+                                    .options(OpenAiChatOptions.builder().withModel(modelName).build())
+                                    .messages(messages)
+                                    .stream()
+                                    .content();
+
+                            streamFlux.doOnNext(chunk -> {
+                                if (chunk == null || chunk.isEmpty()) return;
+                                accumulated.append(chunk);
+                                String current = accumulated.toString();
+
+                                if (current.contains("```actions") || current.contains("```json")) {
+                                    isBufferingActions.set(true);
+                                }
+
+                                if (!isBufferingActions.get()) {
+                                    try {
+                                        emitter.send(SseEmitter.event()
+                                                .name("DELTA")
+                                                .data(AgentStreamEvent.delta(chunk)));
+                                    } catch (Exception ignored) {}
+                                }
+                            }).blockLast();
+
+                            rawAccumulated = accumulated.toString();
+                            if (!rawAccumulated.isBlank()) {
+                                break;
+                            }
+                        } catch (Exception ex) {
+                            log.warn("Streaming model '{}' failed ({}: {}). Trying fallback...",
+                                    modelName, ex.getClass().getSimpleName(), ex.getMessage());
+                            if (i < candidateModels.size() - 1) {
+                                String nextModel = candidateModels.get(i + 1);
+                                AgentProgressListener.emit("⚠️ " + modelName + " failed. Switching to fallback " + nextModel + "...");
+                            }
                         }
                     }
                 }
 
+                String reply = null;
+                if (rawAccumulated != null && !rawAccumulated.isBlank()) {
+                    AgentDecisionPlan plan = parseDecisionPlan(rawAccumulated);
+                    if (plan != null) {
+                        executeActionPlan(userId, plan, todayPlan, yesterdayPlan);
+                        reply = plan.getReply();
+                    } else {
+                        reply = rawAccumulated.replaceAll("```actions[\\s\\S]*?```", "").trim();
+                    }
+                }
+
+                List<AgentActionLog> turnLogs = actionLogRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
+                        .filter(l -> l.getCreatedAt().isAfter(turnStart.minusSeconds(2)))
+                        .collect(Collectors.toList());
+
+                if (reply == null || reply.isBlank() || reply.contains("thought_signature") || reply.startsWith("⚠️ **AI Error:**")) {
+                    if (!turnLogs.isEmpty()) {
+                        reply = "⚡ **Executed Actions:**\n" + turnLogs.stream()
+                                .map(l -> "* " + l.getDescription())
+                                .collect(Collectors.joining("\n"));
+                    } else {
+                        reply = handleHeuristicExecutionAndReply(user, todayPlan, yesterdayPlan, request.getMessage().trim());
+                    }
+                    try {
+                        emitter.send(SseEmitter.event()
+                                .name("DELTA")
+                                .data(AgentStreamEvent.delta(reply)));
+                    } catch (Exception ignored) {}
+                }
+
+                List<AgentActionReceipt> receipts = turnLogs.stream().map(l -> new AgentActionReceipt(
+                        l.getId(),
+                        l.getActionType(),
+                        l.getDescription(),
+                        l.isUndone(),
+                        l.getCreatedAt()
+                )).collect(Collectors.toList());
+
+                int totalMinutes = (int) todayPlan.getOrDefault("totalEstimatedMinutes", 0);
+                String cognitiveWarning = totalMinutes > 360
+                        ? "Warning: You have " + totalMinutes + " minutes scheduled today (> 6 hours). Consider pruning non-essential commitments."
+                        : null;
+
+                boolean undoAvailable = !receipts.isEmpty();
+
                 emitter.send(SseEmitter.event()
                         .name("DONE")
                         .data(AgentStreamEvent.done(
-                                response.getReply(),
-                                response.getExecutedActions(),
-                                response.isUndoAvailable(),
-                                response.getCognitiveWarning()
+                                reply != null ? reply.trim() : "",
+                                receipts,
+                                undoAvailable,
+                                cognitiveWarning
                         )));
 
                 emitter.complete();
@@ -573,6 +680,24 @@ public class AgentChatService {
         if (raw == null || raw.isBlank()) return null;
         try {
             String clean = raw.trim();
+
+            // 1. Text-First + ```actions [ ... ] ``` format
+            if (clean.contains("```actions")) {
+                int startIdx = clean.indexOf("```actions");
+                int endIdx = clean.indexOf("```", startIdx + 10);
+                String reply = clean.substring(0, startIdx).trim();
+                String actionsJson = endIdx != -1
+                        ? clean.substring(startIdx + 10, endIdx).trim()
+                        : clean.substring(startIdx + 10).trim();
+
+                List<AgentActionItem> actions = new ArrayList<>();
+                if (!actionsJson.isBlank() && actionsJson.startsWith("[")) {
+                    actions = objectMapper.readValue(actionsJson, new TypeReference<List<AgentActionItem>>() {});
+                }
+                return new AgentDecisionPlan("Text-first action plan", actions, reply);
+            }
+
+            // 2. Legacy JSON format ```json { ... } ``` or raw { ... }
             if (clean.startsWith("```json")) {
                 clean = clean.substring(7);
             } else if (clean.startsWith("```")) {
@@ -589,7 +714,7 @@ public class AgentChatService {
                 return objectMapper.readValue(clean, AgentDecisionPlan.class);
             }
         } catch (Exception e) {
-            log.debug("Could not parse AgentDecisionPlan JSON from LLM: {}", e.getMessage());
+            log.debug("Could not parse AgentDecisionPlan from LLM: {}", e.getMessage());
         }
         return null;
     }
