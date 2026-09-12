@@ -110,7 +110,6 @@ public class AgentChatService {
         return list;
     }
 
-    @Transactional
     public AgentChatResponse chat(UUID userId, AgentChatRequest request) {
         User user = userService.findUserById(userId);
         AiPersona persona = user.getAiPersona() != null ? user.getAiPersona() : AiPersona.BALANCED;
@@ -449,12 +448,8 @@ public class AgentChatService {
         LocalDate tomorrow = today.plusDays(1);
         LocalDate yesterday = today.minusDays(1);
 
-        String todayJson = "{}";
-        String yesterdayJson = "{}";
-        try {
-            todayJson = objectMapper.writeValueAsString(todayPlan);
-            yesterdayJson = objectMapper.writeValueAsString(yesterdayPlan);
-        } catch (Exception ignored) {}
+        String todaySchedule = formatCompactSchedule(todayPlan);
+        String yesterdaySchedule = formatCompactSchedule(yesterdayPlan);
 
         return basePrompt
                 .replace("{persona}", persona.name())
@@ -465,8 +460,34 @@ public class AgentChatService {
                 + "\n- TODAY'S DATE: " + today + " (" + today.getDayOfWeek() + ")"
                 + "\n- TOMORROW'S DATE: " + tomorrow + " (" + tomorrow.getDayOfWeek() + ")"
                 + "\n- YESTERDAY'S DATE: " + yesterday + " (" + yesterday.getDayOfWeek() + ")"
-                + "\n\nCURRENT USER TODAY STATE (" + today + "):\n" + todayJson
-                + "\n\nYESTERDAY STATE (" + yesterday + "):\n" + yesterdayJson;
+                + "\n\nCURRENT USER SCHEDULE TODAY (" + today + "):\n" + todaySchedule
+                + "\n\nUSER SCHEDULE YESTERDAY (" + yesterday + "):\n" + yesterdaySchedule;
+    }
+
+    @SuppressWarnings("unchecked")
+    private String formatCompactSchedule(Map<String, Object> plan) {
+        if (plan == null) return "No plan recorded.";
+        List<Map<String, Object>> commitments = (List<Map<String, Object>>) plan.getOrDefault("commitments", Collections.emptyList());
+        if (commitments.isEmpty()) {
+            return "0 commitments scheduled.";
+        }
+        int totalMinutes = (int) plan.getOrDefault("totalEstimatedMinutes", 0);
+        long completed = (long) plan.getOrDefault("completedCommitments", 0L);
+        long pending = (long) plan.getOrDefault("pendingCommitments", 0L);
+        long missed = (long) plan.getOrDefault("missedCommitments", 0L);
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("Total: %dm scheduled | %d Pending, %d Done, %d Missed\n", totalMinutes, pending, completed, missed));
+        for (Map<String, Object> c : commitments) {
+            String title = String.valueOf(c.get("title"));
+            String status = String.valueOf(c.get("status"));
+            Object est = c.get("estimatedMinutes");
+            Object priority = c.get("priority");
+            Object category = c.get("category");
+            sb.append(String.format("- [%s] \"%s\" (~%sm, Priority: %s, %s)\n",
+                    status, title, est != null ? est : 30, priority != null ? priority : "MEDIUM", category != null ? category : "DEEP_WORK"));
+        }
+        return sb.toString().trim();
     }
 
     @SuppressWarnings("unchecked")

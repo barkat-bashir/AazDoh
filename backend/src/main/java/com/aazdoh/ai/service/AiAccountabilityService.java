@@ -87,7 +87,6 @@ public class AiAccountabilityService {
     }
 
     @Async
-    @Transactional
     public CompletableFuture<AiFeedbackResponse> reviewDailyPlanAsync(UUID userId, LocalDate date) {
         User user = userService.findUserById(userId);
         LocalDate targetDate = date != null ? date : LocalDate.now();
@@ -109,7 +108,6 @@ public class AiAccountabilityService {
     }
 
     @Async
-    @Transactional
     public CompletableFuture<AiFeedbackResponse> reviewMissedCommitmentAsync(UUID userId, UUID commitmentId) {
         User user = userService.findUserById(userId);
         CommitmentResponse commitment = commitmentService.getCommitmentById(userId, commitmentId);
@@ -125,7 +123,6 @@ public class AiAccountabilityService {
     }
 
     @Async
-    @Transactional(readOnly = true)
     @Cacheable(value = "ai_insights", key = "#userId")
     public CompletableFuture<BehavioralSynthesisDto> getBehavioralSynthesisAsync(UUID userId) {
         // Fast-path: O(1) single-row read from user_execution_stats
@@ -156,7 +153,6 @@ public class AiAccountabilityService {
     }
 
     @Async
-    @Transactional(readOnly = true)
     public CompletableFuture<PlanStressTestResponse> stressTestPlanAsync(UUID userId, PlanStressTestRequest request) {
         User user = userService.findUserById(userId);
         LocalDate targetDate = request != null && request.getDate() != null ? request.getDate() : LocalDate.now();
