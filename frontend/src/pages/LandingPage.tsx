@@ -233,10 +233,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       {/* Behavioral Engineering Features Grid */}
       <section className="landing-features-section">
         <div style={{ textAlign: 'center', marginBottom: '36px' }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--saffron-ember)', textTransform: 'uppercase' }}>
-            Behavioral Engineering
-          </span>
-          <h2 style={{ fontSize: 'clamp(1.7rem, 4vw, 2.2rem)', fontWeight: 800, marginTop: '6px' }}>
+          <h2 style={{ fontSize: 'clamp(1.7rem, 4vw, 2.2rem)', fontWeight: 800 }}>
             Built to Eliminate Human Rationalization
           </h2>
           <p style={{ color: 'var(--text-parchment-muted)', fontSize: '0.94rem', maxWidth: '650px', margin: '10px auto 0' }}>
@@ -582,24 +579,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         width: '100%',
       }}>
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: '0.8rem',
-            fontWeight: 700,
-            color: 'var(--saffron-ember)',
-            textTransform: 'uppercase',
-            background: 'rgba(226, 149, 59, 0.1)',
-            padding: '4px 12px',
-            borderRadius: '999px',
-            border: '1px solid rgba(226, 149, 59, 0.25)',
-            marginBottom: '10px'
-          }}>
-            <Terminal size={14} />
-            <span>Developer Ecosystem</span>
-          </div>
-          <h2 style={{ fontSize: 'clamp(1.7rem, 4vw, 2.3rem)', fontWeight: 800, marginTop: '4px', color: 'var(--text-kehwa-cream)' }}>
+          <h2 style={{ fontSize: 'clamp(1.7rem, 4vw, 2.3rem)', fontWeight: 800, color: 'var(--text-kehwa-cream)' }}>
             Terminal CLI & Model Context Protocol (MCP)
           </h2>
           <p style={{ color: 'var(--text-parchment-muted)', fontSize: '0.96rem', maxWidth: '680px', margin: '10px auto 0', lineHeight: 1.6 }}>
