@@ -49,9 +49,29 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const handleOpenTerms = onOpenTerms || (() => navigate('/terms'));
   const handleOpenPrivacy = onOpenPrivacy || (() => navigate('/privacy'));
 
-  const [terminalTab, setTerminalTab] = React.useState<'today' | 'action' | 'stress' | 'chat'>('today');
+  const [terminalTab, setTerminalTab] = React.useState<'live' | 'today' | 'action' | 'stress' | 'chat'>('live');
   const [copiedCli, setCopiedCli] = React.useState(false);
   const [copiedMcp, setCopiedMcp] = React.useState(false);
+
+  // Animation cycle for CLI Live Terminal Simulation
+  const [cliStep, setCliStep] = React.useState(0);
+  // Animation cycle for MCP Tool Invocation Simulation
+  const [mcpStep, setMcpStep] = React.useState(0);
+
+  React.useEffect(() => {
+    const cliTimer = setInterval(() => {
+      setCliStep((prev) => (prev + 1) % 4);
+    }, 2800);
+
+    const mcpTimer = setInterval(() => {
+      setMcpStep((prev) => (prev + 1) % 4);
+    }, 3200);
+
+    return () => {
+      clearInterval(cliTimer);
+      clearInterval(mcpTimer);
+    };
+  }, []);
 
   const copyToClipboard = (text: string, isMcp = false) => {
     navigator.clipboard.writeText(text);
@@ -630,14 +650,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   flexWrap: 'wrap',
                   gap: '8px',
                 }}>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#EF4444' }} />
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#F59E0B' }} />
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10B981' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#EF4444' }} />
+                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#F59E0B' }} />
+                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10B981' }} />
+                    </div>
+                    {terminalTab === 'live' && (
+                      <span style={{ fontSize: '0.68rem', color: '#4ADE80', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ADE80', display: 'inline-block' }} />
+                        LIVE ACTION
+                      </span>
+                    )}
                   </div>
 
                   <div style={{ display: 'flex', gap: '4px' }}>
-                    {(['today', 'action', 'stress', 'chat'] as const).map((tab) => (
+                    {(['live', 'today', 'action', 'stress', 'chat'] as const).map((tab) => (
                       <button
                         key={tab}
                         onClick={() => setTerminalTab(tab)}
@@ -653,7 +681,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                           fontWeight: terminalTab === tab ? 700 : 400,
                         }}
                       >
-                        {tab === 'today' ? 'az today' : tab === 'action' ? 'az "..."' : tab === 'stress' ? 'az stress-test' : 'az chat'}
+                        {tab === 'live' ? '⚡ live demo' : tab === 'today' ? 'az today' : tab === 'action' ? 'az "..."' : tab === 'stress' ? 'az stress' : 'az chat'}
                       </button>
                     ))}
                   </div>
@@ -664,10 +692,38 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   padding: '14px',
                   fontFamily: 'monospace',
                   fontSize: '0.78rem',
-                  lineHeight: 1.5,
-                  minHeight: '160px',
+                  lineHeight: 1.55,
+                  minHeight: '175px',
                   color: '#F5EFEB',
                 }}>
+                  {terminalTab === 'live' && (
+                    <div>
+                      <div style={{ color: '#E2953B', fontWeight: 700 }}>
+                        $ az "completed Redis lock, add 30m security audit"
+                        {cliStep === 0 && <span style={{ animation: 'blink 1s infinite' }}>|</span>}
+                      </div>
+
+                      {cliStep >= 1 && (
+                        <div style={{ color: '#8C827A', marginTop: '6px' }}>
+                          ⚡ Reasoning over execution options...
+                        </div>
+                      )}
+
+                      {cliStep >= 2 && (
+                        <div style={{ marginTop: '8px' }}>
+                          <div style={{ color: '#4ADE80' }}>✓ Completed: "Redis Distributed Lock"</div>
+                          <div style={{ color: '#4ADE80' }}>✓ Created: "Security Audit" (30m, HIGH Priority)</div>
+                        </div>
+                      )}
+
+                      {cliStep >= 3 && (
+                        <div style={{ color: '#8C827A', marginTop: '10px', borderTop: '1px dashed #3A2A22', paddingTop: '6px' }}>
+                          Summary: 2 Done | 1 Pending | 2.75h Scheduled • <span style={{ color: '#4ADE80', fontWeight: 700 }}>OPTIMAL</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {terminalTab === 'today' && (
                     <>
                       <div style={{ color: '#E2953B', fontWeight: 700 }}>$ az today</div>
@@ -786,12 +842,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </span>
               </div>
 
-              <p style={{ fontSize: '0.88rem', color: 'var(--text-parchment-muted)', lineHeight: 1.55, marginBottom: '14px' }}>
+              <p style={{ fontSize: '0.88rem', color: 'var(--text-parchment-muted)', lineHeight: 1.55, marginBottom: '12px' }}>
                 Connect your commitments, plan stress-testing, excuse analysis, and peer accountability feeds directly into your AI clients.
               </p>
 
               {/* Supported AI IDE Pills */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
                 {['Claude Desktop', 'Cursor IDE', 'Antigravity'].map((ide) => (
                   <span
                     key={ide}
@@ -814,31 +870,60 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 ))}
               </div>
 
-              {/* MCP Features List */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '0.82rem', color: 'var(--text-parchment-muted)' }}>
-                  <Code2 size={16} color="#90CDF4" style={{ flexShrink: 0, marginTop: '2px' }} />
-                  <div>
-                    <strong style={{ color: 'var(--text-kehwa-cream)' }}>Commitment Management: </strong>
-                    Fetch today's plan, create, update, complete, postpone, and manage commitments directly from your AI assistant.
-                  </div>
+              {/* Live MCP Tool Invocation Animation Frame */}
+              <div style={{
+                background: '#0B111A',
+                borderRadius: '8px',
+                border: '1px solid rgba(144, 205, 244, 0.2)',
+                padding: '12px',
+                marginBottom: '16px',
+                fontFamily: 'monospace',
+                fontSize: '0.76rem',
+                lineHeight: 1.5,
+                minHeight: '175px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '6px', marginBottom: '8px' }}>
+                  <span style={{ color: '#90CDF4', fontWeight: 700 }}>IDE AI Session</span>
+                  <span style={{ fontSize: '0.68rem', color: '#4ADE80' }}>● MCP CONNECTED</span>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '0.82rem', color: 'var(--text-parchment-muted)' }}>
-                  <ShieldCheck size={16} color="#4ADE80" style={{ flexShrink: 0, marginTop: '2px' }} />
-                  <div>
-                    <strong style={{ color: 'var(--text-kehwa-cream)' }}>AI Plan Stress-Testing & Insights: </strong>
-                    Evaluate overload risk scores, apply proposed plan optimizations, and analyze postponement patterns.
-                  </div>
+                <div style={{ color: '#E2E8F0', marginBottom: '6px' }}>
+                  <strong style={{ color: '#90CDF4' }}>Developer: </strong>
+                  "Check my AazDoh commitments and start my next task."
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '0.82rem', color: 'var(--text-parchment-muted)' }}>
-                  <Layers size={16} color="var(--saffron-ember)" style={{ flexShrink: 0, marginTop: '2px' }} />
-                  <div>
-                    <strong style={{ color: 'var(--text-kehwa-cream)' }}>Telemetry & Partner Feeds: </strong>
-                    Query 7-day focus velocity metrics, reviews, and partner discussion threads over MCP.
+                {mcpStep >= 1 && (
+                  <div style={{
+                    background: 'rgba(43, 108, 176, 0.2)',
+                    border: '1px solid rgba(144, 205, 244, 0.3)',
+                    borderRadius: '4px',
+                    padding: '6px 8px',
+                    margin: '6px 0',
+                    color: '#90CDF4',
+                  }}>
+                    ⚙️ Invoking: <code>mcp.aazdoh.get_today_plan()</code> ➔ 3 tasks (2.75h)
                   </div>
-                </div>
+                )}
+
+                {mcpStep >= 2 && (
+                  <div style={{
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    borderRadius: '4px',
+                    padding: '6px 8px',
+                    margin: '6px 0',
+                    color: '#4ADE80',
+                  }}>
+                    🛡️ Invoking: <code>mcp.aazdoh.stress_test_plan()</code> ➔ Feasible (22% Risk)
+                  </div>
+                )}
+
+                {mcpStep >= 3 && (
+                  <div style={{ color: '#CBD5E1', marginTop: '6px' }}>
+                    <strong style={{ color: '#4ADE80' }}>AI Assistant: </strong>
+                    "Your schedule is optimal. Ready to begin your 60m focus block on PostgreSQL Query Optimization."
+                  </div>
+                )}
               </div>
             </div>
 
