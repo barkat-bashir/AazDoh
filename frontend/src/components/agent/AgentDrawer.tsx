@@ -777,6 +777,7 @@ export const AgentDrawer: React.FC<AgentDrawerProps> = ({ isOpen, onClose }) => 
               className="input-field"
               placeholder="Ask coach to audit, reschedule, or break down tasks..."
               value={inputMessage}
+              maxLength={500}
               onChange={(e) => setInputMessage(e.target.value)}
               disabled={loading}
               style={{

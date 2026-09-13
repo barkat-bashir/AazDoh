@@ -307,6 +307,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
             type="text"
             placeholder={category === 'DEEP_WORK' ? 'What are you focusing on today?' : 'What errand or task do you need to do?'}
             value={title}
+            maxLength={255}
             onChange={(e) => handleTitleChange(e.target.value)}
             style={{
               width: '100%',
@@ -324,7 +325,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
           />
 
           {/* Collapsible Deliverable / Outcome Field */}
-          {showDeliverable && (
+          {showDeliverable && category === 'DEEP_WORK' && (
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -341,6 +342,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
                 type="text"
                 placeholder="e.g. Unit tests passing & PR opened"
                 value={expectedOutcome}
+                maxLength={500}
                 onChange={(e) => setExpectedOutcome(e.target.value)}
                 style={{
                   flex: 1,

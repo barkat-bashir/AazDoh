@@ -367,6 +367,7 @@ export const PostponeCommitmentModal: React.FC<PostponeCommitmentModalProps> = (
                   className="input-field"
                   placeholder="e.g. Need to review documentation before coding"
                   value={customReason}
+                  maxLength={500}
                   onChange={(e) => setCustomReason(e.target.value)}
                   autoFocus
                   required

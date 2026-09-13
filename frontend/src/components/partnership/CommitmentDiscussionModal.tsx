@@ -218,6 +218,7 @@ export const CommitmentDiscussionModal: React.FC<CommitmentDiscussionModalProps>
             className="input-field"
             placeholder="Ask your partner or reply with details..."
             value={newMessage}
+            maxLength={500}
             onChange={(e) => setNewMessage(e.target.value)}
             disabled={sending}
             style={{ flex: 1 }}

@@ -228,6 +228,7 @@ export const EditCommitmentModal: React.FC<EditCommitmentModalProps> = ({
             type="text"
             placeholder={category === 'DEEP_WORK' ? 'What are you focusing on today?' : 'What errand or task do you need to do?'}
             value={title}
+            maxLength={255}
             onChange={(e) => setTitle(e.target.value)}
             style={{
               width: '100%',
@@ -262,6 +263,7 @@ export const EditCommitmentModal: React.FC<EditCommitmentModalProps> = ({
                 type="text"
                 placeholder="e.g. Unit tests passing & PR opened"
                 value={expectedOutcome}
+                maxLength={500}
                 onChange={(e) => setExpectedOutcome(e.target.value)}
                 style={{
                   flex: 1,

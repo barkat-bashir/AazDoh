@@ -395,6 +395,7 @@ export const DailyReviewModal: React.FC<DailyReviewModalProps> = ({
                 className="input-field"
                 placeholder="Be honest with yourself: What blocked execution? How will you tackle this differently?"
                 value={currentReview.reflection || ''}
+                maxLength={500}
                 onChange={(e) => handleReflectionChange(e.target.value)}
                 rows={3}
               />
