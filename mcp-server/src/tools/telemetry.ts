@@ -69,6 +69,7 @@ export const stressTestPlanSchema = z.object({
     .describe("Date to stress-test. Defaults to today."),
   quickDefense: z
     .string()
+    .max(500, "Quick defense must not exceed 500 characters")
     .optional()
     .describe("Optional defense note if you want the AI to evaluate your rationale for heavy workloads"),
 });
@@ -169,7 +170,11 @@ export async function handleGetTelemetryStats(args: z.infer<typeof getTelemetryS
 }
 
 export const detectExcuseSchema = z.object({
-  excuseText: z.string().min(3).describe("The user's excuse or rationalization for missing or delaying a commitment"),
+  excuseText: z
+    .string()
+    .min(3)
+    .max(500, "Excuse text must not exceed 500 characters")
+    .describe("The user's excuse or rationalization for missing or delaying a commitment"),
   commitmentId: z.string().uuid().optional().describe("Optional UUID of the specific commitment being delayed"),
 });
 

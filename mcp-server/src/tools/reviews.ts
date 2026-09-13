@@ -23,6 +23,7 @@ export const submitReviewSchema = z.object({
     .describe("Primary root-cause reason if missed or partially completed"),
   reflection: z
     .string()
+    .max(500, "Reflection must not exceed 500 characters")
     .optional()
     .describe("Honest retrospective or notes on what happened and what to change next time"),
   nextAction: z

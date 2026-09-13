@@ -57,7 +57,11 @@ export async function handleGetDiscussionThread(args: z.infer<typeof getDiscussi
 
 export const sendPartnerUpdateSchema = z.object({
   commitmentId: z.string().uuid().describe("UUID of the commitment to discuss"),
-  message: z.string().min(1).describe("The message or proof-of-work update to post to the thread"),
+  message: z
+    .string()
+    .min(1)
+    .max(500, "Message must not exceed 500 characters")
+    .describe("The message or proof-of-work update to post to the thread"),
 });
 
 export async function handleSendPartnerUpdate(args: z.infer<typeof sendPartnerUpdateSchema>) {

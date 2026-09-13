@@ -84,7 +84,11 @@ export async function handleGetTodayPlan(args: z.infer<typeof getTodayPlanSchema
 }
 
 export const createCommitmentSchema = z.object({
-  title: z.string().min(1, "Title is required").describe("Clear, action-oriented commitment title"),
+  title: z
+    .string()
+    .min(1, "Title is required")
+    .max(255, "Title must not exceed 255 characters")
+    .describe("Clear, action-oriented commitment title"),
   category: z
     .enum(["DEEP_WORK", "ROUTINE", "STRATEGIC_PLANNING", "COMMUNICATION", "FITNESS_HEALTH", "LEARNING", "ADMIN_MAINTENANCE", "OTHER"])
     .default("DEEP_WORK")
@@ -112,6 +116,7 @@ export const createCommitmentSchema = z.object({
     .describe("Date to schedule for (YYYY-MM-DD). Alias for targetDate."),
   expectedOutcome: z
     .string()
+    .max(500, "Expected outcome must not exceed 500 characters")
     .optional()
     .describe("Observable Definition of Done / Expected outcome to prevent ambiguity"),
   visibility: z
@@ -161,14 +166,14 @@ export async function handleCreateCommitment(args: z.infer<typeof createCommitme
 
 export const updateCommitmentSchema = z.object({
   id: z.string().uuid("Invalid commitment UUID").describe("The UUID of the commitment to update"),
-  title: z.string().optional().describe("Updated title"),
+  title: z.string().max(255, "Title must not exceed 255 characters").optional().describe("Updated title"),
   category: z
     .enum(["DEEP_WORK", "ROUTINE", "STRATEGIC_PLANNING", "COMMUNICATION", "FITNESS_HEALTH", "LEARNING", "ADMIN_MAINTENANCE", "OTHER"])
     .optional()
     .describe("Updated category"),
   priority: z.enum(["URGENT", "HIGH", "MEDIUM", "LOW"]).optional().describe("Updated priority"),
   estimatedMinutes: z.number().int().min(1).max(720).optional().describe("Updated estimated duration in minutes"),
-  expectedOutcome: z.string().optional().describe("Updated definition of done"),
+  expectedOutcome: z.string().max(500, "Expected outcome must not exceed 500 characters").optional().describe("Updated definition of done"),
   visibility: z.enum(["PRIVATE", "SHARED_WITH_PARTNER", "MUTUAL"]).optional().describe("Updated visibility"),
   commitmentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format must be YYYY-MM-DD").optional().describe("Updated date (YYYY-MM-DD)"),
 });
@@ -218,6 +223,7 @@ export const postponeCommitmentSchema = z.object({
     .describe("Target date to reschedule to (YYYY-MM-DD)"),
   reason: z
     .string()
+    .max(500, "Reason must not exceed 500 characters")
     .optional()
     .describe("Reason for postponement (logged to cognitive debt ledger)"),
 });
