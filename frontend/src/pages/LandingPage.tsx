@@ -86,8 +86,33 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', color: 'var(--text-kehwa-cream)' }}>
       {/* Navigation Header */}
-      <nav className="landing-nav">
+      <nav className="landing-nav" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', maxWidth: '1200px', margin: '0 auto', padding: '16px 24px' }}>
         <BrandLogo size="lg" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <a
+            href="#developer-ecosystem"
+            style={{
+              color: 'var(--text-parchment-muted)',
+              fontSize: '0.88rem',
+              fontWeight: 600,
+              textDecoration: 'none',
+              padding: '6px 12px',
+              borderRadius: '6px',
+              transition: 'color 0.2s ease',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--saffron-ember)')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-parchment-muted)')}
+          >
+            CLI & MCP
+          </a>
+          <button
+            onClick={handleSignIn}
+            className="btn-secondary"
+            style={{ padding: '6px 16px', fontSize: '0.88rem', borderRadius: 'var(--radius-sm)' }}
+          >
+            Sign In
+          </button>
+        </div>
       </nav>
 
       {/* Hero Section */}
@@ -130,6 +155,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           >
             <span>Sign In</span>
           </button>
+        </div>
+
+        {/* Hero Trust Micro-Pill */}
+        <div style={{
+          marginTop: '16px',
+          fontSize: '0.8rem',
+          color: 'var(--text-tweed-dim)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          justifyContent: 'center',
+          flexWrap: 'wrap'
+        }}>
+          <span>✨ Free & Open Accountability</span>
+          <span>•</span>
+          <span>Terminal CLI & MCP Ready</span>
+          <span>•</span>
+          <span>Zero Credit Card Required</span>
         </div>
 
         {/* Live Interactive Product Card Mockup */}
@@ -550,7 +593,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       {/* Developer & AI Ecosystem: CLI & MCP Server */}
-      <section style={{
+      <section id="developer-ecosystem" style={{
         padding: '60px 24px',
         maxWidth: '1200px',
         margin: '0 auto',
@@ -1003,6 +1046,76 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 Confront avoidance patterns with historical receipts, classify root failure causes, and dispatch actionable next steps.
               </p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Closing Call to Action Banner */}
+      <section style={{
+        padding: '40px 24px 70px',
+        maxWidth: '1100px',
+        margin: '0 auto',
+        width: '100%',
+      }}>
+        <div className="harud-card" style={{
+          padding: '48px 32px',
+          textAlign: 'center',
+          background: 'linear-gradient(135deg, rgba(192, 83, 48, 0.25), rgba(26, 18, 14, 0.95))',
+          border: '1px solid rgba(226, 149, 59, 0.35)',
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)',
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          {/* Subtle background glow */}
+          <div style={{
+            position: 'absolute',
+            top: '-50%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '400px',
+            height: '250px',
+            background: 'radial-gradient(circle, rgba(226, 149, 59, 0.2) 0%, transparent 70%)',
+            pointerEvents: 'none',
+          }} />
+
+          <h2 style={{
+            fontSize: 'clamp(1.75rem, 4vw, 2.5rem)',
+            fontWeight: 800,
+            color: 'var(--text-kehwa-cream)',
+            marginBottom: '12px',
+            lineHeight: 1.2,
+          }}>
+            Ready to honor the promises you make to yourself?
+          </h2>
+
+          <p style={{
+            color: 'var(--text-parchment-muted)',
+            fontSize: '1rem',
+            maxWidth: '620px',
+            margin: '0 auto 28px',
+            lineHeight: 1.6,
+          }}>
+            Join engineers and focused professionals building genuine operational integrity. No dopamine streaks, no rationalizations.
+          </p>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button
+              onClick={handleGetStarted}
+              className="btn-primary"
+              style={{ padding: '12px 28px', fontSize: '1rem', borderRadius: 'var(--radius-md)' }}
+            >
+              <span>Start Committing Today</span>
+              <ArrowRight size={18} />
+            </button>
+
+            <button
+              onClick={handleSignIn}
+              className="btn-secondary"
+              style={{ padding: '12px 24px', fontSize: '1rem', borderRadius: 'var(--radius-md)' }}
+            >
+              <span>Sign In</span>
+            </button>
           </div>
         </div>
       </section>
