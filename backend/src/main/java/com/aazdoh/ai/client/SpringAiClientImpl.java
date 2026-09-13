@@ -93,6 +93,12 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
         return persona != null ? persona.name() : "BALANCED";
     }
 
+    private String truncate(String text, int maxLen) {
+        if (text == null) return "";
+        String trimmed = text.trim();
+        return trimmed.length() > maxLen ? trimmed.substring(0, maxLen) : trimmed;
+    }
+
     @Override
     public String reviewPlanFeasibility(UserAccountabilityContextDto context, List<CommitmentResponse> todaysCommitments, AiPersona persona) {
         if (!aiEnabled || chatClient == null) {
@@ -142,6 +148,9 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
             return generateMockMissedAnalysis(commitment, reason, reflection);
         }
 
+        String safeReason = truncate(reason != null ? reason : "Unspecified", 500);
+        String safeReflection = truncate(reflection != null && !reflection.isBlank() ? reflection : "No detailed reflection provided", 500);
+
         for (String modelName : getCandidateModels()) {
             try {
                 return chatClient.prompt()
@@ -154,8 +163,8 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
                                 .param("title", commitment.getTitle())
                                 .param("estimatedMinutes", String.valueOf(commitment.getEstimatedMinutes()))
                                 .param("priority", commitment.getPriority() != null ? commitment.getPriority().name() : "MEDIUM")
-                                .param("reason", reason != null ? reason : "Unspecified")
-                                .param("reflection", reflection != null && !reflection.isBlank() ? reflection : "No detailed reflection provided")
+                                .param("reason", safeReason)
+                                .param("reflection", safeReflection)
                                 .param("topFailureReasons", context.getTopFailureReasons() != null ? context.getTopFailureReasons().toString() : "None")
                                 .param("completionRate", String.format("%.1f", context.getCompletionRateLast7Days())))
                         .call()
@@ -329,8 +338,9 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
 
         // Handle Quick Defense Sparring
         if (quickDefense != null && !quickDefense.isBlank()) {
+            String safeDefense = truncate(quickDefense, 500);
             response.setValidated(true);
-            response.setDefenseFeedback("Context acknowledged: \"" + quickDefense + "\". Plan validated and locked for execution.");
+            response.setDefenseFeedback("Context acknowledged: \"" + safeDefense + "\". Plan validated and locked for execution.");
             response.setDiagnosticSummary("Defense accepted. Your Chief of Staff adjusted the plan's feasibility rating.");
             return response;
         }
@@ -423,6 +433,9 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
                 .collect(Collectors.joining("\n"));
 
         if (aiEnabled && chatClient != null) {
+            String safeExcuse = truncate(currentExcuse, 500);
+            String safeTitle = truncate(taskTitle != null ? taskTitle : "Task", 255);
+
             for (String modelName : getCandidateModels()) {
                 try {
                     String aiMirror = chatClient.prompt()
@@ -432,8 +445,8 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
                                     .param("persona", getPersonaName(persona)))
                             .user(u -> u.text(excuseMirrorUserPrompt)
                                     .param("userName", context.getUserFullName() != null ? context.getUserFullName() : "User")
-                                    .param("taskTitle", taskTitle != null ? taskTitle : "Task")
-                                    .param("currentExcuse", currentExcuse)
+                                    .param("taskTitle", safeTitle)
+                                    .param("currentExcuse", safeExcuse)
                                     .param("receiptsContext", receiptsContext))
                             .call()
                             .content();

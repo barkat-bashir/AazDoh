@@ -1,10 +1,13 @@
 package com.aazdoh.ai.dto;
 
+import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 
 public class PlanStressTestRequest {
 
     private LocalDate date;
+
+    @Size(max = 500, message = "Quick defense must not exceed 500 characters")
     private String quickDefense;
     private boolean overrideSprint;
 

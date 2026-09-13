@@ -1,6 +1,7 @@
 package com.aazdoh.commitment.dto;
 
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 
@@ -9,6 +10,7 @@ public class PostponeCommitmentRequest {
     @NotNull(message = "New target date is required")
     private LocalDate newDate;
 
+    @Size(max = 500, message = "Reason must not exceed 500 characters")
     private String reason;
 
     public PostponeCommitmentRequest() {

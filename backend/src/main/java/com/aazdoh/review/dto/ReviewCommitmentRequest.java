@@ -4,6 +4,7 @@ import com.aazdoh.commitment.entity.CommitmentStatus;
 import com.aazdoh.review.entity.FailureReason;
 import com.aazdoh.review.entity.NextAction;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 
@@ -14,6 +15,7 @@ public class ReviewCommitmentRequest {
 
     private FailureReason failureReason;
 
+    @Size(max = 500, message = "Reflection must not exceed 500 characters")
     private String reflection;
 
     private NextAction nextAction;

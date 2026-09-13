@@ -15,8 +15,10 @@ public class UpdateCommitmentRequest {
     @Size(max = 255, message = "Title cannot exceed 255 characters")
     private String title;
 
+    @Size(max = 500, message = "Description cannot exceed 500 characters")
     private String description;
 
+    @Size(max = 500, message = "Expected outcome cannot exceed 500 characters")
     private String expectedOutcome;
 
     @Min(value = 0, message = "Estimated minutes cannot be negative")

@@ -1,6 +1,7 @@
 package com.aazdoh.ai.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.util.UUID;
 
 public class ExcuseAnalysisRequest {
@@ -8,6 +9,7 @@ public class ExcuseAnalysisRequest {
     private UUID commitmentId;
 
     @NotBlank(message = "Excuse or reason text is required")
+    @Size(max = 500, message = "Excuse text must not exceed 500 characters")
     private String excuseText;
 
     private String type; // POSTPONE, REVIEW

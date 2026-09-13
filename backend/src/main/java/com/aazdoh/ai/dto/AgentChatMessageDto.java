@@ -1,8 +1,15 @@
 package com.aazdoh.ai.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
 public class AgentChatMessageDto {
 
+    @NotBlank(message = "Role is required")
     private String role;
+
+    @NotBlank(message = "Content is required")
+    @Size(max = 500, message = "Content must not exceed 500 characters")
     private String content;
 
     public AgentChatMessageDto() {

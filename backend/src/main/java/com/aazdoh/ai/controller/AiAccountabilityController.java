@@ -77,7 +77,7 @@ public class AiAccountabilityController {
     @Operation(summary = "AI Chief of Staff 60-Second Plan Stress-Test with Risk Index & De-risked Proposals")
     public CompletableFuture<ResponseEntity<ApiResponse<PlanStressTestResponse>>> stressTestPlan(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestBody(required = false) PlanStressTestRequest request
+            @Valid @RequestBody(required = false) PlanStressTestRequest request
     ) {
         return aiAccountabilityService.stressTestPlanAsync(userDetails.getId(), request)
                 .thenApply(response -> ResponseEntity.ok(ApiResponse.ok(response)));

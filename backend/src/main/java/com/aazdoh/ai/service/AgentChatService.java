@@ -135,19 +135,7 @@ public class AgentChatService {
 
         try {
             if (aiEnabled && chatClient != null) {
-                List<Message> messages = new ArrayList<>();
-                messages.add(new SystemMessage(systemPromptText));
-
-                if (request.getHistory() != null && !request.getHistory().isEmpty()) {
-                    for (AgentChatMessageDto turn : request.getHistory()) {
-                        if ("user".equalsIgnoreCase(turn.getRole())) {
-                            messages.add(new UserMessage(turn.getContent()));
-                        } else if ("assistant".equalsIgnoreCase(turn.getRole())) {
-                            messages.add(new AssistantMessage(turn.getContent()));
-                        }
-                    }
-                }
-                messages.add(new UserMessage(userMessage));
+                List<Message> messages = buildChatMessages(systemPromptText, request.getHistory(), userMessage);
 
                 List<String> candidateModels = getCandidateModels();
                 Exception lastException = null;
@@ -283,20 +271,7 @@ public class AgentChatService {
                 }
 
                 String systemPromptText = buildSystemPrompt(persona, todayPlan, yesterdayPlan);
-
-                List<Message> messages = new ArrayList<>();
-                messages.add(new SystemMessage(systemPromptText));
-
-                if (request.getHistory() != null && !request.getHistory().isEmpty()) {
-                    for (AgentChatMessageDto turn : request.getHistory()) {
-                        if ("user".equalsIgnoreCase(turn.getRole())) {
-                            messages.add(new UserMessage(turn.getContent()));
-                        } else if ("assistant".equalsIgnoreCase(turn.getRole())) {
-                            messages.add(new AssistantMessage(turn.getContent()));
-                        }
-                    }
-                }
-                messages.add(new UserMessage(request.getMessage().trim()));
+                List<Message> messages = buildChatMessages(systemPromptText, request.getHistory(), request.getMessage());
 
                 List<String> candidateModels = getCandidateModels();
                 String rawAccumulated = null;
@@ -555,6 +530,44 @@ public class AgentChatService {
         } catch (Exception e) {
             throw new RuntimeException("Failed to revert agent action: " + e.getMessage(), e);
         }
+    }
+
+    private List<Message> buildChatMessages(String systemPromptText, List<AgentChatMessageDto> rawHistory, String userMessage) {
+        List<Message> messages = new ArrayList<>();
+        messages.add(new SystemMessage(systemPromptText));
+
+        if (rawHistory != null && !rawHistory.isEmpty()) {
+            // Defensive sliding window: keep at most the last 6 messages
+            int startIdx = Math.max(0, rawHistory.size() - 6);
+            List<AgentChatMessageDto> recentHistory = rawHistory.subList(startIdx, rawHistory.size());
+
+            for (AgentChatMessageDto turn : recentHistory) {
+                if (turn == null || turn.getContent() == null || turn.getContent().isBlank()) continue;
+                String cleanContent = turn.getContent().replaceAll("```actions[\\s\\S]*?```", "").trim();
+                if (cleanContent.length() > 500) {
+                    cleanContent = cleanContent.substring(0, 500);
+                }
+                if (cleanContent.isBlank()) continue;
+
+                if ("user".equalsIgnoreCase(turn.getRole())) {
+                    messages.add(new UserMessage(cleanContent));
+                } else if ("assistant".equalsIgnoreCase(turn.getRole())) {
+                    messages.add(new AssistantMessage(cleanContent));
+                }
+            }
+        }
+
+        // Sanitize user message: clamp to 500 chars and neutralize delimiter injection
+        String sanitizedUserMsg = userMessage != null ? userMessage.trim() : "";
+        if (sanitizedUserMsg.length() > 500) {
+            sanitizedUserMsg = sanitizedUserMsg.substring(0, 500);
+        }
+        sanitizedUserMsg = sanitizedUserMsg
+                .replace("```actions", "'''actions")
+                .replace("```json", "'''json");
+
+        messages.add(new UserMessage(sanitizedUserMsg));
+        return messages;
     }
 
     private String buildSystemPrompt(AiPersona persona, Map<String, Object> todayPlan, Map<String, Object> yesterdayPlan) {
