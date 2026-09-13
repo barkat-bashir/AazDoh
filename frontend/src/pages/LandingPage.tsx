@@ -17,7 +17,14 @@ import {
   BarChart3,
   Scale,
   Calendar,
-  Target
+  Target,
+  Terminal,
+  Cpu,
+  Code2,
+  Copy,
+  Check,
+  Layers,
+  Bot
 } from 'lucide-react';
 import { BrandLogo } from '../components/common/BrandLogo';
 
@@ -41,6 +48,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const handleSignIn = onSignIn || (() => navigate('/login'));
   const handleOpenTerms = onOpenTerms || (() => navigate('/terms'));
   const handleOpenPrivacy = onOpenPrivacy || (() => navigate('/privacy'));
+
+  const [terminalTab, setTerminalTab] = React.useState<'today' | 'action' | 'stress' | 'chat'>('today');
+  const [copiedCli, setCopiedCli] = React.useState(false);
+  const [copiedMcp, setCopiedMcp] = React.useState(false);
+
+  const copyToClipboard = (text: string, isMcp = false) => {
+    navigator.clipboard.writeText(text);
+    if (isMcp) {
+      setCopiedMcp(true);
+      setTimeout(() => setCopiedMcp(false), 2000);
+    } else {
+      setCopiedCli(true);
+      setTimeout(() => setCopiedCli(false), 2000);
+    }
+  };
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', color: 'var(--text-kehwa-cream)' }}>
       {/* Navigation Header */}
@@ -505,6 +527,353 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             }
           }
         `}</style>
+      </section>
+
+      {/* Developer & AI Ecosystem: CLI & MCP Server */}
+      <section style={{
+        padding: '60px 24px',
+        maxWidth: '1200px',
+        margin: '0 auto',
+        width: '100%',
+      }}>
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '0.8rem',
+            fontWeight: 700,
+            color: 'var(--saffron-ember)',
+            textTransform: 'uppercase',
+            background: 'rgba(226, 149, 59, 0.1)',
+            padding: '4px 12px',
+            borderRadius: '999px',
+            border: '1px solid rgba(226, 149, 59, 0.25)',
+            marginBottom: '10px'
+          }}>
+            <Terminal size={14} />
+            <span>Developer & AI Ecosystem</span>
+          </div>
+          <h2 style={{ fontSize: 'clamp(1.7rem, 4vw, 2.3rem)', fontWeight: 800, marginTop: '4px', color: 'var(--text-kehwa-cream)' }}>
+            Accountability Built Directly into Your Dev Workflow
+          </h2>
+          <p style={{ color: 'var(--text-parchment-muted)', fontSize: '0.96rem', maxWidth: '680px', margin: '10px auto 0', lineHeight: 1.6 }}>
+            No browser context-switching needed. Manage commitments directly in your shell or connect your AI coding assistants (<strong style={{ color: 'var(--text-kehwa-cream)' }}>Cursor, Claude, Windsurf</strong>) via Model Context Protocol.
+          </p>
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          gap: '24px',
+          alignItems: 'stretch',
+        }}>
+          {/* Card 1: Autonomous CLI Agent */}
+          <div className="harud-card" style={{
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            background: 'linear-gradient(180deg, rgba(26, 18, 14, 0.95), rgba(16, 12, 10, 0.98))',
+            border: '1px solid rgba(226, 149, 59, 0.25)',
+          }}>
+            <div>
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, var(--chinar-rust), #782711)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                  }}>
+                    <Terminal size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 700, color: 'var(--text-kehwa-cream)' }}>
+                      Autonomous Terminal Agent
+                    </h3>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--text-tweed-dim)' }}>
+                      package: aazdoh-cli / binary: az
+                    </span>
+                  </div>
+                </div>
+                <span className="badge badge-completed" style={{ background: 'rgba(74, 222, 128, 0.15)', color: '#4ADE80', fontSize: '0.72rem' }}>
+                  Live on NPM
+                </span>
+              </div>
+
+              <p style={{ fontSize: '0.88rem', color: 'var(--text-parchment-muted)', lineHeight: 1.55, marginBottom: '16px' }}>
+                Full-featured terminal agent with instant natural language action execution, 60s plan stress testing, and real-time SSE token streaming.
+              </p>
+
+              {/* Terminal Interactive Window Frame */}
+              <div style={{
+                background: '#0D0907',
+                borderRadius: '8px',
+                border: '1px solid var(--border-walnut-faint)',
+                overflow: 'hidden',
+                marginBottom: '16px',
+              }}>
+                {/* Window Bar with Traffic Dots + Tabs */}
+                <div style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  padding: '8px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  borderBottom: '1px solid rgba(255,255,255,0.06)',
+                  flexWrap: 'wrap',
+                  gap: '8px',
+                }}>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#EF4444' }} />
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#F59E0B' }} />
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10B981' }} />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {(['today', 'action', 'stress', 'chat'] as const).map((tab) => (
+                      <button
+                        key={tab}
+                        onClick={() => setTerminalTab(tab)}
+                        style={{
+                          background: terminalTab === tab ? 'rgba(226, 149, 59, 0.2)' : 'transparent',
+                          color: terminalTab === tab ? 'var(--saffron-ember)' : 'var(--text-tweed-dim)',
+                          border: 'none',
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          fontSize: '0.72rem',
+                          fontFamily: 'monospace',
+                          cursor: 'pointer',
+                          fontWeight: terminalTab === tab ? 700 : 400,
+                        }}
+                      >
+                        {tab === 'today' ? 'az today' : tab === 'action' ? 'az "action"' : tab === 'stress' ? 'az stress-test' : 'az chat'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Terminal Content Body */}
+                <div style={{
+                  padding: '14px',
+                  fontFamily: 'monospace',
+                  fontSize: '0.78rem',
+                  lineHeight: 1.5,
+                  minHeight: '160px',
+                  color: '#F5EFEB',
+                }}>
+                  {terminalTab === 'today' && (
+                    <>
+                      <div style={{ color: '#E2953B', fontWeight: 700 }}>$ az today</div>
+                      <div style={{ color: '#8C827A', marginTop: '4px' }}>Plan for: 2026-09-13 | User: Barkat [Persona: BALANCED]</div>
+                      <div style={{ color: '#4ADE80', marginTop: '6px' }}>✔ [DONE] 60m Deep Focus — Architecture PR Review</div>
+                      <div style={{ color: '#4ADE80' }}>✔ [DONE] 60m Deep Focus — PostgreSQL Query Optimization</div>
+                      <div style={{ color: '#F59E0B' }}>⭕ [PEND] 45m Deep Focus — Redis Distributed Lock</div>
+                      <div style={{ color: '#8C827A', marginTop: '8px', borderTop: '1px dashed #3A2A22', paddingTop: '6px' }}>
+                        Summary: 2 Done | 1 Pending | 2.75h Scheduled • <span style={{ color: '#4ADE80', fontWeight: 700 }}>OPTIMAL</span>
+                      </div>
+                    </>
+                  )}
+
+                  {terminalTab === 'action' && (
+                    <>
+                      <div style={{ color: '#E2953B', fontWeight: 700 }}>$ az "completed Redis lock, add 30m security audit"</div>
+                      <div style={{ color: '#8C827A', marginTop: '4px' }}>⚡ Reasoning over execution options...</div>
+                      <div style={{ color: '#4ADE80', marginTop: '6px' }}>✓ Action Executed: Marked "Redis Distributed Lock" as COMPLETED</div>
+                      <div style={{ color: '#4ADE80' }}>✓ Action Executed: Created "Security Audit" (30m, HIGH Priority)</div>
+                      <div style={{ color: '#8C827A', marginTop: '6px' }}>(Run 'az undo' anytime to revert)</div>
+                    </>
+                  )}
+
+                  {terminalTab === 'stress' && (
+                    <>
+                      <div style={{ color: '#E2953B', fontWeight: 700 }}>$ az stress-test</div>
+                      <div style={{ color: '#4ADE80', marginTop: '4px' }}>[LOW RISK] [████████░░░░░░░░░░░░] 22%</div>
+                      <div style={{ color: '#F5EFEB', marginTop: '6px' }}>
+                        "Planned 3.2h load sits safely within your 4.1h capacity. Protect your morning 90m block to maintain maximum momentum."
+                      </div>
+                    </>
+                  )}
+
+                  {terminalTab === 'chat' && (
+                    <>
+                      <div style={{ color: '#E2953B', fontWeight: 700 }}>$ az chat</div>
+                      <div style={{ color: '#8C827A' }}>Logged in as Barkat. Commands: /today /undo /stats /exit</div>
+                      <div style={{ color: '#E2953B', marginTop: '4px' }}>az&gt; how is my 7-day velocity looking?</div>
+                      <div style={{ color: '#F5EFEB', marginTop: '4px' }}>
+                        "Solid execution. You are tracking at an 84% completion rate across 43.1 focus hours with minimal postponement drift."
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Copy Command */}
+            <div style={{
+              background: 'rgba(0,0,0,0.4)',
+              padding: '8px 12px',
+              borderRadius: '6px',
+              border: '1px solid rgba(226, 149, 59, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '0.8rem',
+              fontFamily: 'monospace',
+            }}>
+              <span style={{ color: 'var(--saffron-ember)' }}>npm install -g aazdoh-cli</span>
+              <button
+                onClick={() => copyToClipboard('npm install -g aazdoh-cli')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: copiedCli ? '#4ADE80' : 'var(--text-parchment-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '0.74rem',
+                }}
+              >
+                {copiedCli ? <Check size={14} /> : <Copy size={14} />}
+                <span>{copiedCli ? 'Copied' : 'Copy'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Card 2: Model Context Protocol (MCP Server) */}
+          <div className="harud-card" style={{
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            background: 'linear-gradient(180deg, rgba(20, 24, 36, 0.95), rgba(12, 16, 26, 0.98))',
+            border: '1px solid rgba(144, 205, 244, 0.25)',
+          }}>
+            <div>
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #2B6CB0, #1A365D)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                  }}>
+                    <Cpu size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 700, color: 'var(--text-kehwa-cream)' }}>
+                      Model Context Protocol (MCP)
+                    </h3>
+                    <span style={{ fontSize: '0.74rem', color: '#90CDF4' }}>
+                      package: aazdoh-mcp • 18 Production Tools
+                    </span>
+                  </div>
+                </div>
+                <span className="badge" style={{ background: 'rgba(144, 205, 244, 0.15)', color: '#90CDF4', fontSize: '0.72rem', border: '1px solid rgba(144, 205, 244, 0.3)' }}>
+                  Open Standard
+                </span>
+              </div>
+
+              <p style={{ fontSize: '0.88rem', color: 'var(--text-parchment-muted)', lineHeight: 1.55, marginBottom: '14px' }}>
+                Connect your live schedule, sprint stress-tests, and excuse receipts directly into your favorite AI coding environments.
+              </p>
+
+              {/* Supported AI IDE Pills */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px' }}>
+                {['Claude Desktop', 'Cursor IDE', 'Windsurf', 'Antigravity', 'VS Code'].map((ide) => (
+                  <span
+                    key={ide}
+                    style={{
+                      background: 'rgba(255,255,255,0.06)',
+                      color: 'var(--text-kehwa-cream)',
+                      padding: '3px 10px',
+                      borderRadius: '999px',
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <Bot size={11} color="#90CDF4" />
+                    <span>{ide}</span>
+                  </span>
+                ))}
+              </div>
+
+              {/* MCP Features List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '0.82rem', color: 'var(--text-parchment-muted)' }}>
+                  <Code2 size={16} color="#90CDF4" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <strong style={{ color: 'var(--text-kehwa-cream)' }}>Sprint-Aware Coding: </strong>
+                    Your AI coding companion checks your active commitment block before beginning architectural refactors.
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '0.82rem', color: 'var(--text-parchment-muted)' }}>
+                  <ShieldCheck size={16} color="#4ADE80" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <strong style={{ color: 'var(--text-kehwa-cream)' }}>Distraction Drift Alerts: </strong>
+                    Detects when coding tasks diverge from today's promised deliverable to keep you on high-impact work.
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '0.82rem', color: 'var(--text-parchment-muted)' }}>
+                  <Layers size={16} color="var(--saffron-ember)" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <strong style={{ color: 'var(--text-kehwa-cream)' }}>18 Native Tools: </strong>
+                    Includes `get_today_plan`, `create_commitment`, `stress_test_plan`, `detect_excuse`, `get_telemetry_stats`.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick MCP Config snippet */}
+            <div style={{
+              background: 'rgba(0,0,0,0.5)',
+              padding: '8px 12px',
+              borderRadius: '6px',
+              border: '1px solid rgba(144, 205, 244, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '0.8rem',
+              fontFamily: 'monospace',
+            }}>
+              <span style={{ color: '#90CDF4' }}>npx -y aazdoh-mcp</span>
+              <button
+                onClick={() => copyToClipboard('npx -y aazdoh-mcp', true)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: copiedMcp ? '#4ADE80' : 'var(--text-parchment-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '0.74rem',
+                }}
+              >
+                {copiedMcp ? <Check size={14} /> : <Copy size={14} />}
+                <span>{copiedMcp ? 'Copied' : 'Copy'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* The 4-Step Daily Cycle */}
