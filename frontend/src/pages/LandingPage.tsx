@@ -1096,7 +1096,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             margin: '0 auto 28px',
             lineHeight: 1.6,
           }}>
-            Join engineers and focused professionals building genuine operational integrity. No dopamine streaks, no rationalizations.
+            Build sustainable daily momentum with plan feasibility checks, excuse analysis, and genuine accountability.
           </p>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>
