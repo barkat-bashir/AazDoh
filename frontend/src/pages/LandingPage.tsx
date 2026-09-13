@@ -157,24 +157,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </button>
         </div>
 
-        {/* Hero Trust Micro-Pill */}
-        <div style={{
-          marginTop: '16px',
-          fontSize: '0.8rem',
-          color: 'var(--text-tweed-dim)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          justifyContent: 'center',
-          flexWrap: 'wrap'
-        }}>
-          <span>✨ Free & Open Accountability</span>
-          <span>•</span>
-          <span>Terminal CLI & MCP Ready</span>
-          <span>•</span>
-          <span>Zero Credit Card Required</span>
-        </div>
-
         {/* Live Interactive Product Card Mockup */}
         <div className="landing-mockup-card">
           {/* Card Mock Header */}
