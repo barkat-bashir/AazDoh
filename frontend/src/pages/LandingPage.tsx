@@ -777,7 +777,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       Model Context Protocol (MCP)
                     </h3>
                     <span style={{ fontSize: '0.74rem', color: '#90CDF4' }}>
-                      npm: aazdoh-mcp • 18 Native Tools
+                      npm: aazdoh-mcp
                     </span>
                   </div>
                 </div>
@@ -820,7 +820,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <Code2 size={16} color="#90CDF4" style={{ flexShrink: 0, marginTop: '2px' }} />
                   <div>
                     <strong style={{ color: 'var(--text-kehwa-cream)' }}>Commitment Management: </strong>
-                    Tools to fetch today's plan, create, update, complete, postpone, and delete commitments directly from LLMs.
+                    Fetch today's plan, create, update, complete, postpone, and manage commitments directly from your AI assistant.
                   </div>
                 </div>
 
