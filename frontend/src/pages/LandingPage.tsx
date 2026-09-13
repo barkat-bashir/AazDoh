@@ -558,7 +558,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             Terminal CLI & Model Context Protocol (MCP)
           </h2>
           <p style={{ color: 'var(--text-parchment-muted)', fontSize: '0.96rem', maxWidth: '680px', margin: '10px auto 0', lineHeight: 1.6 }}>
-            Manage commitments from your terminal or connect AazDoh directly to your AI assistants (<strong style={{ color: 'var(--text-kehwa-cream)' }}>Claude Desktop, Cursor, Windsurf, Antigravity</strong>).
+            Manage commitments from your terminal or connect AazDoh directly to your AI assistants (<strong style={{ color: 'var(--text-kehwa-cream)' }}>Claude Desktop, Cursor, Antigravity</strong>).
           </p>
         </div>
 
@@ -792,7 +792,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
               {/* Supported AI IDE Pills */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px' }}>
-                {['Claude Desktop', 'Cursor IDE', 'Windsurf', 'Antigravity', 'VS Code'].map((ide) => (
+                {['Claude Desktop', 'Cursor IDE', 'Antigravity'].map((ide) => (
                   <span
                     key={ide}
                     style={{
