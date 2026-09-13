@@ -122,10 +122,15 @@ public class AgentChatService {
         Map<String, Object> todayPlan = agentTools.getTodayPlan(userId);
         Map<String, Object> yesterdayPlan = agentTools.getPlanForDate(userId, LocalDate.now().minusDays(1));
 
+        String userMessage = request.getMessage().trim();
+        if (isTrivialGreeting(userMessage)) {
+            String greetingReply = generateFastGreetingReply(user, persona, todayPlan);
+            return new AgentChatResponse(greetingReply, Collections.emptyList(), false, null);
+        }
+
         // 2. Build system prompt with persona
         String systemPromptText = buildSystemPrompt(persona, todayPlan, yesterdayPlan);
 
-        String userMessage = request.getMessage().trim();
         String reply = null;
 
         try {
@@ -263,6 +268,20 @@ public class AgentChatService {
 
                 Map<String, Object> todayPlan = agentTools.getTodayPlan(userId);
                 Map<String, Object> yesterdayPlan = agentTools.getPlanForDate(userId, LocalDate.now().minusDays(1));
+
+                String userMessage = request.getMessage().trim();
+                if (isTrivialGreeting(userMessage)) {
+                    String greetingReply = generateFastGreetingReply(user, persona, todayPlan);
+                    emitter.send(SseEmitter.event()
+                            .name("DELTA")
+                            .data(AgentStreamEvent.delta(greetingReply)));
+                    emitter.send(SseEmitter.event()
+                            .name("DONE")
+                            .data(AgentStreamEvent.done(greetingReply, Collections.emptyList(), false, null)));
+                    emitter.complete();
+                    return;
+                }
+
                 String systemPromptText = buildSystemPrompt(persona, todayPlan, yesterdayPlan);
 
                 List<Message> messages = new ArrayList<>();
@@ -900,5 +919,101 @@ public class AgentChatService {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private boolean isTrivialGreeting(String message) {
+        if (message == null) return false;
+        String clean = message.trim().toLowerCase()
+                .replaceAll("^[!?,.\\s]+|[!?,.\\s]+$", "");
+        return clean.matches("^(hi|hello|hey|hey there|yo|sup|gm|good morning|good afternoon|good evening|morning)( coach| aazdoh)?$");
+    }
+
+    @SuppressWarnings("unchecked")
+    private String generateFastGreetingReply(User user, AiPersona persona, Map<String, Object> todayPlan) {
+        List<Map<String, Object>> commitments = todayPlan != null
+                ? (List<Map<String, Object>>) todayPlan.getOrDefault("commitments", Collections.emptyList())
+                : Collections.emptyList();
+
+        long completedCount = todayPlan != null ? (long) todayPlan.getOrDefault("completedCommitments", 0L) : 0L;
+        long pendingCount = todayPlan != null ? (long) todayPlan.getOrDefault("pendingCommitments", 0L) : 0L;
+        int totalCount = commitments.size();
+
+        int executedMinutes = commitments.stream()
+                .filter(c -> "COMPLETED".equalsIgnoreCase(String.valueOf(c.get("status"))))
+                .mapToInt(c -> c.get("estimatedMinutes") != null ? (int) c.get("estimatedMinutes") : 30)
+                .sum();
+
+        int pendingMinutes = commitments.stream()
+                .filter(c -> "PENDING".equalsIgnoreCase(String.valueOf(c.get("status"))) || "IN_PROGRESS".equalsIgnoreCase(String.valueOf(c.get("status"))))
+                .mapToInt(c -> c.get("estimatedMinutes") != null ? (int) c.get("estimatedMinutes") : 30)
+                .sum();
+
+        StringBuilder sb = new StringBuilder();
+
+        if (totalCount == 0) {
+            switch (persona) {
+                case GENTLE -> sb.append("Welcome! You have a clean slate today with 0 commitments scheduled.\n\nWhat is one gentle priority you'd like to set for today?");
+                case STRICT -> sb.append("⚡ **Zero commitments on the board.** A day without clear promises is a day lost to distraction.\n\nWhat are your core deep-work targets for today?");
+                default -> sb.append("⚡ **Welcome back.** You currently have 0 commitments scheduled for today.\n\nWhat are your key focus priorities to lock in?");
+            }
+            return sb.toString();
+        }
+
+        if (pendingCount == 0 && completedCount > 0) {
+            switch (persona) {
+                case GENTLE -> sb.append(String.format("🎉 **Wonderful execution!** You've completed all %d commitments today (%dm executed).\n\nTake time to celebrate this win and rest well.", completedCount, executedMinutes));
+                case STRICT -> sb.append(String.format("⚡ **Board Cleared:** %d/%d tasks completed (%dm executed). Zero pending tasks left.\n\nReady for evening reflection or locking in tomorrow's priorities?", completedCount, totalCount, executedMinutes));
+                default -> sb.append(String.format("⚡ **All Done!** You've completed all %d scheduled commitments today (%dm executed).\n\nReady for your daily reflection, or adding an extra sprint?", completedCount, executedMinutes));
+            }
+            return sb.toString();
+        }
+
+        // Standard active day breakdown
+        switch (persona) {
+            case GENTLE -> {
+                sb.append("Welcome back! Let's check in on your day:\n\n");
+                sb.append(String.format("You've completed **%d of %d tasks** today (%dm executed). You still have **%d pending commitments** totaling %dm:\n",
+                        completedCount, totalCount, executedMinutes, pendingCount, pendingMinutes));
+            }
+            case STRICT -> {
+                sb.append("⚡ **Execution Check:**\n\n");
+                sb.append(String.format("Progress: **%d of %d tasks done** today (%dm executed). You still have **%d pending commitments** totaling %dm:\n",
+                        completedCount, totalCount, executedMinutes, pendingCount, pendingMinutes));
+            }
+            default -> {
+                sb.append("Welcome back. Let's do a quick execution check.\n\n");
+                sb.append(String.format("You've completed **%d of %d tasks** today (%dm executed). You still have **%d pending commitments** totaling %dm:\n",
+                        completedCount, totalCount, executedMinutes, pendingCount, pendingMinutes));
+            }
+        }
+
+        List<Map<String, Object>> pendingList = commitments.stream()
+                .filter(c -> "PENDING".equalsIgnoreCase(String.valueOf(c.get("status"))) || "IN_PROGRESS".equalsIgnoreCase(String.valueOf(c.get("status"))))
+                .limit(5)
+                .collect(Collectors.toList());
+
+        for (Map<String, Object> c : pendingList) {
+            String title = String.valueOf(c.get("title"));
+            Object est = c.get("estimatedMinutes");
+            sb.append(String.format("* **%s** (%sm)\n", title, est != null ? est : 30));
+        }
+
+        if (pendingCount > 5) {
+            sb.append(String.format("* ...and %d more pending tasks\n", pendingCount - 5));
+        }
+
+        int totalDayMinutes = executedMinutes + pendingMinutes;
+        if (totalDayMinutes > 360) {
+            sb.append(String.format("\n⚠️ *Note: Your total planned load today is %dm (>6 hours). Watch out for cognitive fatigue.*\n", totalDayMinutes));
+        }
+
+        sb.append("\n");
+        switch (persona) {
+            case GENTLE -> sb.append("Which deep work block feels good to focus on next?");
+            case STRICT -> sb.append("No room for procrastination. Which deep work block are you locking in right now?");
+            default -> sb.append("Which deep work block are you locking in next?");
+        }
+
+        return sb.toString();
     }
 }
