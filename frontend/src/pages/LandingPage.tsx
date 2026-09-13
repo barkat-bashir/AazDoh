@@ -552,13 +552,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             marginBottom: '10px'
           }}>
             <Terminal size={14} />
-            <span>Developer & AI Ecosystem</span>
+            <span>Developer Ecosystem</span>
           </div>
           <h2 style={{ fontSize: 'clamp(1.7rem, 4vw, 2.3rem)', fontWeight: 800, marginTop: '4px', color: 'var(--text-kehwa-cream)' }}>
-            Accountability Built Directly into Your Dev Workflow
+            Terminal CLI & Model Context Protocol (MCP)
           </h2>
           <p style={{ color: 'var(--text-parchment-muted)', fontSize: '0.96rem', maxWidth: '680px', margin: '10px auto 0', lineHeight: 1.6 }}>
-            No browser context-switching needed. Manage commitments directly in your shell or connect your AI coding assistants (<strong style={{ color: 'var(--text-kehwa-cream)' }}>Cursor, Claude, Windsurf</strong>) via Model Context Protocol.
+            Manage commitments from your terminal or connect AazDoh directly to your AI assistants (<strong style={{ color: 'var(--text-kehwa-cream)' }}>Claude Desktop, Cursor, Windsurf, Antigravity</strong>).
           </p>
         </div>
 
@@ -595,10 +595,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   </div>
                   <div>
                     <h3 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 700, color: 'var(--text-kehwa-cream)' }}>
-                      Autonomous Terminal Agent
+                      Terminal CLI Agent
                     </h3>
                     <span style={{ fontSize: '0.74rem', color: 'var(--text-tweed-dim)' }}>
-                      package: aazdoh-cli / binary: az
+                      npm: aazdoh-cli / bin: az, aazdoh
                     </span>
                   </div>
                 </div>
@@ -608,7 +608,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
 
               <p style={{ fontSize: '0.88rem', color: 'var(--text-parchment-muted)', lineHeight: 1.55, marginBottom: '16px' }}>
-                Full-featured terminal agent with instant natural language action execution, 60s plan stress testing, and real-time SSE token streaming.
+                Execute natural language instructions, stress-test your day, inspect 7-day velocity, and converse with an interactive REPL directly in your shell.
               </p>
 
               {/* Terminal Interactive Window Frame */}
@@ -653,7 +653,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                           fontWeight: terminalTab === tab ? 700 : 400,
                         }}
                       >
-                        {tab === 'today' ? 'az today' : tab === 'action' ? 'az "action"' : tab === 'stress' ? 'az stress-test' : 'az chat'}
+                        {tab === 'today' ? 'az today' : tab === 'action' ? 'az "..."' : tab === 'stress' ? 'az stress-test' : 'az chat'}
                       </button>
                     ))}
                   </div>
@@ -685,8 +685,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     <>
                       <div style={{ color: '#E2953B', fontWeight: 700 }}>$ az "completed Redis lock, add 30m security audit"</div>
                       <div style={{ color: '#8C827A', marginTop: '4px' }}>⚡ Reasoning over execution options...</div>
-                      <div style={{ color: '#4ADE80', marginTop: '6px' }}>✓ Action Executed: Marked "Redis Distributed Lock" as COMPLETED</div>
-                      <div style={{ color: '#4ADE80' }}>✓ Action Executed: Created "Security Audit" (30m, HIGH Priority)</div>
+                      <div style={{ color: '#4ADE80', marginTop: '6px' }}>✓ Completed Commitment: "Redis Distributed Lock"</div>
+                      <div style={{ color: '#4ADE80' }}>✓ Created Commitment: "Security Audit" (30m, HIGH Priority)</div>
                       <div style={{ color: '#8C827A', marginTop: '6px' }}>(Run 'az undo' anytime to revert)</div>
                     </>
                   )}
@@ -696,7 +696,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       <div style={{ color: '#E2953B', fontWeight: 700 }}>$ az stress-test</div>
                       <div style={{ color: '#4ADE80', marginTop: '4px' }}>[LOW RISK] [████████░░░░░░░░░░░░] 22%</div>
                       <div style={{ color: '#F5EFEB', marginTop: '6px' }}>
-                        "Planned 3.2h load sits safely within your 4.1h capacity. Protect your morning 90m block to maintain maximum momentum."
+                        "Planned 3.2h load sits safely within your 4.1h historical capacity. Protect your morning 90m block to maintain maximum momentum."
                       </div>
                     </>
                   )}
@@ -777,7 +777,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       Model Context Protocol (MCP)
                     </h3>
                     <span style={{ fontSize: '0.74rem', color: '#90CDF4' }}>
-                      package: aazdoh-mcp • 18 Production Tools
+                      npm: aazdoh-mcp • 18 Native Tools
                     </span>
                   </div>
                 </div>
@@ -787,7 +787,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
 
               <p style={{ fontSize: '0.88rem', color: 'var(--text-parchment-muted)', lineHeight: 1.55, marginBottom: '14px' }}>
-                Connect your live schedule, sprint stress-tests, and excuse receipts directly into your favorite AI coding environments.
+                Connect your commitments, plan stress-testing, excuse analysis, and peer accountability feeds directly into your AI clients.
               </p>
 
               {/* Supported AI IDE Pills */}
@@ -819,24 +819,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '0.82rem', color: 'var(--text-parchment-muted)' }}>
                   <Code2 size={16} color="#90CDF4" style={{ flexShrink: 0, marginTop: '2px' }} />
                   <div>
-                    <strong style={{ color: 'var(--text-kehwa-cream)' }}>Sprint-Aware Coding: </strong>
-                    Your AI coding companion checks your active commitment block before beginning architectural refactors.
+                    <strong style={{ color: 'var(--text-kehwa-cream)' }}>Commitment Management: </strong>
+                    Tools to fetch today's plan, create, update, complete, postpone, and delete commitments directly from LLMs.
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '0.82rem', color: 'var(--text-parchment-muted)' }}>
                   <ShieldCheck size={16} color="#4ADE80" style={{ flexShrink: 0, marginTop: '2px' }} />
                   <div>
-                    <strong style={{ color: 'var(--text-kehwa-cream)' }}>Distraction Drift Alerts: </strong>
-                    Detects when coding tasks diverge from today's promised deliverable to keep you on high-impact work.
+                    <strong style={{ color: 'var(--text-kehwa-cream)' }}>AI Plan Stress-Testing & Insights: </strong>
+                    Evaluate overload risk scores, apply proposed plan optimizations, and analyze postponement patterns.
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '0.82rem', color: 'var(--text-parchment-muted)' }}>
                   <Layers size={16} color="var(--saffron-ember)" style={{ flexShrink: 0, marginTop: '2px' }} />
                   <div>
-                    <strong style={{ color: 'var(--text-kehwa-cream)' }}>18 Native Tools: </strong>
-                    Includes `get_today_plan`, `create_commitment`, `stress_test_plan`, `detect_excuse`, `get_telemetry_stats`.
+                    <strong style={{ color: 'var(--text-kehwa-cream)' }}>Telemetry & Partner Feeds: </strong>
+                    Query 7-day focus velocity metrics, reviews, and partner discussion threads over MCP.
                   </div>
                 </div>
               </div>
