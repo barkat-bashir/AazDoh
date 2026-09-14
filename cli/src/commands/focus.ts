@@ -324,8 +324,24 @@ export async function handleFocusWorker(
 /**
  * Main dispatcher for `aazdoh focus` / `aazdoh timer`
  */
-export async function handleFocusCommand(args: string[], options: FocusOptions): Promise<void> {
-  const firstArg = (args[0] || "").toLowerCase().trim();
+export async function handleFocusCommand(args: string[], options: FocusOptions = {}): Promise<void> {
+  const mergedOptions: FocusOptions = { ...options };
+  const cleanTokens: string[] = [];
+
+  for (const token of args) {
+    const t = token.trim();
+    if (t === "--live" || t === "-l" || t.toLowerCase() === "live") {
+      mergedOptions.live = true;
+    } else if (t === "--no-notify") {
+      mergedOptions.notify = false;
+    } else if (t === "--no-sound") {
+      mergedOptions.sound = false;
+    } else if (t) {
+      cleanTokens.push(t);
+    }
+  }
+
+  const firstArg = (cleanTokens[0] || "").toLowerCase().trim();
 
   // Subcommand dispatch: status
   if (firstArg === "status") {
@@ -341,7 +357,7 @@ export async function handleFocusCommand(args: string[], options: FocusOptions):
 
   // Check if a timer is already active
   const existing = getTimerState();
-  if (existing && !options.live) {
+  if (existing && !mergedOptions.live) {
     const endTime = new Date(existing.targetEndTime).getTime();
     const remainingSeconds = Math.max(0, Math.round((endTime - Date.now()) / 1000));
     console.log(chalk.yellow(`\n   ⚠️  A focus timer is already running in the background:`));
@@ -353,20 +369,30 @@ export async function handleFocusCommand(args: string[], options: FocusOptions):
   let durationSeconds = 25 * 60;
   let taskName = "Deep Focus Session";
 
-  if (args.length > 0) {
-    if (isDurationToken(args[0])) {
-      durationSeconds = parseDurationToSeconds(args[0]);
-      if (args.length > 1) {
-        taskName = args.slice(1).join(" ").trim() || taskName;
+  if (cleanTokens.length > 0) {
+    if (isDurationToken(cleanTokens[0])) {
+      durationSeconds = parseDurationToSeconds(cleanTokens[0]);
+      if (cleanTokens.length > 1) {
+        taskName = cleanTokens.slice(1).join(" ").trim() || taskName;
       }
     } else {
-      taskName = args.join(" ").trim() || taskName;
+      // Find if any token is a duration token
+      const durationIndex = cleanTokens.findIndex(isDurationToken);
+      if (durationIndex !== -1) {
+        durationSeconds = parseDurationToSeconds(cleanTokens[durationIndex]);
+        const otherTokens = cleanTokens.filter((_, i) => i !== durationIndex);
+        if (otherTokens.length > 0) {
+          taskName = otherTokens.join(" ").trim() || taskName;
+        }
+      } else {
+        taskName = cleanTokens.join(" ").trim() || taskName;
+      }
     }
   }
 
   // If live mode requested, run the interactive foreground TUI
-  if (options.live) {
-    await runLiveTimerTUI(durationSeconds, taskName, options);
+  if (mergedOptions.live) {
+    await runLiveTimerTUI(durationSeconds, taskName, mergedOptions);
     return;
   }
 
