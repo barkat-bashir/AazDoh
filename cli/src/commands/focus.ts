@@ -241,7 +241,12 @@ export async function dispatchNotificationAsync(
     if (process.platform === "win32") {
       try {
         const soundCmd = "$files = @('C:\\Windows\\Media\\Alarm01.wav', 'C:\\Windows\\Media\\notify.wav', 'C:\\Windows\\Media\\tada.wav'); $p = $false; foreach ($f in $files) { if (Test-Path $f) { (New-Object Media.SoundPlayer $f).PlaySync(); $p = $true; break; } } if (-not $p) { [System.Media.SystemSounds]::Exclamation.Play(); }";
-        execFile("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", soundCmd], () => {});
+        execFile(
+          "powershell.exe",
+          ["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", soundCmd],
+          { windowsHide: true },
+          () => {}
+        );
       } catch {}
     } else if (process.platform === "darwin") {
       try {
@@ -468,12 +473,18 @@ async function runLiveTimerTUI(
 
   process.stdout.write("\u001B[?25l");
 
+  let keyListener: ((key: string) => void) | null = null;
+
   const cleanup = () => {
     if (timerInterval) {
       clearInterval(timerInterval);
       timerInterval = null;
     }
     process.stdout.write("\u001B[?25h");
+    if (keyListener) {
+      process.stdin.removeListener("data", keyListener);
+      keyListener = null;
+    }
     if (process.stdin.isTTY && process.stdin.setRawMode) {
       process.stdin.setRawMode(false);
       process.stdin.pause();
@@ -511,7 +522,7 @@ async function runLiveTimerTUI(
       process.stdin.resume();
       process.stdin.setEncoding("utf8");
 
-      process.stdin.on("data", (key: string) => {
+      keyListener = (key: string) => {
         if (key === "\u0003" || key === "q" || key === "Q") {
           cleanup();
           readline.cursorTo(process.stdout, 0);
@@ -555,7 +566,9 @@ async function runLiveTimerTUI(
           renderTimerFrame();
           return;
         }
-      });
+      };
+
+      process.stdin.on("data", keyListener);
     }
 
     renderTimerFrame();
