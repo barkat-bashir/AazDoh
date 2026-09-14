@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { fileURLToPath } from "url";
-import { spawn } from "child_process";
+import { spawn, exec, execFile } from "child_process";
 import chalk from "chalk";
 import notifier from "node-notifier";
 import { confirm, select } from "@inquirer/prompts";
@@ -12,6 +12,7 @@ import { AazDohApiClient } from "../client.js";
 import { printBanner } from "../ui/banner.js";
 
 const TIMER_STATE_FILE = path.join(os.homedir(), ".aazdoh", "timer.json");
+const COMPLETED_FOCUS_FILE = path.join(os.homedir(), ".aazdoh", "completed_focus.json");
 
 export interface BackgroundTimerState {
   pid: number;
@@ -21,6 +22,41 @@ export interface BackgroundTimerState {
   totalDurationSeconds: number;
   notify: boolean;
   sound: boolean;
+}
+
+export interface CompletedFocusReceipt {
+  taskName: string;
+  durationSeconds: number;
+  completedAt: string;
+}
+
+export function saveCompletedReceipt(receipt: CompletedFocusReceipt): void {
+  try {
+    const dir = path.dirname(COMPLETED_FOCUS_FILE);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(COMPLETED_FOCUS_FILE, JSON.stringify(receipt, null, 2), "utf-8");
+  } catch {}
+}
+
+export function checkAndDisplayCompletedFocus(): void {
+  try {
+    if (fs.existsSync(COMPLETED_FOCUS_FILE)) {
+      const content = fs.readFileSync(COMPLETED_FOCUS_FILE, "utf-8");
+      const receipt = JSON.parse(content) as CompletedFocusReceipt;
+      fs.unlinkSync(COMPLETED_FOCUS_FILE);
+
+      const timeStr = formatTime(receipt.durationSeconds);
+      console.log("");
+      console.log(
+        chalk.bgHex("#10B981").hex("#FFFFFF").bold(" 🎉 FOCUS SESSION COMPLETED ") +
+        chalk.hex("#E2953B").bold(` "${receipt.taskName}"`) +
+        chalk.gray(` (${timeStr}) — Great job!`)
+      );
+      console.log("");
+    }
+  } catch {}
 }
 
 export function getTimerState(): BackgroundTimerState | null {
@@ -139,9 +175,10 @@ export interface FocusOptions {
  * Shows current active timer status (always computed from real wall-clock time)
  */
 export function handleFocusStatus(): void {
+  checkAndDisplayCompletedFocus();
   const state = getTimerState();
   if (!state) {
-    console.log(chalk.gray("\n   No active background focus timer running."));
+    console.log(chalk.gray("   No active background focus timer running."));
     console.log(chalk.gray('   Start one with: ') + chalk.hex("#E2953B")('az focus 25m "Your Task"') + "\n");
     return;
   }
@@ -183,13 +220,32 @@ export function handleFocusStop(): void {
 }
 
 /**
- * Dispatches cross-platform desktop notification with safe async wait
+ * Dispatches cross-platform desktop notification and system chime with safe async wait
  */
 export async function dispatchNotificationAsync(
   title: string,
   message: string,
   sound: boolean = true
 ): Promise<void> {
+  // 1. Play native system audio alert
+  if (sound) {
+    if (process.platform === "win32") {
+      try {
+        const soundCmd = "$files = @('C:\\Windows\\Media\\Alarm01.wav', 'C:\\Windows\\Media\\notify.wav', 'C:\\Windows\\Media\\tada.wav'); $p = $false; foreach ($f in $files) { if (Test-Path $f) { (New-Object Media.SoundPlayer $f).PlaySync(); $p = $true; break; } } if (-not $p) { [System.Media.SystemSounds]::Exclamation.Play(); }";
+        execFile("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", soundCmd], () => {});
+      } catch {}
+    } else if (process.platform === "darwin") {
+      try {
+        exec("afplay /System/Library/Sounds/Glass.aiff", () => {});
+      } catch {}
+    } else {
+      try {
+        process.stdout.write("\u0007");
+      } catch {}
+    }
+  }
+
+  // 2. Dispatch native OS toast notification
   return new Promise<void>((resolve) => {
     let resolved = false;
     const finish = () => {
@@ -200,14 +256,14 @@ export async function dispatchNotificationAsync(
     };
 
     // Safety timeout: ensure we don't hang indefinitely
-    const timer = setTimeout(finish, 3500);
+    const timer = setTimeout(finish, 4000);
 
     try {
       notifier.notify(
         {
           title,
           message,
-          sound,
+          sound: false, // Handled above via native Media.SoundPlayer
           wait: false,
           appID: "AazDoh Focus",
         },
@@ -242,6 +298,12 @@ export async function handleFocusWorker(
   }
 
   clearTimerState();
+
+  saveCompletedReceipt({
+    taskName,
+    durationSeconds: seconds,
+    completedAt: new Date().toISOString(),
+  });
 
   if (notify) {
     await dispatchNotificationAsync("⚡ AazDoh Focus Completed", `Time's up for: ${taskName}!`, sound);

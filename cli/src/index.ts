@@ -8,7 +8,7 @@ import { chatCommand } from "./commands/chat.js";
 import { handleUndoCommand } from "./commands/undo.js";
 import { handleStatsCommand } from "./commands/stats.js";
 import { stressTestCommand } from "./commands/stressTest.js";
-import { handleFocusCommand, handleFocusWorker } from "./commands/focus.js";
+import { handleFocusCommand, handleFocusWorker, checkAndDisplayCompletedFocus } from "./commands/focus.js";
 import { checkForCliUpdates, CURRENT_CLI_VERSION } from "./ui/updater.js";
 
 const program = new Command();
@@ -18,8 +18,9 @@ program
   .description("⚡ AazDoh Autonomous AI Accountability Coach & Execution Agent for the Terminal")
   .version(CURRENT_CLI_VERSION);
 
-// Hook background update check
+// Hook background update check and completion receipt display
 program.hook("preAction", async () => {
+  checkAndDisplayCompletedFocus();
   await checkForCliUpdates();
 });
 

@@ -6,7 +6,7 @@ import { AazDohApiClient } from "../client.js";
 import { printBanner, formatPersonaBadge } from "../ui/banner.js";
 import { renderCommitmentsTable, renderTelemetryTable } from "../ui/table.js";
 import { stressTestCommand } from "./stressTest.js";
-import { handleFocusCommand } from "./focus.js";
+import { handleFocusCommand, checkAndDisplayCompletedFocus } from "./focus.js";
 
 function printHelpMenu(): void {
   console.log(chalk.hex("#E2953B").bold("\n   ⚡ AAZDOH INTERACTIVE COCKPIT COMMANDS:"));
@@ -70,6 +70,7 @@ export async function chatCommand(): Promise<void> {
   const history: Array<{ role: string; content: string }> = [];
 
   while (true) {
+    checkAndDisplayCompletedFocus();
     let query = "";
     try {
       query = await input({
