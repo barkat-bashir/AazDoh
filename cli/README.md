@@ -223,21 +223,24 @@ az stats --days 14
 ---
 
 ### 7. `aazdoh focus` | `az timer` (Local Offline Focus Timer & Desktop Alerts)
-Run a 100% offline, zero-network Pomodoro and deep work focus timer directly in your terminal with native OS desktop toast notifications when time expires.
+Run a 100% offline, zero-network Pomodoro and deep work focus timer directly on your machine. **Runs in the background by default**, freeing your terminal immediately, and alerts you with a native OS desktop toast notification when time expires.
 
 ```bash
-# 25-minute Pomodoro (default)
+# 25-minute Pomodoro in background (default - frees terminal immediately)
 az focus
 
-# Custom duration & task description
+# Custom duration & task in background
 az focus 45m "PostgreSQL connection pool optimization"
 az focus 1.5h "Drafting system architecture"
 
-# Live hotkeys during focus session:
-# [Space] Pause / Resume
-# [+] Quick-extend +5 minutes
-# [-] Subtract -5 minutes
-# [q] Exit / Cancel
+# Check active timer status & progress meter
+az focus status
+
+# Stop / cancel active background timer
+az focus stop
+
+# Interactive live full-screen countdown with hotkeys ([Space] pause, [+] +5m)
+az focus 25m --live
 ```
 
 ---

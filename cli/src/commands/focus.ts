@@ -1,10 +1,74 @@
 import readline from "readline";
+import fs from "fs";
+import path from "path";
+import os from "os";
+import { fileURLToPath } from "url";
+import { spawn } from "child_process";
 import chalk from "chalk";
 import notifier from "node-notifier";
 import { confirm, select } from "@inquirer/prompts";
 import { isConfigured } from "../config.js";
 import { AazDohApiClient } from "../client.js";
 import { printBanner } from "../ui/banner.js";
+
+const TIMER_STATE_FILE = path.join(os.homedir(), ".aazdoh", "timer.json");
+
+export interface BackgroundTimerState {
+  pid: number;
+  taskName: string;
+  startTime: string;
+  targetEndTime: string;
+  totalDurationSeconds: number;
+  notify: boolean;
+  sound: boolean;
+}
+
+export function getTimerState(): BackgroundTimerState | null {
+  try {
+    if (fs.existsSync(TIMER_STATE_FILE)) {
+      const content = fs.readFileSync(TIMER_STATE_FILE, "utf-8");
+      const state = JSON.parse(content) as BackgroundTimerState;
+      // Check if timer is still within time window
+      const endTime = new Date(state.targetEndTime).getTime();
+      if (Date.now() < endTime) {
+        return state;
+      } else {
+        // Expired, remove stale file
+        clearTimerState();
+      }
+    }
+  } catch {
+    // Ignored
+  }
+  return null;
+}
+
+export function saveTimerState(state: BackgroundTimerState): void {
+  const dir = path.dirname(TIMER_STATE_FILE);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  fs.writeFileSync(TIMER_STATE_FILE, JSON.stringify(state, null, 2), "utf-8");
+}
+
+export function clearTimerState(): void {
+  try {
+    if (fs.existsSync(TIMER_STATE_FILE)) {
+      fs.unlinkSync(TIMER_STATE_FILE);
+    }
+  } catch {
+    // Ignored
+  }
+}
+
+function isProcessAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Parses user input for duration string into seconds.
@@ -17,24 +81,20 @@ export function parseDurationToSeconds(input?: string): number {
 
   const clean = input.trim().toLowerCase();
   
-  // Pure number check: e.g. "25" -> 25 minutes
   if (/^\d+(\.\d+)?$/.test(clean)) {
     return Math.max(1, Math.round(parseFloat(clean) * 60));
   }
 
-  // Hours: e.g. "1.5h", "2hours", "1hr"
   const hourMatch = clean.match(/^(\d+(\.\d+)?)\s*(h|hr|hours?)$/);
   if (hourMatch) {
     return Math.max(1, Math.round(parseFloat(hourMatch[1]) * 3600));
   }
 
-  // Minutes: e.g. "25m", "45min", "30mins"
   const minMatch = clean.match(/^(\d+(\.\d+)?)\s*(m|min|mins|minutes?)$/);
   if (minMatch) {
     return Math.max(1, Math.round(parseFloat(minMatch[1]) * 60));
   }
 
-  // Seconds: e.g. "90s", "30sec"
   const secMatch = clean.match(/^(\d+(\.\d+)?)\s*(s|sec|secs|seconds?)$/);
   if (secMatch) {
     return Math.max(1, Math.round(parseFloat(secMatch[1])));
@@ -70,12 +130,118 @@ function renderProgressBar(percentage: number, width: number = 24): string {
   return barColor("█".repeat(filled)) + chalk.gray("░".repeat(empty));
 }
 
-interface FocusOptions {
+export interface FocusOptions {
   notify?: boolean;
   sound?: boolean;
+  live?: boolean;
 }
 
+/**
+ * Shows current active timer status
+ */
+export function handleFocusStatus(): void {
+  const state = getTimerState();
+  if (!state) {
+    console.log(chalk.gray("\n   No active background focus timer running."));
+    console.log(chalk.gray('   Start one with: ') + chalk.hex("#E2953B")('az focus 25m "Your Task"') + "\n");
+    return;
+  }
+
+  const endTime = new Date(state.targetEndTime).getTime();
+  const now = Date.now();
+  const remainingSeconds = Math.max(0, Math.round((endTime - now) / 1000));
+  const elapsedSeconds = state.totalDurationSeconds - remainingSeconds;
+  const percent = Math.min(100, Math.round((elapsedSeconds / state.totalDurationSeconds) * 100));
+  const formattedEndTime = new Date(endTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  printBanner();
+  console.log(`   ${chalk.bgHex("#C05330").hex("#FFFFFF").bold(" ⏳ ACTIVE FOCUS SESSION ")} ${chalk.hex("#E2953B").bold(state.taskName)}`);
+  console.log(`   [${renderProgressBar(percent, 25)}] ${chalk.bold(formatTime(remainingSeconds))} remaining (${percent}%)`);
+  console.log(`   ${chalk.gray("Target finish:")} ${chalk.hex("#FDFBF7")(formattedEndTime)}  |  ${chalk.gray("Total:")} ${chalk.cyan(formatTime(state.totalDurationSeconds))}`);
+  console.log(chalk.gray(`\n   Run `) + chalk.cyan(`az focus stop`) + chalk.gray(` to cancel.\n`));
+}
+
+/**
+ * Stops/cancels any active background timer
+ */
+export function handleFocusStop(): void {
+  const state = getTimerState();
+  if (!state) {
+    console.log(chalk.gray("\n   No active focus timer to stop.\n"));
+    return;
+  }
+
+  if (state.pid && isProcessAlive(state.pid)) {
+    try {
+      process.kill(state.pid);
+    } catch {
+      // Ignored
+    }
+  }
+
+  clearTimerState();
+  console.log(chalk.hex("#8C827A")(`\n   🛑 Focus session cancelled: "${state.taskName}"\n`));
+}
+
+/**
+ * Internal background worker entry point
+ */
+export async function handleFocusWorker(
+  seconds: number,
+  taskName: string,
+  notify: boolean,
+  sound: boolean
+): Promise<void> {
+  const ms = seconds * 1000;
+  await new Promise((resolve) => setTimeout(resolve, ms));
+
+  clearTimerState();
+
+  if (notify) {
+    try {
+      notifier.notify({
+        title: "⚡ AazDoh Focus Completed",
+        message: `Time's up for: ${taskName}!`,
+        sound: sound,
+        wait: false,
+      });
+    } catch {
+      // Ignored
+    }
+  }
+
+  process.exit(0);
+}
+
+/**
+ * Main dispatcher for `aazdoh focus` / `aazdoh timer`
+ */
 export async function handleFocusCommand(args: string[], options: FocusOptions): Promise<void> {
+  const firstArg = (args[0] || "").toLowerCase().trim();
+
+  // Subcommand dispatch: status
+  if (firstArg === "status") {
+    handleFocusStatus();
+    return;
+  }
+
+  // Subcommand dispatch: stop / cancel
+  if (firstArg === "stop" || firstArg === "cancel") {
+    handleFocusStop();
+    return;
+  }
+
+  // Check if a timer is already active
+  const existing = getTimerState();
+  if (existing && !options.live) {
+    const endTime = new Date(existing.targetEndTime).getTime();
+    const remainingSeconds = Math.max(0, Math.round((endTime - Date.now()) / 1000));
+    console.log(chalk.yellow(`\n   ⚠️  A focus timer is already running in the background:`));
+    console.log(`   🎯 ${chalk.hex("#E2953B").bold(existing.taskName)} (${formatTime(remainingSeconds)} remaining)`);
+    console.log(chalk.gray(`   Run `) + chalk.cyan(`az focus status`) + chalk.gray(` to inspect or `) + chalk.cyan(`az focus stop`) + chalk.gray(` to cancel.\n`));
+    return;
+  }
+
   let durationSeconds = 25 * 60;
   let taskName = "Deep Focus Session";
 
@@ -86,11 +252,71 @@ export async function handleFocusCommand(args: string[], options: FocusOptions):
         taskName = args.slice(1).join(" ").trim() || taskName;
       }
     } else {
-      // First argument is not a duration, treat entire input as task name with default 25m
       taskName = args.join(" ").trim() || taskName;
     }
   }
 
+  // If live mode requested, run the interactive foreground TUI
+  if (options.live) {
+    await runLiveTimerTUI(durationSeconds, taskName, options);
+    return;
+  }
+
+  // Default: Start in background & free the terminal immediately
+  const targetEndTime = new Date(Date.now() + durationSeconds * 1000);
+  const formattedEndTime = targetEndTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  const currentDir = path.dirname(fileURLToPath(import.meta.url));
+  const entryScript = path.resolve(currentDir, "../index.js");
+
+  const notifyFlag = options.notify !== false ? "1" : "0";
+  const soundFlag = options.sound !== false ? "1" : "0";
+
+  const child = spawn(
+    process.execPath,
+    [entryScript, "__focus_worker", String(durationSeconds), taskName, notifyFlag, soundFlag],
+    {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+    }
+  );
+
+  child.unref();
+
+  saveTimerState({
+    pid: child.pid || 0,
+    taskName,
+    startTime: new Date().toISOString(),
+    targetEndTime: targetEndTime.toISOString(),
+    totalDurationSeconds: durationSeconds,
+    notify: options.notify !== false,
+    sound: options.sound !== false,
+  });
+
+  printBanner();
+  console.log(`   ${chalk.bgHex("#10B981").hex("#FFFFFF").bold(" ⚡ FOCUS STARTED IN BACKGROUND ")} ${chalk.hex("#E2953B").bold(taskName)}`);
+  console.log(`   ${chalk.gray("Target finish:")} ${chalk.hex("#FDFBF7")(formattedEndTime)}  |  ${chalk.gray("Duration:")} ${chalk.cyan(formatTime(durationSeconds))}`);
+  console.log(`   ${chalk.gray("🔔 Native desktop notification will alert you when time expires.")}`);
+  console.log(
+    chalk.gray("\n   💡 Commands: ") +
+      chalk.cyan("az focus status") +
+      chalk.gray(" (check time)  •  ") +
+      chalk.cyan("az focus stop") +
+      chalk.gray(" (cancel)  •  ") +
+      chalk.cyan("az focus --live") +
+      chalk.gray(" (interactive TUI)\n")
+  );
+}
+
+/**
+ * Interactive Live TUI (used when --live or -l is passed)
+ */
+async function runLiveTimerTUI(
+  durationSeconds: number,
+  taskName: string,
+  options: FocusOptions
+): Promise<void> {
   let totalDuration = durationSeconds;
   let remainingSeconds = durationSeconds;
   let isPaused = false;
@@ -100,12 +326,11 @@ export async function handleFocusCommand(args: string[], options: FocusOptions):
   const formattedEndTime = targetEndTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
   printBanner();
-  console.log(`   ${chalk.bgHex("#C05330").hex("#FFFFFF").bold(" 🎯 FOCUS MODE ")} ${chalk.hex("#E2953B").bold(taskName)}`);
+  console.log(`   ${chalk.bgHex("#C05330").hex("#FFFFFF").bold(" 🎯 LIVE FOCUS MODE ")} ${chalk.hex("#E2953B").bold(taskName)}`);
   console.log(`   ${chalk.gray("Target finish:")} ${chalk.hex("#FDFBF7")(formattedEndTime)}  |  ${chalk.gray("Duration:")} ${chalk.cyan(formatTime(totalDuration))}`);
   console.log("");
   console.log(chalk.gray("   Controls: [Space] Pause/Resume  [+] +5m  [-] -5m  [q] Cancel & Exit\n"));
 
-  // Hide cursor during timer
   process.stdout.write("\u001B[?25l");
 
   const cleanup = () => {
@@ -113,7 +338,6 @@ export async function handleFocusCommand(args: string[], options: FocusOptions):
       clearInterval(timerInterval);
       timerInterval = null;
     }
-    // Restore cursor
     process.stdout.write("\u001B[?25h");
     if (process.stdin.isTTY && process.stdin.setRawMode) {
       process.stdin.setRawMode(false);
@@ -139,14 +363,12 @@ export async function handleFocusCommand(args: string[], options: FocusOptions):
   };
 
   return new Promise<void>((resolve) => {
-    // Setup Raw Mode Keyboard Listener
     if (process.stdin.isTTY && process.stdin.setRawMode) {
       process.stdin.setRawMode(true);
       process.stdin.resume();
       process.stdin.setEncoding("utf8");
 
       process.stdin.on("data", (key: string) => {
-        // Ctrl+C or 'q'
         if (key === "\u0003" || key === "q" || key === "Q") {
           cleanup();
           readline.cursorTo(process.stdout, 0);
@@ -156,14 +378,12 @@ export async function handleFocusCommand(args: string[], options: FocusOptions):
           return;
         }
 
-        // Space or 'p' -> Pause / Resume
         if (key === " " || key === "p" || key === "P") {
           isPaused = !isPaused;
           renderTimerFrame();
           return;
         }
 
-        // '+' or '=' -> Add 5 minutes
         if (key === "+" || key === "=") {
           remainingSeconds += 5 * 60;
           totalDuration += 5 * 60;
@@ -171,7 +391,6 @@ export async function handleFocusCommand(args: string[], options: FocusOptions):
           return;
         }
 
-        // '-' or '_' -> Subtract 5 minutes
         if (key === "-" || key === "_") {
           if (remainingSeconds > 5 * 60) {
             remainingSeconds -= 5 * 60;
@@ -197,13 +416,11 @@ export async function handleFocusCommand(args: string[], options: FocusOptions):
           readline.cursorTo(process.stdout, 0);
           readline.clearLine(process.stdout, 0);
 
-          // Audio bell
           process.stdout.write("\u0007");
 
           console.log(`\n   ${chalk.bgGreen.black.bold(" 🎉 TIME'S UP! ")} ${chalk.green.bold("Great focus session completed!")}`);
           console.log(`   ${chalk.gray("Completed:")} ${chalk.hex("#E2953B").bold(taskName)} (${formatTime(totalDuration)})\n`);
 
-          // Trigger Desktop Notification if not disabled
           if (options.notify !== false) {
             try {
               notifier.notify({
@@ -213,11 +430,10 @@ export async function handleFocusCommand(args: string[], options: FocusOptions):
                 wait: false,
               });
             } catch {
-              // Ignore notification trigger failures gracefully
+              // Ignored
             }
           }
 
-          // Optional post-timer hook: Sync with AazDoh commitments if logged in
           if (isConfigured()) {
             try {
               const shouldSync = await confirm({
@@ -236,7 +452,7 @@ export async function handleFocusCommand(args: string[], options: FocusOptions):
                   const selectedId = await select({
                     message: "Select the commitment to complete:",
                     choices: pending.map((c: any) => ({
-                      name: `${c.title} (${c.allocatedMinutes}m) [${c.priority}]`,
+                      name: `${c.title} (${c.estimatedMinutes}m) [${c.priority}]`,
                       value: c.id,
                     })),
                   });
@@ -248,7 +464,7 @@ export async function handleFocusCommand(args: string[], options: FocusOptions):
                 }
               }
             } catch {
-              // User cancelled prompt
+              // Cancelled
             }
           }
 

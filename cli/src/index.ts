@@ -8,7 +8,7 @@ import { chatCommand } from "./commands/chat.js";
 import { handleUndoCommand } from "./commands/undo.js";
 import { handleStatsCommand } from "./commands/stats.js";
 import { stressTestCommand } from "./commands/stressTest.js";
-import { handleFocusCommand } from "./commands/focus.js";
+import { handleFocusCommand, handleFocusWorker } from "./commands/focus.js";
 import { checkForCliUpdates, CURRENT_CLI_VERSION } from "./ui/updater.js";
 
 const program = new Command();
@@ -64,10 +64,21 @@ program
   .command("focus [durationOrTask...]")
   .alias("timer")
   .description("Start a local offline deep focus / Pomodoro timer with desktop notifications")
+  .option("-l, --live", "Run interactive live countdown in foreground with keyboard controls")
   .option("--no-notify", "Disable native desktop notification on timer completion")
   .option("--no-sound", "Mute notification sound")
-  .action(async (args: string[], options: { notify?: boolean; sound?: boolean }) => {
+  .action(async (args: string[], options: { notify?: boolean; sound?: boolean; live?: boolean }) => {
     await handleFocusCommand(args, options);
+  });
+
+// Internal background worker daemon (not displayed in help menu)
+program
+  .command("__focus_worker <seconds> <taskName> <notify> <sound>", { hidden: true })
+  .action(async (secondsStr: string, taskName: string, notifyStr: string, soundStr: string) => {
+    const seconds = parseInt(secondsStr, 10) || 1500;
+    const notify = notifyStr !== "0";
+    const sound = soundStr !== "0";
+    await handleFocusWorker(seconds, taskName, notify, sound);
   });
 
 program

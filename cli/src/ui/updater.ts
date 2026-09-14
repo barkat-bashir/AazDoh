@@ -16,7 +16,7 @@ export function getCliVersion(): string {
   } catch {
     // fallback
   }
-  return "1.0.5";
+  return "1.0.6";
 }
 
 export const CURRENT_CLI_VERSION = getCliVersion();
@@ -78,12 +78,12 @@ export async function checkForCliUpdates(): Promise<void> {
 
       table.push([
         chalk.hex("#E2953B").bold(`⚡ Update available: `) +
-          chalk.gray(`${CURRENT_CLI_VERSION}`) +
-          chalk.hex("#E2953B")(" → ") +
-          chalk.green.bold(`${latestVersion}\n`) +
-          chalk.hex("#FDFBF7")(`Run `) +
-          chalk.cyan.bold(`npm install -g aazdoh-cli`) +
-          chalk.hex("#FDFBF7")(` to update to the latest version.`),
+        chalk.gray(`${CURRENT_CLI_VERSION}`) +
+        chalk.hex("#E2953B")(" → ") +
+        chalk.green.bold(`${latestVersion}\n`) +
+        chalk.hex("#FDFBF7")(`Run `) +
+        chalk.cyan.bold(`npm install -g aazdoh-cli`) +
+        chalk.hex("#FDFBF7")(` to update to the latest version.`),
       ]);
 
       console.log(table.toString());
