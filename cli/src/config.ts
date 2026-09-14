@@ -11,6 +11,8 @@ export interface AazDohCliConfig {
   userFullName?: string;
   userEmail?: string;
   aiPersona?: string;
+  lastUpdateCheck?: number;
+  latestKnownVersion?: string;
 }
 
 const CONFIG_DIR = path.join(os.homedir(), ".aazdoh");
@@ -48,6 +50,8 @@ export function getConfig(): AazDohCliConfig {
     userFullName: fileConfig.userFullName,
     userEmail: fileConfig.userEmail,
     aiPersona: fileConfig.aiPersona,
+    lastUpdateCheck: fileConfig.lastUpdateCheck,
+    latestKnownVersion: fileConfig.latestKnownVersion,
   };
 }
 

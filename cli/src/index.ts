@@ -8,13 +8,19 @@ import { chatCommand } from "./commands/chat.js";
 import { handleUndoCommand } from "./commands/undo.js";
 import { handleStatsCommand } from "./commands/stats.js";
 import { stressTestCommand } from "./commands/stressTest.js";
+import { checkForCliUpdates, CURRENT_CLI_VERSION } from "./ui/updater.js";
 
 const program = new Command();
 
 program
   .name("aazdoh")
   .description("⚡ AazDoh Autonomous AI Accountability Coach & Execution Agent for the Terminal")
-  .version("1.0.0");
+  .version(CURRENT_CLI_VERSION);
+
+// Hook background update check
+program.hook("preAction", async () => {
+  await checkForCliUpdates();
+});
 
 program
   .command("login")
@@ -77,4 +83,4 @@ program
     }
   });
 
-program.parse(process.argv);
+await program.parseAsync(process.argv);
