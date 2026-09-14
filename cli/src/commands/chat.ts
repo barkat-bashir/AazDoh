@@ -81,7 +81,11 @@ export async function chatCommand(): Promise<void> {
       break;
     }
 
-    const trimmed = query.trim();
+    let trimmed = query.trim();
+    if (!trimmed) continue;
+
+    // Strip redundant leading "az " or "aazdoh " if typed inside the cockpit
+    trimmed = trimmed.replace(/^(az|aazdoh)\s+/i, "").trim();
     if (!trimmed) continue;
 
     const lower = trimmed.toLowerCase();

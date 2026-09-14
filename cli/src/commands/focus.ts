@@ -183,6 +183,47 @@ export function handleFocusStop(): void {
 }
 
 /**
+ * Dispatches cross-platform desktop notification with safe async wait
+ */
+export async function dispatchNotificationAsync(
+  title: string,
+  message: string,
+  sound: boolean = true
+): Promise<void> {
+  return new Promise<void>((resolve) => {
+    let resolved = false;
+    const finish = () => {
+      if (!resolved) {
+        resolved = true;
+        resolve();
+      }
+    };
+
+    // Safety timeout: ensure we don't hang indefinitely
+    const timer = setTimeout(finish, 3500);
+
+    try {
+      notifier.notify(
+        {
+          title,
+          message,
+          sound,
+          wait: false,
+          appID: "AazDoh Focus",
+        },
+        () => {
+          clearTimeout(timer);
+          finish();
+        }
+      );
+    } catch {
+      clearTimeout(timer);
+      finish();
+    }
+  });
+}
+
+/**
  * Internal background worker entry point with sleep-resilient wall-clock polling
  */
 export async function handleFocusWorker(
@@ -203,16 +244,7 @@ export async function handleFocusWorker(
   clearTimerState();
 
   if (notify) {
-    try {
-      notifier.notify({
-        title: "⚡ AazDoh Focus Completed",
-        message: `Time's up for: ${taskName}!`,
-        sound: sound,
-        wait: false,
-      });
-    } catch {
-      // Ignored
-    }
+    await dispatchNotificationAsync("⚡ AazDoh Focus Completed", `Time's up for: ${taskName}!`, sound);
   }
 
   process.exit(0);
@@ -447,16 +479,7 @@ async function runLiveTimerTUI(
           console.log(`   ${chalk.gray("Completed:")} ${chalk.hex("#E2953B").bold(taskName)} (${formatTime(totalDuration)})\n`);
 
           if (options.notify !== false) {
-            try {
-              notifier.notify({
-                title: "⚡ AazDoh Focus Completed",
-                message: `Time's up for: ${taskName}!`,
-                sound: options.sound !== false,
-                wait: false,
-              });
-            } catch {
-              // Ignored
-            }
+            await dispatchNotificationAsync("⚡ AazDoh Focus Completed", `Time's up for: ${taskName}!`, options.sound !== false);
           }
 
           if (isConfigured()) {
