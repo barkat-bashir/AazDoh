@@ -16,7 +16,7 @@ export function getCliVersion(): string {
   } catch {
     // fallback
   }
-  return "1.0.4";
+  return "1.0.5";
 }
 
 export const CURRENT_CLI_VERSION = getCliVersion();
