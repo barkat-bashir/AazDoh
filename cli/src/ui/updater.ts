@@ -1,8 +1,25 @@
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import chalk from "chalk";
 import Table from "cli-table3";
 import { getConfig, saveConfig } from "../config.js";
 
-export const CURRENT_CLI_VERSION = "1.0.2";
+export function getCliVersion(): string {
+  try {
+    const currentDir = path.dirname(fileURLToPath(import.meta.url));
+    const pkgPath = path.resolve(currentDir, "../../package.json");
+    if (fs.existsSync(pkgPath)) {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
+      if (pkg.version) return pkg.version;
+    }
+  } catch {
+    // fallback
+  }
+  return "1.0.4";
+}
+
+export const CURRENT_CLI_VERSION = getCliVersion();
 
 function compareSemver(current: string, latest: string): boolean {
   const parse = (v: string) => v.replace(/^v/, "").split(".").map((n) => parseInt(n, 10) || 0);

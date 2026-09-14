@@ -6,9 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
-## [1.0.2] - 2026-09-14
+## [1.0.4] - 2026-09-14
 
-### ⚡ CLI (`aazdoh-cli` v1.0.2)
+### ⚡ CLI (`aazdoh-cli` v1.0.4)
+- **Dynamic Version Resolution**: CLI now dynamically reads version at runtime from `package.json`, ensuring accurate version reporting and zero update checker mismatches.
 - **Zero-Friction Interactive Cockpit**: Running `az` or `aazdoh` with no arguments now launches the interactive terminal session by default, automatically pre-loading today's commitments and load summary without kicking users back to the system shell.
 - **Interactive Slash Commands Parity**:
   - Added `/stress-test` (`/stresstest`) to execute the 60-second plan feasibility diagnostic directly from the `az>` prompt.
