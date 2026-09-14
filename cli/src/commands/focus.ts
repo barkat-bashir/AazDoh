@@ -28,12 +28,11 @@ export function getTimerState(): BackgroundTimerState | null {
     if (fs.existsSync(TIMER_STATE_FILE)) {
       const content = fs.readFileSync(TIMER_STATE_FILE, "utf-8");
       const state = JSON.parse(content) as BackgroundTimerState;
-      // Check if timer is still within time window
       const endTime = new Date(state.targetEndTime).getTime();
+      // If the target end time has already passed, clear it
       if (Date.now() < endTime) {
         return state;
       } else {
-        // Expired, remove stale file
         clearTimerState();
       }
     }
@@ -137,7 +136,7 @@ export interface FocusOptions {
 }
 
 /**
- * Shows current active timer status
+ * Shows current active timer status (always computed from real wall-clock time)
  */
 export function handleFocusStatus(): void {
   const state = getTimerState();
@@ -184,7 +183,7 @@ export function handleFocusStop(): void {
 }
 
 /**
- * Internal background worker entry point
+ * Internal background worker entry point with sleep-resilient wall-clock polling
  */
 export async function handleFocusWorker(
   seconds: number,
@@ -192,8 +191,14 @@ export async function handleFocusWorker(
   notify: boolean,
   sound: boolean
 ): Promise<void> {
-  const ms = seconds * 1000;
-  await new Promise((resolve) => setTimeout(resolve, ms));
+  const targetEndTimeMs = Date.now() + seconds * 1000;
+
+  // Sleep-resilient loop: check real wall-clock time every 1 second
+  while (Date.now() < targetEndTimeMs) {
+    const remainingMs = targetEndTimeMs - Date.now();
+    const sleepChunk = Math.min(1000, Math.max(100, remainingMs));
+    await new Promise((resolve) => setTimeout(resolve, sleepChunk));
+  }
 
   clearTimerState();
 
@@ -310,7 +315,7 @@ export async function handleFocusCommand(args: string[], options: FocusOptions):
 }
 
 /**
- * Interactive Live TUI (used when --live or -l is passed)
+ * Interactive Live TUI with real wall-clock tracking across sleep / suspension
  */
 async function runLiveTimerTUI(
   durationSeconds: number,
@@ -318,16 +323,17 @@ async function runLiveTimerTUI(
   options: FocusOptions
 ): Promise<void> {
   let totalDuration = durationSeconds;
-  let remainingSeconds = durationSeconds;
+  let targetEndTimeMs = Date.now() + durationSeconds * 1000;
   let isPaused = false;
+  let pauseStartedAt: number | null = null;
   let timerInterval: NodeJS.Timeout | null = null;
 
-  const targetEndTime = new Date(Date.now() + remainingSeconds * 1000);
-  const formattedEndTime = targetEndTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const formattedEndTime = () =>
+    new Date(targetEndTimeMs).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
   printBanner();
   console.log(`   ${chalk.bgHex("#C05330").hex("#FFFFFF").bold(" 🎯 LIVE FOCUS MODE ")} ${chalk.hex("#E2953B").bold(taskName)}`);
-  console.log(`   ${chalk.gray("Target finish:")} ${chalk.hex("#FDFBF7")(formattedEndTime)}  |  ${chalk.gray("Duration:")} ${chalk.cyan(formatTime(totalDuration))}`);
+  console.log(`   ${chalk.gray("Target finish:")} ${chalk.hex("#FDFBF7")(formattedEndTime())}  |  ${chalk.gray("Duration:")} ${chalk.cyan(formatTime(totalDuration))}`);
   console.log("");
   console.log(chalk.gray("   Controls: [Space] Pause/Resume  [+] +5m  [-] -5m  [q] Cancel & Exit\n"));
 
@@ -345,8 +351,16 @@ async function runLiveTimerTUI(
     }
   };
 
+  const getRemainingSeconds = (): number => {
+    if (isPaused && pauseStartedAt) {
+      return Math.max(0, Math.round((targetEndTimeMs - pauseStartedAt) / 1000));
+    }
+    return Math.max(0, Math.round((targetEndTimeMs - Date.now()) / 1000));
+  };
+
   const renderTimerFrame = () => {
-    const elapsed = totalDuration - remainingSeconds;
+    const remainingSeconds = getRemainingSeconds();
+    const elapsed = Math.max(0, totalDuration - remainingSeconds);
     const percent = Math.min(100, Math.round((elapsed / totalDuration) * 100));
     const progressBar = renderProgressBar(percent, 25);
     const timeFormatted = formatTime(remainingSeconds);
@@ -379,24 +393,35 @@ async function runLiveTimerTUI(
         }
 
         if (key === " " || key === "p" || key === "P") {
-          isPaused = !isPaused;
+          if (!isPaused) {
+            // Pause
+            isPaused = true;
+            pauseStartedAt = Date.now();
+          } else {
+            // Resume: adjust targetEndTime forward by paused duration
+            if (pauseStartedAt) {
+              const pausedDurationMs = Date.now() - pauseStartedAt;
+              targetEndTimeMs += pausedDurationMs;
+              pauseStartedAt = null;
+            }
+            isPaused = false;
+          }
           renderTimerFrame();
           return;
         }
 
         if (key === "+" || key === "=") {
-          remainingSeconds += 5 * 60;
+          targetEndTimeMs += 5 * 60 * 1000;
           totalDuration += 5 * 60;
           renderTimerFrame();
           return;
         }
 
         if (key === "-" || key === "_") {
-          if (remainingSeconds > 5 * 60) {
-            remainingSeconds -= 5 * 60;
-            totalDuration = Math.max(remainingSeconds, totalDuration - 5 * 60);
-          } else {
-            remainingSeconds = 1;
+          const remaining = getRemainingSeconds();
+          if (remaining > 5 * 60) {
+            targetEndTimeMs -= 5 * 60 * 1000;
+            totalDuration = Math.max(300, totalDuration - 5 * 60);
           }
           renderTimerFrame();
           return;
@@ -408,7 +433,7 @@ async function runLiveTimerTUI(
 
     timerInterval = setInterval(async () => {
       if (!isPaused) {
-        remainingSeconds--;
+        const remainingSeconds = getRemainingSeconds();
         renderTimerFrame();
 
         if (remainingSeconds <= 0) {
