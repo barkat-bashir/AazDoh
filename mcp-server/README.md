@@ -4,6 +4,8 @@ Official **Model Context Protocol (MCP)** server for [AazDoh](https://aazdoh.com
 
 ---
 
+> 📖 **Looking for full documentation, tool schemas & prompt recipes?** See the root [USAGE.md](../USAGE.md).
+
 ## ⚡ Quick Start
 
 ### 1. In Claude Desktop / Antigravity / Cursor

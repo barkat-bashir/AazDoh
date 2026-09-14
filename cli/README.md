@@ -45,6 +45,8 @@
 
 ## 🚀 Quickstart
 
+> 📖 **Full Guide & Recipes:** See the root [USAGE.md](../USAGE.md) for the complete manual.
+
 ### 1. Installation
 
 Install globally via npm for access to both `aazdoh` and `az` binaries:
@@ -54,12 +56,7 @@ Install globally via npm for access to both `aazdoh` and `az` binaries:
 npm install -g aazdoh-cli
 
 # Verify installation
-aazdoh --version
-```
-
-*Or execute directly without installation via **`npx`**:*
-```bash
-npx aazdoh-cli today
+az --version
 ```
 
 ---
@@ -69,14 +66,25 @@ npx aazdoh-cli today
 Authenticate once using your AazDoh API key (generate one from **Web App ➔ Settings ➔ Developer API Keys**):
 
 ```bash
-# Interactive prompt (URL is pre-configured to production)
-aazdoh login
-
-# Or supply your key directly via flag:
-aazdoh login -k aazdoh_live_your_api_key_here
+# Authenticate directly via flag:
+az login -k aazdoh_live_your_api_key_here
 ```
 
 Your credentials are saved safely to `~/.aazdoh/config.json`.
+
+---
+
+### 3. Zero-Friction Terminal Cockpit (`az`)
+
+To eliminate friction, simply typing `az` (or `aazdoh`) launches the interactive cockpit:
+- Pre-loads today's commitments table immediately.
+- Keeps the `az>` session open for continuous commands without exiting back to shell.
+
+```bash
+az
+```
+
+Inside the cockpit, type natural language instructions or slash commands: `/today`, `/stress-test`, `/stats`, `/undo`, `/help`, `/clear`, `/exit`.
 
 ---
 

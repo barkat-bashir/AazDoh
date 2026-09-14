@@ -2,9 +2,36 @@ import { input } from "@inquirer/prompts";
 import chalk from "chalk";
 import ora from "ora";
 import Table from "cli-table3";
-import { AazDohApiClient, AgentChatResponseDto } from "../client.js";
+import { AazDohApiClient } from "../client.js";
 import { printBanner, formatPersonaBadge } from "../ui/banner.js";
 import { renderCommitmentsTable, renderTelemetryTable } from "../ui/table.js";
+import { stressTestCommand } from "./stressTest.js";
+
+function printHelpMenu(): void {
+  console.log(chalk.hex("#E2953B").bold("\n   ⚡ AAZDOH INTERACTIVE COCKPIT COMMANDS:"));
+  const table = new Table({
+    head: [chalk.hex("#E2953B").bold("Command"), chalk.hex("#E2953B").bold("Description")],
+    colWidths: [22, 58],
+    wordWrap: true,
+    style: { head: [], border: ["grey"] },
+  });
+
+  table.push(
+    [chalk.cyan("/today") + chalk.gray(" (or /list)"), chalk.hex("#FDFBF7")("Display today's commitments, progress, and scheduled load")],
+    [chalk.cyan("/stress-test"), chalk.hex("#FDFBF7")("Run 60-second plan feasibility check against 7-day velocity baseline")],
+    [chalk.cyan("/stats") + chalk.gray(" (or /velocity)"), chalk.hex("#FDFBF7")("View 7-day velocity, consistency score, and focus hour metrics")],
+    [chalk.cyan("/undo"), chalk.hex("#FDFBF7")("Instantly revert the last AI agent mutation or state change")],
+    [chalk.cyan("/clear"), chalk.hex("#FDFBF7")("Clear terminal screen and refresh daily cockpit")],
+    [chalk.cyan("/help") + chalk.gray(" (or /?)"), chalk.hex("#FDFBF7")("Show this quick-reference help menu")],
+    [chalk.cyan("/exit") + chalk.gray(" (or /quit, :q)"), chalk.hex("#FDFBF7")("Exit the interactive session")]
+  );
+
+  console.log(table.toString());
+  console.log(chalk.gray("\n   💡 Or simply type any natural language instruction:"));
+  console.log(chalk.hex("#FDFBF7")('      • "finished DSA trees with 4 problems solved"'));
+  console.log(chalk.hex("#FDFBF7")('      • "add 45m deep focus on PostgreSQL connection pool tuning"'));
+  console.log(chalk.hex("#FDFBF7")('      • "postpone team sync prep to tomorrow morning"\n'));
+}
 
 export async function chatCommand(): Promise<void> {
   printBanner();
@@ -15,7 +42,7 @@ export async function chatCommand(): Promise<void> {
     user = await client.getCurrentUser();
     console.log(
       `   Logged in as: ${chalk.hex("#FDFBF7").bold(user.fullName || user.email)} ` +
-      `[Persona: ${formatPersonaBadge(user.aiPersona)}]`
+      `[Persona: ${formatPersonaBadge(user.aiPersona)}]\n`
     );
   } catch (err: any) {
     console.log(chalk.red(`   ⚠️  Authentication error: ${err.message}`));
@@ -23,8 +50,20 @@ export async function chatCommand(): Promise<void> {
     return;
   }
 
-  console.log(chalk.gray("   Type your natural language instruction or a slash command:"));
-  console.log(chalk.gray("   Commands: /today  /undo  /stats  /clear  /exit\n"));
+  // Pre-fetch and render today's commitments upon entering cockpit
+  try {
+    const todayList = await client.getTodayCommitments();
+    if (todayList && todayList.length > 0) {
+      renderCommitmentsTable(todayList);
+    } else {
+      console.log(chalk.hex("#8C827A")("   No commitments scheduled for today."));
+      console.log(chalk.gray('   Lock in your focus: type "add 45m deep work on <task>"\n'));
+    }
+  } catch {
+    // Non-blocking if offline or failed initial fetch
+  }
+
+  console.log(chalk.gray("   Type instructions or commands (/today, /stress-test, /stats, /undo, /help, /exit):\n"));
 
   const history: Array<{ role: string; content: string }> = [];
 
@@ -43,7 +82,7 @@ export async function chatCommand(): Promise<void> {
     const trimmed = query.trim();
     if (!trimmed) continue;
 
-    if (trimmed === "/exit" || trimmed === "/quit" || trimmed === ":q") {
+    if (trimmed === "/exit" || trimmed === "/quit" || trimmed === ":q" || trimmed.toLowerCase() === "exit" || trimmed.toLowerCase() === "quit") {
       console.log(chalk.gray("Exiting AazDoh session. Stay accountable!"));
       break;
     }
@@ -51,6 +90,17 @@ export async function chatCommand(): Promise<void> {
     if (trimmed === "/clear") {
       console.clear();
       printBanner();
+      try {
+        const todayList = await client.getTodayCommitments();
+        if (todayList && todayList.length > 0) {
+          renderCommitmentsTable(todayList);
+        }
+      } catch {}
+      continue;
+    }
+
+    if (trimmed === "/help" || trimmed === "/?" || trimmed.toLowerCase() === "help") {
+      printHelpMenu();
       continue;
     }
 
@@ -66,6 +116,11 @@ export async function chatCommand(): Promise<void> {
       continue;
     }
 
+    if (trimmed === "/stress-test" || trimmed === "/stresstest") {
+      await stressTestCommand({ skipBanner: true });
+      continue;
+    }
+
     if (trimmed === "/undo") {
       const spinner = ora(chalk.gray("Undoing last AI action...")).start();
       try {
@@ -77,7 +132,7 @@ export async function chatCommand(): Promise<void> {
       continue;
     }
 
-    if (trimmed === "/stats") {
+    if (trimmed === "/stats" || trimmed === "/velocity") {
       const spinner = ora(chalk.gray("Fetching 7-day velocity...")).start();
       try {
         const stats = await client.getAnalyticsSummary(7);
@@ -140,7 +195,7 @@ export async function chatCommand(): Promise<void> {
         console.log(receiptTable.toString());
 
         if (result.undoAvailable) {
-          console.log(chalk.gray(`   💡 Type ${chalk.cyan("/undo")} or run ${chalk.cyan("aazdoh undo")} to revert this change.`));
+          console.log(chalk.gray(`   💡 Type ${chalk.cyan("/undo")} to revert this change.`));
         }
       }
 

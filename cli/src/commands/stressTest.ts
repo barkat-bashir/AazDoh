@@ -18,8 +18,10 @@ function getRiskBar(score: number): string {
   return color(`[${bar}] ${score}%`);
 }
 
-export async function stressTestCommand(options: { defense?: string }): Promise<void> {
-  printBanner();
+export async function stressTestCommand(options?: { defense?: string; skipBanner?: boolean }): Promise<void> {
+  if (!options?.skipBanner) {
+    printBanner();
+  }
 
   const spinner = ora({
     text: chalk.gray("Chief of Staff conducting 60-second plan stress test..."),
@@ -28,7 +30,7 @@ export async function stressTestCommand(options: { defense?: string }): Promise<
 
   try {
     const client = new AazDohApiClient();
-    const testResult = await client.stressTestPlan(options.defense);
+    const testResult = await client.stressTestPlan(options?.defense);
 
     spinner.succeed(chalk.green("Stress test complete."));
     console.log("");

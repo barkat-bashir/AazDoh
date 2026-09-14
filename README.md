@@ -129,31 +129,35 @@ AazDoh/
 
 ## 💻 CLI Agent (`aazdoh-cli`)
 
-AazDoh includes a full-featured terminal client published to npm as **`aazdoh-cli`**.
+AazDoh includes a full-featured terminal client published to npm as **`aazdoh-cli`** (providing both `aazdoh` and `az` commands).
 
-### Installation & Quick Usage
+> 📖 **Looking for full documentation and recipes?** See the [Complete User Guide (USAGE.md)](USAGE.md).
+
+### Installation & Interactive Cockpit
 
 ```bash
-# Global install (provides 'aazdoh' and 'az' commands)
+# Global install
 npm install -g aazdoh-cli
 
-# Or run instantly with npx
-npx aazdoh-cli today
+# Authenticate once with your API key
+az login -k aazdoh_live_your_api_key
 
-# Authenticate with your API key
-aazdoh login -k aazdoh_live_your_api_key
+# Launch Zero-Friction Terminal Cockpit (pre-loads today's table & stays open)
+az
 ```
 
 ### Key CLI Commands
 
-| Command | Shortcut | Description |
+| Command / Shortcut | Role | Description |
 | :--- | :--- | :--- |
-| `aazdoh today` | `az today` | Renders today's commitments table, load stats, and priorities |
-| `aazdoh "<instruction>"` | `az run "<prompt>"` | Executes natural language prompt with live SSE reasoning stream |
-| `aazdoh chat` | `az chat` | Launches interactive multi-turn AI Chief of Staff REPL with slash commands |
-| `aazdoh stress-test` | `az stress-test` | Runs 60-second plan feasibility check against 7-day velocity |
-| `aazdoh undo` | `az undo` | Instantly reverts the last AI agent mutation |
-| `aazdoh stats` | `az velocity` | Displays 7-day velocity metrics, consistency, and focus hours |
+| `az` *(or `aazdoh`)* | **Interactive Cockpit** | Displays today's agenda and keeps the interactive session (`az>`) open |
+| `az "<instruction>"` | **Natural Language** | Fast one-shot task execution with live SSE action receipts |
+| `az today` | **Daily Table** | One-shot printout of today's schedule, categories, and load |
+| `az stress-test` | **Feasibility Audit** | Runs 60-second plan feasibility check against 7-day velocity |
+| `az stats` *(or `az velocity`)* | **Velocity Metrics** | Displays 7-day compounding consistency and focus hours |
+| `az undo` | **1-Tap Rollback** | Instantly reverts the last AI agent mutation |
+
+Inside the cockpit (`az>`), use slash commands: `/today`, `/stress-test`, `/stats`, `/undo`, `/help`, `/clear`, `/exit`.
 
 ---
 

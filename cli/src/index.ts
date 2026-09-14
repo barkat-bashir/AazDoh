@@ -59,19 +59,19 @@ program
   .action(async (instructionWords: string[]) => {
     const instruction = instructionWords.join(" ").trim();
     if (!instruction) {
-      await handleTodayCommand({});
+      await chatCommand();
     } else {
       await handleRunPrompt(instruction);
     }
   });
 
-// Handle default argument fallback: `aazdoh "commit to 45m deep work on docs"`
+// Handle default argument fallback: `aazdoh` launches interactive cockpit; `aazdoh "..."` runs prompt
 program
   .arguments("[prompt...]")
   .action(async (args: string[]) => {
     const prompt = args.join(" ").trim();
     if (!prompt) {
-      await handleTodayCommand({});
+      await chatCommand();
     } else {
       await handleRunPrompt(prompt);
     }
