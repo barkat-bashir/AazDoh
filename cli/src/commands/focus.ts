@@ -40,7 +40,7 @@ export function saveCompletedReceipt(receipt: CompletedFocusReceipt): void {
   } catch {}
 }
 
-export function checkAndDisplayCompletedFocus(): void {
+export function checkAndDisplayCompletedFocus(reprompt: boolean = false): boolean {
   try {
     if (fs.existsSync(COMPLETED_FOCUS_FILE)) {
       const content = fs.readFileSync(COMPLETED_FOCUS_FILE, "utf-8");
@@ -48,6 +48,10 @@ export function checkAndDisplayCompletedFocus(): void {
       fs.unlinkSync(COMPLETED_FOCUS_FILE);
 
       const timeStr = formatTime(receipt.durationSeconds);
+      if (reprompt) {
+        readline.cursorTo(process.stdout, 0);
+        readline.clearLine(process.stdout, 0);
+      }
       console.log("");
       console.log(
         chalk.bgHex("#10B981").hex("#FFFFFF").bold(" 🎉 FOCUS SESSION COMPLETED ") +
@@ -55,8 +59,13 @@ export function checkAndDisplayCompletedFocus(): void {
         chalk.gray(` (${timeStr}) — Great job!`)
       );
       console.log("");
+      if (reprompt) {
+        process.stdout.write(chalk.hex("#E2953B").bold("az> "));
+      }
+      return true;
     }
   } catch {}
+  return false;
 }
 
 export function getTimerState(): BackgroundTimerState | null {

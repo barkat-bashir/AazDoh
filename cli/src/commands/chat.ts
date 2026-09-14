@@ -69,6 +69,11 @@ export async function chatCommand(): Promise<void> {
 
   const history: Array<{ role: string; content: string }> = [];
 
+  // Background watcher to display completed focus session receipts in real-time
+  const completedWatcher = setInterval(() => {
+    checkAndDisplayCompletedFocus(true);
+  }, 1000);
+
   while (true) {
     checkAndDisplayCompletedFocus();
     let query = "";
@@ -78,6 +83,7 @@ export async function chatCommand(): Promise<void> {
       });
     } catch {
       // User pressed Ctrl+C or terminal closed
+      clearInterval(completedWatcher);
       console.log(chalk.gray("\nExiting AazDoh session. Stay accountable!"));
       break;
     }
@@ -99,6 +105,7 @@ export async function chatCommand(): Promise<void> {
       lower === "quit" ||
       lower === "q"
     ) {
+      clearInterval(completedWatcher);
       console.log(chalk.gray("Exiting AazDoh session. Stay accountable!"));
       break;
     }
