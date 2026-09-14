@@ -222,6 +222,26 @@ az stats --days 14
 
 ---
 
+### 7. `aazdoh focus` | `az timer` (Local Offline Focus Timer & Desktop Alerts)
+Run a 100% offline, zero-network Pomodoro and deep work focus timer directly in your terminal with native OS desktop toast notifications when time expires.
+
+```bash
+# 25-minute Pomodoro (default)
+az focus
+
+# Custom duration & task description
+az focus 45m "PostgreSQL connection pool optimization"
+az focus 1.5h "Drafting system architecture"
+
+# Live hotkeys during focus session:
+# [Space] Pause / Resume
+# [+] Quick-extend +5 minutes
+# [-] Subtract -5 minutes
+# [q] Exit / Cancel
+```
+
+---
+
 ## ⌨️ Interactive REPL Slash Commands
 
 Inside `aazdoh chat`, the following slash commands are built-in:

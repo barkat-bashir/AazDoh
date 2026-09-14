@@ -6,6 +6,7 @@ import { AazDohApiClient } from "../client.js";
 import { printBanner, formatPersonaBadge } from "../ui/banner.js";
 import { renderCommitmentsTable, renderTelemetryTable } from "../ui/table.js";
 import { stressTestCommand } from "./stressTest.js";
+import { handleFocusCommand } from "./focus.js";
 
 function printHelpMenu(): void {
   console.log(chalk.hex("#E2953B").bold("\n   ⚡ AAZDOH INTERACTIVE COCKPIT COMMANDS:"));
@@ -20,6 +21,7 @@ function printHelpMenu(): void {
     [chalk.cyan("/today") + chalk.gray(" (or /list)"), chalk.hex("#FDFBF7")("Display today's commitments, progress, and scheduled load")],
     [chalk.cyan("/stress-test"), chalk.hex("#FDFBF7")("Run 60-second plan feasibility check against 7-day velocity baseline")],
     [chalk.cyan("/stats") + chalk.gray(" (or /velocity)"), chalk.hex("#FDFBF7")("View 7-day velocity, consistency score, and focus hour metrics")],
+    [chalk.cyan("/focus") + chalk.gray(" [duration] [task]"), chalk.hex("#FDFBF7")("Start a local offline deep focus / Pomodoro timer (e.g. /focus 25m)")],
     [chalk.cyan("/undo"), chalk.hex("#FDFBF7")("Instantly revert the last AI agent mutation or state change")],
     [chalk.cyan("/clear"), chalk.hex("#FDFBF7")("Clear terminal screen and refresh daily cockpit")],
     [chalk.cyan("/help") + chalk.gray(" (or /?)"), chalk.hex("#FDFBF7")("Show this quick-reference help menu")],
@@ -82,12 +84,21 @@ export async function chatCommand(): Promise<void> {
     const trimmed = query.trim();
     if (!trimmed) continue;
 
-    if (trimmed === "/exit" || trimmed === "/quit" || trimmed === ":q" || trimmed.toLowerCase() === "exit" || trimmed.toLowerCase() === "quit") {
+    const lower = trimmed.toLowerCase();
+
+    if (
+      trimmed === "/exit" ||
+      trimmed === "/quit" ||
+      trimmed === ":q" ||
+      lower === "exit" ||
+      lower === "quit" ||
+      lower === "q"
+    ) {
       console.log(chalk.gray("Exiting AazDoh session. Stay accountable!"));
       break;
     }
 
-    if (trimmed === "/clear") {
+    if (trimmed === "/clear" || lower === "clear" || lower === "cls") {
       console.clear();
       printBanner();
       try {
@@ -99,12 +110,12 @@ export async function chatCommand(): Promise<void> {
       continue;
     }
 
-    if (trimmed === "/help" || trimmed === "/?" || trimmed.toLowerCase() === "help") {
+    if (trimmed === "/help" || trimmed === "/?" || lower === "help" || lower === "?") {
       printHelpMenu();
       continue;
     }
 
-    if (trimmed === "/today" || trimmed === "/list") {
+    if (trimmed === "/today" || trimmed === "/list" || lower === "today" || lower === "list") {
       const spinner = ora(chalk.gray("Fetching today's commitments...")).start();
       try {
         const list = await client.getTodayCommitments();
@@ -116,12 +127,18 @@ export async function chatCommand(): Promise<void> {
       continue;
     }
 
-    if (trimmed === "/stress-test" || trimmed === "/stresstest") {
+    if (
+      trimmed === "/stress-test" ||
+      trimmed === "/stresstest" ||
+      lower === "stress-test" ||
+      lower === "stresstest" ||
+      lower === "stress test"
+    ) {
       await stressTestCommand({ skipBanner: true });
       continue;
     }
 
-    if (trimmed === "/undo") {
+    if (trimmed === "/undo" || lower === "undo") {
       const spinner = ora(chalk.gray("Undoing last AI action...")).start();
       try {
         const receipt = await client.undoLastAction();
@@ -132,7 +149,7 @@ export async function chatCommand(): Promise<void> {
       continue;
     }
 
-    if (trimmed === "/stats" || trimmed === "/velocity") {
+    if (trimmed === "/stats" || trimmed === "/velocity" || lower === "stats" || lower === "velocity") {
       const spinner = ora(chalk.gray("Fetching 7-day velocity...")).start();
       try {
         const stats = await client.getAnalyticsSummary(7);
@@ -141,6 +158,19 @@ export async function chatCommand(): Promise<void> {
       } catch (e: any) {
         spinner.fail(chalk.red(`Failed to fetch stats: ${e.message}`));
       }
+      continue;
+    }
+
+    if (
+      lower.startsWith("/focus") ||
+      lower.startsWith("/timer") ||
+      lower.startsWith("focus ") ||
+      lower.startsWith("timer ") ||
+      lower === "focus" ||
+      lower === "timer"
+    ) {
+      const parts = trimmed.split(/\s+/).slice(1);
+      await handleFocusCommand(parts, {});
       continue;
     }
 

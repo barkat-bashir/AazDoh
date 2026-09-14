@@ -1,6 +1,6 @@
 {
   "name": "aazdoh-cli",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Autonomous AI Accountability Coach & Execution Agent for the Terminal",
   "type": "module",
   "bin": {
@@ -37,10 +37,12 @@
     "commander": "^13.1.0",
     "dotenv": "^16.4.7",
     "eventsource": "^3.0.5",
+    "node-notifier": "^10.0.1",
     "ora": "^8.1.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.7",
+    "@types/node-notifier": "^8.0.5",
     "typescript": "^5.7.3"
   }
 }

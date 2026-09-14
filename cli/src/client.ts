@@ -116,6 +116,11 @@ export class AazDohApiClient {
     return res.data.data;
   }
 
+  public async completeCommitment(id: string, payload?: { notes?: string }): Promise<CommitmentDto> {
+    const res = await this.http.post<{ data: CommitmentDto }>(`/api/v1/commitments/${id}/complete`, payload || {});
+    return res.data.data;
+  }
+
   public async undoLastAction(): Promise<AgentActionReceiptDto> {
     const res = await this.http.post<{ data: AgentActionReceiptDto }>("/api/v1/agent/undo");
     return res.data.data;

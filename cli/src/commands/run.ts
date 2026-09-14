@@ -2,12 +2,58 @@ import chalk from "chalk";
 import ora from "ora";
 import { isConfigured } from "../config.js";
 import { AazDohApiClient, AgentChatResponseDto } from "../client.js";
+import { handleFocusCommand } from "./focus.js";
+import { handleTodayCommand } from "./today.js";
+import { handleStatsCommand } from "./stats.js";
+import { handleUndoCommand } from "./undo.js";
+import { stressTestCommand } from "./stressTest.js";
 
 export async function handleRunPrompt(promptText: string): Promise<void> {
   const cleanPrompt = promptText.trim();
   if (!cleanPrompt) {
     console.log(chalk.red("Error: Prompt cannot be empty."));
     process.exit(1);
+  }
+
+  const lower = cleanPrompt.toLowerCase();
+
+  // Route local commands directly to avoid hitting the backend AI
+  if (
+    lower.startsWith("focus ") ||
+    lower.startsWith("timer ") ||
+    lower.startsWith("/focus") ||
+    lower.startsWith("/timer") ||
+    lower === "focus" ||
+    lower === "timer"
+  ) {
+    const parts = cleanPrompt.split(/\s+/).slice(1);
+    await handleFocusCommand(parts, {});
+    return;
+  }
+
+  if (lower === "today" || lower === "/today" || lower === "list" || lower === "/list") {
+    await handleTodayCommand({});
+    return;
+  }
+
+  if (lower === "stats" || lower === "/stats" || lower === "velocity" || lower === "/velocity") {
+    await handleStatsCommand({});
+    return;
+  }
+
+  if (
+    lower === "stress-test" ||
+    lower === "/stress-test" ||
+    lower === "stress test" ||
+    lower === "stresstest"
+  ) {
+    await stressTestCommand();
+    return;
+  }
+
+  if (lower === "undo" || lower === "/undo") {
+    await handleUndoCommand();
+    return;
   }
 
   if (cleanPrompt.length > 500) {

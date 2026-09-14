@@ -8,6 +8,7 @@ import { chatCommand } from "./commands/chat.js";
 import { handleUndoCommand } from "./commands/undo.js";
 import { handleStatsCommand } from "./commands/stats.js";
 import { stressTestCommand } from "./commands/stressTest.js";
+import { handleFocusCommand } from "./commands/focus.js";
 import { checkForCliUpdates, CURRENT_CLI_VERSION } from "./ui/updater.js";
 
 const program = new Command();
@@ -58,6 +59,16 @@ program
   .description("Execute a 60-second plan stress test against historical capacity")
   .option("-d, --defense <defense>", "Quick defense argument to justify planned workload")
   .action(stressTestCommand);
+
+program
+  .command("focus [durationOrTask...]")
+  .alias("timer")
+  .description("Start a local offline deep focus / Pomodoro timer with desktop notifications")
+  .option("--no-notify", "Disable native desktop notification on timer completion")
+  .option("--no-sound", "Mute notification sound")
+  .action(async (args: string[], options: { notify?: boolean; sound?: boolean }) => {
+    await handleFocusCommand(args, options);
+  });
 
 program
   .command("run [instruction...]")
