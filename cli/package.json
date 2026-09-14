@@ -1,6 +1,6 @@
 {
   "name": "aazdoh-cli",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Autonomous AI Accountability Coach & Execution Agent for the Terminal",
   "type": "module",
   "bin": {
