@@ -11,6 +11,7 @@ export interface CommitmentDto {
   estimatedMinutes: number;
   priority: "URGENT" | "HIGH" | "MEDIUM" | "LOW";
   category: "DEEP_WORK" | "ROUTINE" | "STRATEGIC_PLANNING" | "COMMUNICATION" | "FITNESS_HEALTH" | "LEARNING" | "ADMIN_MAINTENANCE" | "OTHER";
+  dayPhase?: "MORNING" | "DAY" | "EVENING" | "ANYTIME" | null;
   commitmentDate: string;
   status: "PENDING" | "ACTIVE" | "COMPLETED" | "POSTPONED" | "CANCELLED" | "MISSED";
   visibility: "PRIVATE" | "SHARED_WITH_PARTNER" | "MUTUAL";
