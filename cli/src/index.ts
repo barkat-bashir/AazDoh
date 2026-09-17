@@ -20,9 +20,9 @@ program
   .version(CURRENT_CLI_VERSION);
 
 // Hook background update check and completion receipt display
-program.hook("preAction", async () => {
+program.hook("preAction", () => {
   checkAndDisplayCompletedFocus();
-  await checkForCliUpdates();
+  checkForCliUpdates();
 });
 
 program

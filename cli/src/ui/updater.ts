@@ -35,41 +35,15 @@ function compareSemver(current: string, latest: string): boolean {
   return false;
 }
 
-export async function checkForCliUpdates(): Promise<void> {
+export function checkForCliUpdates(): void {
   try {
     const config = getConfig() as any;
     const now = Date.now();
     const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
 
-    let latestVersion = config.latestKnownVersion;
+    const latestVersion = config.latestKnownVersion;
 
-    if (!config.lastUpdateCheck || now - config.lastUpdateCheck > SIX_HOURS_MS) {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 1200);
-
-        const response = await fetch("https://registry.npmjs.org/aazdoh-cli/latest", {
-          signal: controller.signal,
-          headers: { "User-Agent": `aazdoh-cli/${CURRENT_CLI_VERSION}` },
-        });
-        clearTimeout(timeout);
-
-        if (response.ok) {
-          const data = (await response.json()) as { version?: string };
-          if (data.version) {
-            latestVersion = data.version;
-            saveConfig({
-              ...config,
-              lastUpdateCheck: now,
-              latestKnownVersion: data.version,
-            } as any);
-          }
-        }
-      } catch {
-        // Non-blocking timeout or network error
-      }
-    }
-
+    // Show cached notification instantly (0ms delay)
     if (latestVersion && compareSemver(CURRENT_CLI_VERSION, latestVersion)) {
       const table = new Table({
         colWidths: [68],
@@ -88,6 +62,24 @@ export async function checkForCliUpdates(): Promise<void> {
 
       console.log(table.toString());
       console.log("");
+    }
+
+    // If cache expired, check npm registry in the background (fire-and-forget, non-blocking)
+    if (!config.lastUpdateCheck || now - config.lastUpdateCheck > SIX_HOURS_MS) {
+      fetch("https://registry.npmjs.org/aazdoh-cli/latest", {
+        headers: { "User-Agent": `aazdoh-cli/${CURRENT_CLI_VERSION}` },
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data: any) => {
+          if (data && data.version) {
+            saveConfig({
+              ...config,
+              lastUpdateCheck: now,
+              latestKnownVersion: data.version,
+            } as any);
+          }
+        })
+        .catch(() => {});
     }
   } catch {
     // Fail silently so update checks never crash the CLI

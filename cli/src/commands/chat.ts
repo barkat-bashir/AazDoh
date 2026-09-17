@@ -39,30 +39,30 @@ export async function chatCommand(): Promise<void> {
   printBanner();
 
   const client = new AazDohApiClient();
-  let user;
-  try {
-    user = await client.getCurrentUser();
-    console.log(
-      `   Logged in as: ${chalk.hex("#FDFBF7").bold(user.fullName || user.email)} ` +
-      `[Persona: ${formatPersonaBadge(user.aiPersona)}]\n`
-    );
-  } catch (err: any) {
-    console.log(chalk.red(`   ⚠️  Authentication error: ${err.message}`));
+  
+  // Parallel pre-flight fetch: fetch user profile and today's commitments concurrently
+  const [userResult, todayResult] = await Promise.allSettled([
+    client.getCurrentUser(),
+    client.getTodayCommitments(),
+  ]);
+
+  if (userResult.status === "rejected") {
+    console.log(chalk.red(`   ⚠️  Authentication error: ${userResult.reason.message}`));
     console.log(chalk.gray(`   Run ${chalk.cyan("aazdoh login")} to configure your credentials.`));
     return;
   }
 
-  // Pre-fetch and render today's commitments upon entering cockpit
-  try {
-    const todayList = await client.getTodayCommitments();
-    if (todayList && todayList.length > 0) {
-      renderCommitmentsTable(todayList);
-    } else {
-      console.log(chalk.hex("#8C827A")("   No commitments scheduled for today."));
-      console.log(chalk.gray('   Lock in your focus: type "add 45m deep work on <task>"\n'));
-    }
-  } catch {
-    // Non-blocking if offline or failed initial fetch
+  const user = userResult.value;
+  console.log(
+    `   Logged in as: ${chalk.hex("#FDFBF7").bold(user.fullName || user.email)} ` +
+    `[Persona: ${formatPersonaBadge(user.aiPersona)}]\n`
+  );
+
+  if (todayResult.status === "fulfilled" && todayResult.value && todayResult.value.length > 0) {
+    renderCommitmentsTable(todayResult.value);
+  } else {
+    console.log(chalk.hex("#8C827A")("   No commitments scheduled for today."));
+    console.log(chalk.gray('   Lock in your focus: type "add 45m deep work on <task>"\n'));
   }
 
   console.log(chalk.gray("   Type instructions or commands (/today, /stress-test, /stats, /undo, /help, /exit):\n"));

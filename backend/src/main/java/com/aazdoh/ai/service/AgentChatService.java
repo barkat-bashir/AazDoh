@@ -78,6 +78,8 @@ public class AgentChatService {
     @Value("classpath:/prompts/agent-system.st")
     private Resource agentSystemPrompt;
 
+    private volatile String cachedSystemPrompt;
+
     public AgentChatService(
             ChatClient chatClient,
             AgentTools agentTools,
@@ -571,15 +573,18 @@ public class AgentChatService {
     }
 
     private String buildSystemPrompt(AiPersona persona, Map<String, Object> todayPlan, Map<String, Object> yesterdayPlan) {
-        String basePrompt = "";
-        try {
-            if (agentSystemPrompt != null) {
-                basePrompt = agentSystemPrompt.getContentAsString(StandardCharsets.UTF_8);
+        String basePrompt = cachedSystemPrompt;
+        if (basePrompt == null) {
+            try {
+                if (agentSystemPrompt != null) {
+                    basePrompt = agentSystemPrompt.getContentAsString(StandardCharsets.UTF_8);
+                    cachedSystemPrompt = basePrompt;
+                }
+            } catch (Exception ignored) {
             }
-        } catch (Exception ignored) {
         }
 
-        if (basePrompt.isBlank()) {
+        if (basePrompt == null || basePrompt.isBlank()) {
             basePrompt = "You are the AazDoh Cognitive Accountability Coach. Help the user execute daily commitments with zero BS.";
         }
 
