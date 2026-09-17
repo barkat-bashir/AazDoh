@@ -3,6 +3,7 @@
 import { Command } from "commander";
 import { handleLoginCommand } from "./commands/login.js";
 import { handleTodayCommand } from "./commands/today.js";
+import { handleDoneCommand } from "./commands/done.js";
 import { handleRunPrompt } from "./commands/run.js";
 import { chatCommand } from "./commands/chat.js";
 import { handleUndoCommand } from "./commands/undo.js";
@@ -36,7 +37,17 @@ program
   .alias("list")
   .description("Show commitments and cognitive load for today (or specified date)")
   .option("-d, --date <date>", "Date in YYYY-MM-DD format")
+  .option("-i, --interactive", "Launch interactive checkbox selector after viewing table")
   .action(handleTodayCommand);
+
+program
+  .command("done [query...]")
+  .aliases(["check", "complete"])
+  .description("Check off active commitments via interactive checkboxes or fast query match")
+  .option("-d, --date <date>", "Date in YYYY-MM-DD format")
+  .action(async (queryWords: string[], options: { date?: string }) => {
+    await handleDoneCommand(queryWords, options);
+  });
 
 program
   .command("chat")

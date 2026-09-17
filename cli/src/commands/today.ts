@@ -5,7 +5,9 @@ import { AazDohApiClient } from "../client.js";
 import { renderCommitmentsTable } from "../ui/table.js";
 import { printBanner, formatPersonaBadge } from "../ui/banner.js";
 
-export async function handleTodayCommand(options: { date?: string }): Promise<void> {
+import { promptAndCompleteCommitments } from "./done.js";
+
+export async function handleTodayCommand(options: { date?: string; interactive?: boolean }): Promise<void> {
   if (!isConfigured()) {
     console.log(chalk.red("❌ AazDoh CLI is not configured."));
     console.log(chalk.yellow("Run 'aazdoh login' to authenticate with your API key."));
@@ -31,6 +33,14 @@ export async function handleTodayCommand(options: { date?: string }): Promise<vo
     }
 
     renderCommitmentsTable(commitments, targetDate);
+
+    const pending = commitments.filter((c) => c.status === "PENDING" || c.status === "ACTIVE");
+
+    if (options.interactive && pending.length > 0) {
+      await promptAndCompleteCommitments(commitments);
+    } else if (pending.length > 0) {
+      console.log(`   ${chalk.hex("#E2953B")("💡 Tip:")} Run ${chalk.hex("#FDFBF7").bold("aazdoh done")} or ${chalk.hex("#FDFBF7").bold("aazdoh today -i")} to check off commitments with interactive checkboxes.\n`);
+    }
   } catch (err: any) {
     spinner.fail(chalk.red(`Failed to fetch commitments: ${err.message}`));
     process.exit(1);
