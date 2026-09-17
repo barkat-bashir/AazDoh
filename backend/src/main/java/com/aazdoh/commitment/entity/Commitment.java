@@ -217,11 +217,23 @@ public class Commitment extends BaseEntity {
         this.targetPartnerId = targetPartnerId;
     }
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "day_phase", length = 30)
+    private DayPhase dayPhase;
+
     public CommitmentCategory getCategory() {
         return category;
     }
 
     public void setCategory(CommitmentCategory category) {
         this.category = category;
+    }
+
+    public DayPhase getDayPhase() {
+        return dayPhase;
+    }
+
+    public void setDayPhase(DayPhase dayPhase) {
+        this.dayPhase = dayPhase;
     }
 }

@@ -67,6 +67,9 @@ public class CommitmentService {
         if (request.getCategory() != null) {
             commitment.setCategory(request.getCategory());
         }
+        if (request.getDayPhase() != null) {
+            commitment.setDayPhase(request.getDayPhase() == com.aazdoh.commitment.entity.DayPhase.ANYTIME ? null : request.getDayPhase());
+        }
         commitment.setCommitmentDate(request.getCommitmentDate());
         commitment.setDeadline(request.getDeadline());
         commitment.setStatus(CommitmentStatus.PENDING);
@@ -131,6 +134,9 @@ public class CommitmentService {
         }
         if (request.getCategory() != null) {
             commitment.setCategory(request.getCategory());
+        }
+        if (request.getDayPhase() != null) {
+            commitment.setDayPhase(request.getDayPhase() == com.aazdoh.commitment.entity.DayPhase.ANYTIME ? null : request.getDayPhase());
         }
         if (request.getCommitmentDate() != null) {
             commitment.setCommitmentDate(request.getCommitmentDate());

@@ -3,6 +3,7 @@ package com.aazdoh.commitment.dto;
 import com.aazdoh.commitment.entity.CommitmentCategory;
 import com.aazdoh.commitment.entity.CommitmentPriority;
 import com.aazdoh.commitment.entity.CommitmentVisibility;
+import com.aazdoh.commitment.entity.DayPhase;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -112,6 +113,16 @@ public class CreateCommitmentRequest {
 
     public void setTargetPartnerId(java.util.UUID targetPartnerId) {
         this.targetPartnerId = targetPartnerId;
+    }
+
+    private DayPhase dayPhase;
+
+    public DayPhase getDayPhase() {
+        return dayPhase;
+    }
+
+    public void setDayPhase(DayPhase dayPhase) {
+        this.dayPhase = dayPhase;
     }
 
     public CommitmentCategory getCategory() {

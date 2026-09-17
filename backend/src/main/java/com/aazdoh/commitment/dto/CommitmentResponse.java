@@ -5,7 +5,7 @@ import com.aazdoh.commitment.entity.CommitmentCategory;
 import com.aazdoh.commitment.entity.CommitmentPriority;
 import com.aazdoh.commitment.entity.CommitmentStatus;
 import com.aazdoh.commitment.entity.CommitmentVisibility;
-
+import com.aazdoh.commitment.entity.DayPhase;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDate;
@@ -23,6 +23,7 @@ public class CommitmentResponse {
     private int estimatedMinutes;
     private CommitmentPriority priority;
     private CommitmentCategory category;
+    private DayPhase dayPhase;
     private LocalDate commitmentDate;
     private OffsetDateTime deadline;
     private CommitmentStatus status;
@@ -55,6 +56,7 @@ public class CommitmentResponse {
         response.setEstimatedMinutes(commitment.getEstimatedMinutes());
         response.setPriority(commitment.getPriority());
         response.setCategory(commitment.getCategory());
+        response.setDayPhase(commitment.getDayPhase());
         response.setCommitmentDate(commitment.getCommitmentDate());
         response.setDeadline(commitment.getDeadline());
         response.setStatus(commitment.getStatus());
@@ -274,5 +276,13 @@ public class CommitmentResponse {
 
     public void setCategory(CommitmentCategory category) {
         this.category = category;
+    }
+
+    public DayPhase getDayPhase() {
+        return dayPhase;
+    }
+
+    public void setDayPhase(DayPhase dayPhase) {
+        this.dayPhase = dayPhase;
     }
 }
