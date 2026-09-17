@@ -14,7 +14,11 @@ import {
   RotateCcw,
   Zap,
   Pencil,
-  XCircle
+  XCircle,
+  GripVertical,
+  Sunrise,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useFocusTimer } from '../../context/FocusTimerContext';
 
@@ -25,6 +29,9 @@ interface CommitmentCardProps {
   onPostponeClick: (commitment: Commitment) => void;
   onEditClick?: (commitment: Commitment) => void;
   onReviewClick?: (commitment: Commitment) => void;
+  onDragStart?: (e: React.DragEvent, commitment: Commitment) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
+  isDraggable?: boolean;
 }
 
 const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
@@ -34,6 +41,9 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
   onPostponeClick,
   onEditClick,
   onReviewClick,
+  onDragStart,
+  onDragEnd,
+  isDraggable = true,
 }) => {
   const { showToast } = useToast();
   const { startFocusSession } = useFocusTimer();
@@ -118,12 +128,26 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
     return <span className="badge badge-pending">PENDING</span>;
   };
 
+  const canDrag = isDraggable && !isCompleted && !isPostponed && !loading;
+
   return (
     <div
       className={`harud-card ${isCompleted ? 'harud-card-glow' : ''}`}
+      draggable={canDrag}
+      onDragStart={(e) => {
+        if (!canDrag) return;
+        e.dataTransfer.setData('text/plain', commitment.id);
+        e.dataTransfer.effectAllowed = 'move';
+        onDragStart?.(e, commitment);
+      }}
+      onDragEnd={(e) => {
+        onDragEnd?.(e);
+      }}
       style={{
         padding: 'clamp(14px, 3.5vw, 20px)',
         opacity: loading ? 0.6 : 1,
+        cursor: canDrag ? 'grab' : 'default',
+        transition: 'all 0.15s ease',
         borderColor: isCompleted 
           ? 'var(--pine-emerald)' 
           : isMissed 
@@ -132,6 +156,24 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
       }}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+        {/* Drag handle affordance when draggable */}
+        {canDrag && (
+          <div
+            style={{
+              color: 'var(--text-tweed-dim)',
+              opacity: 0.4,
+              marginTop: '4px',
+              cursor: 'grab',
+              display: 'flex',
+              alignItems: 'center',
+              userSelect: 'none',
+            }}
+            title="Drag to move across Day Phases"
+          >
+            <GripVertical size={16} />
+          </div>
+        )}
+
         {/* Toggle Complete / Status Checkbox */}
         <button
           onClick={handleToggleComplete}
@@ -177,6 +219,54 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
             </h4>
 
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', flexShrink: 0 }}>
+              {commitment.dayPhase === 'MORNING' && (
+                <span style={{
+                  fontSize: '0.72rem',
+                  padding: '2px 7px',
+                  borderRadius: '4px',
+                  background: 'rgba(226, 149, 59, 0.12)',
+                  border: '1px solid rgba(226, 149, 59, 0.3)',
+                  color: 'var(--saffron-ember)',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                }}>
+                  <Sunrise size={11} /> Morning
+                </span>
+              )}
+              {commitment.dayPhase === 'DAY' && (
+                <span style={{
+                  fontSize: '0.72rem',
+                  padding: '2px 7px',
+                  borderRadius: '4px',
+                  background: 'rgba(251, 191, 36, 0.12)',
+                  border: '1px solid rgba(251, 191, 36, 0.3)',
+                  color: '#FBBF24',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                }}>
+                  <Sun size={11} /> Day
+                </span>
+              )}
+              {commitment.dayPhase === 'EVENING' && (
+                <span style={{
+                  fontSize: '0.72rem',
+                  padding: '2px 7px',
+                  borderRadius: '4px',
+                  background: 'rgba(167, 139, 250, 0.12)',
+                  border: '1px solid rgba(167, 139, 250, 0.3)',
+                  color: '#A78BFA',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                }}>
+                  <Moon size={11} /> Evening
+                </span>
+              )}
               {isRoutine && (
                 <span style={{
                   fontSize: '0.72rem',

@@ -4,6 +4,7 @@ export type CommitmentStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'PARTIA
 export type CommitmentPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 export type CommitmentVisibility = 'PRIVATE' | 'SHARED_WITH_PARTNER';
 export type CommitmentCategory = 'DEEP_WORK' | 'ROUTINE';
+export type DayPhase = 'MORNING' | 'DAY' | 'EVENING' | 'ANYTIME';
 
 export interface Commitment {
   id: string;
@@ -15,6 +16,7 @@ export interface Commitment {
   estimatedMinutes: number;
   priority: CommitmentPriority;
   category?: CommitmentCategory;
+  dayPhase?: DayPhase | null;
   commitmentDate: string; // YYYY-MM-DD
   deadline?: string;
   status: CommitmentStatus;
@@ -40,6 +42,7 @@ export interface CreateCommitmentRequest {
   estimatedMinutes: number;
   priority: CommitmentPriority;
   category?: CommitmentCategory;
+  dayPhase?: DayPhase | null;
   commitmentDate: string;
   deadline?: string;
   visibility: CommitmentVisibility;
@@ -53,6 +56,7 @@ export interface UpdateCommitmentRequest {
   estimatedMinutes?: number;
   priority?: CommitmentPriority;
   category?: CommitmentCategory;
+  dayPhase?: DayPhase | null;
   commitmentDate?: string;
   deadline?: string;
   status?: CommitmentStatus;

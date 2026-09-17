@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Commitment, commitmentApi } from '../api/commitmentApi';
+import { Commitment, commitmentApi, DayPhase } from '../api/commitmentApi';
 import { DailyProgressHeader } from '../components/commitment/DailyProgressHeader';
 import { CommitmentCard } from '../components/commitment/CommitmentCard';
 import { AddCommitmentModal } from '../components/commitment/AddCommitmentModal';
@@ -22,7 +22,11 @@ import {
   ChevronDown,
   ChevronRight,
   Trophy,
-  SunMedium
+  SunMedium,
+  Sunrise,
+  Sun,
+  Moon,
+  Layers
 } from 'lucide-react';
 import { discussionApi } from '../api/discussionApi';
 
@@ -101,6 +105,64 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
   const completedList = useMemo(() => commitments.filter(c => c.status === 'COMPLETED'), [commitments]);
   const postponedList = useMemo(() => commitments.filter(c => c.status === 'POSTPONED'), [commitments]);
   const missedList = useMemo(() => commitments.filter(c => c.status === 'MISSED'), [commitments]);
+
+  // Group active commitments by optional Day Phase
+  const morningList = useMemo(() => activeList.filter(c => c.dayPhase === 'MORNING'), [activeList]);
+  const dayList = useMemo(() => activeList.filter(c => c.dayPhase === 'DAY'), [activeList]);
+  const eveningList = useMemo(() => activeList.filter(c => c.dayPhase === 'EVENING'), [activeList]);
+  const anytimeList = useMemo(() => activeList.filter(c => !c.dayPhase || c.dayPhase === 'ANYTIME'), [activeList]);
+
+  // Drag and Drop state for moving cards across Day Phases
+  const [draggedCommitmentId, setDraggedCommitmentId] = useState<string | null>(null);
+  const [activeDropTarget, setActiveDropTarget] = useState<DayPhase | 'ANYTIME' | null>(null);
+
+  const handleDragStart = useCallback((_e: React.DragEvent, commitment: Commitment) => {
+    setDraggedCommitmentId(commitment.id);
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setDraggedCommitmentId(null);
+    setActiveDropTarget(null);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, phase: DayPhase | 'ANYTIME') => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setActiveDropTarget(prev => (prev === phase ? prev : phase));
+  }, []);
+
+  const handleDragLeave = useCallback((_e: React.DragEvent, phase: DayPhase | 'ANYTIME') => {
+    setActiveDropTarget(prev => (prev === phase ? null : prev));
+  }, []);
+
+  const handleDrop = useCallback(async (e: React.DragEvent, targetPhase: DayPhase | 'ANYTIME') => {
+    e.preventDefault();
+    const id = e.dataTransfer.getData('text/plain') || draggedCommitmentId;
+    setDraggedCommitmentId(null);
+    setActiveDropTarget(null);
+
+    if (!id) return;
+    const targetItem = commitments.find(c => c.id === id);
+    if (!targetItem) return;
+
+    const newPhase = targetPhase === 'ANYTIME' ? null : targetPhase;
+    if (targetItem.dayPhase === newPhase) return;
+
+    // Optimistically update React Query cache
+    queryClient.setQueryData(['commitments', selectedDate], (old: Commitment[] | undefined) => {
+      if (!old) return old;
+      return old.map(c => c.id === id ? { ...c, dayPhase: newPhase } : c);
+    });
+
+    try {
+      await commitmentApi.update(id, { dayPhase: targetPhase });
+      const phaseName = targetPhase === 'MORNING' ? '🌅 Morning' : targetPhase === 'DAY' ? '☀️ Day' : targetPhase === 'EVENING' ? '🌙 Evening' : '📋 Anytime';
+      showToast(`Moved to ${phaseName}`, 'info');
+    } catch (err: any) {
+      showToast('Failed to update phase', 'error');
+      refreshCommitments();
+    }
+  }, [draggedCommitmentId, commitments, selectedDate, queryClient, showToast, refreshCommitments]);
 
   const totalFocusMinutes = useMemo(() => activeList.filter(c => c.category !== 'ROUTINE').reduce((acc, c) => acc + (c.estimatedMinutes || 0), 0), [activeList]);
   const totalCompletedMinutes = useMemo(() => completedList.filter(c => c.category !== 'ROUTINE').reduce((acc, c) => acc + (c.estimatedMinutes || 0), 0), [completedList]);
@@ -182,9 +244,154 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
         onOpenDiscussion={handleOpenDiscussion}
         onPostponeClick={handlePostponeClick}
         onEditClick={(c) => setEditingCommitment(c)}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        isDraggable={true}
       />
     );
-  }, [unreadCommitmentIds, refreshCommitments, handleOpenDiscussion, handlePostponeClick]);
+  }, [unreadCommitmentIds, refreshCommitments, handleOpenDiscussion, handlePostponeClick, handleDragStart, handleDragEnd]);
+
+  const renderPhaseBlock = (
+    phase: DayPhase | 'ANYTIME',
+    title: string,
+    icon: React.ReactNode,
+    items: Commitment[],
+    color: string,
+    accentBg: string
+  ) => {
+    const isTarget = activeDropTarget === phase;
+    const isDraggingAny = draggedCommitmentId !== null;
+    const phaseTotalMins = items.reduce((acc, c) => acc + (c.estimatedMinutes || 0), 0);
+
+    return (
+      <div
+        key={phase}
+        onDragOver={(e) => handleDragOver(e, phase)}
+        onDragLeave={(e) => handleDragLeave(e, phase)}
+        onDrop={(e) => handleDrop(e, phase)}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px',
+          padding: '14px',
+          borderRadius: 'var(--radius-md)',
+          background: isTarget 
+            ? 'rgba(226, 149, 59, 0.12)' 
+            : isDraggingAny 
+            ? 'rgba(26, 17, 13, 0.45)' 
+            : 'rgba(26, 17, 13, 0.25)',
+          border: isTarget
+            ? '1.5px dashed var(--saffron-ember)'
+            : isDraggingAny
+            ? '1px dashed rgba(226, 149, 59, 0.3)'
+            : '1px solid var(--border-walnut-faint)',
+          transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+          boxShadow: isTarget ? '0 0 20px rgba(226, 149, 59, 0.2)' : 'none',
+        }}
+      >
+        {/* Phase Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '24px',
+              height: '24px',
+              borderRadius: '6px',
+              background: accentBg,
+              color: color,
+            }}>
+              {icon}
+            </span>
+            <span style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-kehwa-cream)' }}>
+              {title}
+            </span>
+            <span style={{
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              padding: '1px 6px',
+              borderRadius: '10px',
+              background: items.length > 0 ? accentBg : 'rgba(255,255,255,0.05)',
+              color: items.length > 0 ? color : 'var(--text-tweed-dim)',
+            }}>
+              {items.length}
+            </span>
+          </div>
+
+          {items.length > 0 && (
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-tweed-dim)', fontWeight: 600 }}>
+              ~{(phaseTotalMins / 60).toFixed(1)}h planned
+            </span>
+          )}
+        </div>
+
+        {/* Phase Cards or Empty Drop Placeholder */}
+        {items.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {items.map(renderCard)}
+          </div>
+        ) : (
+          <div
+            style={{
+              padding: isDraggingAny ? '18px 12px' : '12px 12px',
+              borderRadius: '6px',
+              border: '1px dashed rgba(140, 130, 122, 0.22)',
+              textAlign: 'center',
+              color: isTarget ? 'var(--saffron-ember)' : 'var(--text-tweed-dim)',
+              fontSize: '0.78rem',
+              fontWeight: isTarget ? 700 : 500,
+              background: isTarget ? 'rgba(226, 149, 59, 0.08)' : 'transparent',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {isTarget
+              ? `Drop here to assign to ${title}`
+              : isDraggingAny
+              ? `Drop card here for ${title}`
+              : `No commitments scheduled for ${title}. Drag cards here anytime.`}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderActiveCommitmentsWithPhases = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {renderPhaseBlock(
+        'MORNING',
+        'Morning Focus',
+        <Sunrise size={14} color="var(--saffron-ember)" />,
+        morningList,
+        'var(--saffron-ember)',
+        'rgba(226, 149, 59, 0.15)'
+      )}
+      {renderPhaseBlock(
+        'DAY',
+        'Day Focus',
+        <Sun size={14} color="#FBBF24" />,
+        dayList,
+        '#FBBF24',
+        'rgba(251, 191, 36, 0.15)'
+      )}
+      {renderPhaseBlock(
+        'EVENING',
+        'Evening Focus',
+        <Moon size={14} color="#A78BFA" />,
+        eveningList,
+        '#A78BFA',
+        'rgba(167, 139, 250, 0.15)'
+      )}
+      {(anytimeList.length > 0 || draggedCommitmentId !== null) && renderPhaseBlock(
+        'ANYTIME',
+        'Flexible / Anytime',
+        <Layers size={14} color="var(--text-parchment-muted)" />,
+        anytimeList,
+        'var(--text-parchment-muted)',
+        'rgba(140, 130, 122, 0.15)'
+      )}
+    </div>
+  );
 
   return (
     <div className="page-container" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -253,8 +460,26 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
           gap: '8px',
           overflowX: 'auto',
           paddingBottom: '2px',
+          scrollbarWidth: 'none',
         }}>
-          {/* 1. Active Focus (Highest Priority) */}
+          <button
+            onClick={() => setActiveFilter('all')}
+            style={{
+              padding: '6px 14px',
+              fontSize: '0.82rem',
+              fontWeight: activeFilter === 'all' ? 700 : 500,
+              borderRadius: '20px',
+              cursor: 'pointer',
+              background: activeFilter === 'all' ? 'var(--bg-walnut-surface)' : 'transparent',
+              color: activeFilter === 'all' ? 'var(--saffron-ember)' : 'var(--text-parchment-muted)',
+              border: `1px solid ${activeFilter === 'all' ? 'var(--saffron-ember)' : 'var(--border-walnut-faint)'}`,
+              transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            All Commitments ({commitments.length})
+          </button>
+
           <button
             onClick={() => setActiveFilter('active')}
             style={{
@@ -263,7 +488,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
               fontWeight: activeFilter === 'active' ? 700 : 500,
               borderRadius: '20px',
               cursor: 'pointer',
-              background: activeFilter === 'active' ? 'rgba(226, 149, 59, 0.18)' : 'transparent',
+              background: activeFilter === 'active' ? 'var(--bg-walnut-surface)' : 'transparent',
               color: activeFilter === 'active' ? 'var(--saffron-ember)' : 'var(--text-parchment-muted)',
               border: `1px solid ${activeFilter === 'active' ? 'var(--saffron-ember)' : 'var(--border-walnut-faint)'}`,
               transition: 'all 0.15s ease',
@@ -273,11 +498,10 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
               whiteSpace: 'nowrap',
             }}
           >
-            <Zap size={13} />
+            <Zap size={13} color={activeFilter === 'active' ? 'var(--saffron-ember)' : 'currentColor'} />
             <span>Active Focus ({activeList.length})</span>
           </button>
 
-          {/* 2. Kept Commitments */}
           {completedList.length > 0 && (
             <button
               onClick={() => setActiveFilter('completed')}
@@ -289,7 +513,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
                 cursor: 'pointer',
                 background: activeFilter === 'completed' ? 'rgba(46, 125, 82, 0.2)' : 'transparent',
                 color: activeFilter === 'completed' ? '#4ADE80' : 'var(--text-parchment-muted)',
-                border: `1px solid ${activeFilter === 'completed' ? 'var(--pine-emerald)' : 'var(--border-walnut-faint)'}`,
+                border: `1px solid ${activeFilter === 'completed' ? 'rgba(46, 125, 82, 0.5)' : 'var(--border-walnut-faint)'}`,
                 transition: 'all 0.15s ease',
                 display: 'flex',
                 alignItems: 'center',
@@ -297,31 +521,11 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
                 whiteSpace: 'nowrap',
               }}
             >
-              <CheckCircle2 size={13} />
+              <CheckCircle2 size={13} color={activeFilter === 'completed' ? '#4ADE80' : 'currentColor'} />
               <span>Kept ({completedList.length})</span>
             </button>
           )}
 
-          {/* 3. All Commitments */}
-          <button
-            onClick={() => setActiveFilter('all')}
-            style={{
-              padding: '6px 14px',
-              fontSize: '0.82rem',
-              fontWeight: activeFilter === 'all' ? 700 : 500,
-              borderRadius: '20px',
-              cursor: 'pointer',
-              background: activeFilter === 'all' ? 'var(--bg-walnut-card)' : 'transparent',
-              color: activeFilter === 'all' ? 'var(--text-kehwa-cream)' : 'var(--text-parchment-muted)',
-              border: `1px solid ${activeFilter === 'all' ? 'var(--border-copper-subtle)' : 'var(--border-walnut-faint)'}`,
-              transition: 'all 0.15s ease',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            All ({commitments.length})
-          </button>
-
-          {/* 4. Rescheduled (if any) */}
           {postponedList.length > 0 && (
             <button
               onClick={() => setActiveFilter('postponed')}
@@ -331,9 +535,9 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
                 fontWeight: activeFilter === 'postponed' ? 700 : 500,
                 borderRadius: '20px',
                 cursor: 'pointer',
-                background: activeFilter === 'postponed' ? 'rgba(192, 83, 48, 0.18)' : 'transparent',
-                color: activeFilter === 'postponed' ? 'var(--chinar-rust)' : 'var(--text-parchment-muted)',
-                border: `1px solid ${activeFilter === 'postponed' ? 'var(--chinar-rust)' : 'var(--border-walnut-faint)'}`,
+                background: activeFilter === 'postponed' ? 'rgba(226, 149, 59, 0.15)' : 'transparent',
+                color: activeFilter === 'postponed' ? 'var(--saffron-ember)' : 'var(--text-parchment-muted)',
+                border: `1px solid ${activeFilter === 'postponed' ? 'rgba(226, 149, 59, 0.4)' : 'var(--border-walnut-faint)'}`,
                 transition: 'all 0.15s ease',
                 display: 'flex',
                 alignItems: 'center',
@@ -341,12 +545,11 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
                 whiteSpace: 'nowrap',
               }}
             >
-              <CalendarClock size={13} />
-              <span>Rescheduled ({postponedList.length})</span>
+              <CalendarClock size={13} color={activeFilter === 'postponed' ? 'var(--saffron-ember)' : 'currentColor'} />
+              <span>Postponed ({postponedList.length})</span>
             </button>
           )}
 
-          {/* 5. Missed (if any) */}
           {missedList.length > 0 && (
             <button
               onClick={() => setActiveFilter('missed')}
@@ -411,7 +614,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
             </button>
           </div>
         ) : activeFilter === 'all' ? (
-          /* ⚡ ALL VIEW: Smart Sectioned Layout */
+          /* ⚡ ALL VIEW: Smart Sectioned Layout with Day Phasing */
           <>
             {/* 1. Active Focus Section */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -467,7 +670,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
                   </p>
                 </div>
               ) : (
-                activeList.map(renderCard)
+                renderActiveCommitmentsWithPhases()
               )}
             </div>
 
@@ -610,7 +813,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
                   )}
                 </div>
               ) : (
-                activeList.map(renderCard)
+                renderActiveCommitmentsWithPhases()
               )
             )}
             {activeFilter === 'completed' && (
@@ -620,7 +823,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
             )}
             {activeFilter === 'postponed' && (
               postponedList.length === 0 
-                ? <p style={{ textAlign: 'center', color: 'var(--text-tweed-dim)', padding: '30px 0' }}>No rescheduled commitments for this date.</p>
+                ? <p style={{ textAlign: 'center', color: 'var(--text-tweed-dim)', padding: '30px 0' }}>No postponed commitments.</p>
                 : postponedList.map(renderCard)
             )}
             {activeFilter === 'missed' && (

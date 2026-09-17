@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Modal } from '../common/Modal';
-import { commitmentApi, CommitmentCategory, CommitmentPriority, CommitmentVisibility } from '../../api/commitmentApi';
+import { commitmentApi, CommitmentCategory, CommitmentPriority, CommitmentVisibility, DayPhase } from '../../api/commitmentApi';
 import { partnershipApi } from '../../api/partnershipApi';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { Sparkles, Clock, Shield, Flame, Users, Lock, Target, Zap, Plus, X, ChevronDown, Check } from 'lucide-react';
+import { Sparkles, Clock, Shield, Flame, Users, Lock, Target, Zap, Plus, X, ChevronDown, Check, Sunrise, Sun, Moon } from 'lucide-react';
 import { getLocalTodayStr } from '../../utils/dateUtils';
 
 interface AddCommitmentModalProps {
@@ -61,10 +61,11 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
   const [showDeliverable, setShowDeliverable] = useState(false);
   const [estimatedMinutes, setEstimatedMinutes] = useState(60);
   const [priority, setPriority] = useState<CommitmentPriority>('MEDIUM');
+  const [dayPhase, setDayPhase] = useState<DayPhase | null>(null);
   const [visibility, setVisibility] = useState<CommitmentVisibility>('PRIVATE');
   const [targetPartnerId, setTargetPartnerId] = useState<string | null>(null);
   const [activePartners, setActivePartners] = useState<{ id: string; name: string }[]>([]);
-  const [activeMenu, setActiveMenu] = useState<'duration' | 'priority' | 'visibility' | null>(null);
+  const [activeMenu, setActiveMenu] = useState<'duration' | 'priority' | 'visibility' | 'phase' | null>(null);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -75,6 +76,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
       setCategory('DEEP_WORK');
       setEstimatedMinutes(60);
       setPriority('MEDIUM');
+      setDayPhase(null);
       setVisibility('PRIVATE');
       setTargetPartnerId(null);
       setShowDeliverable(false);
@@ -173,6 +175,7 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
         estimatedMinutes: Number(estimatedMinutes),
         priority,
         category,
+        dayPhase: dayPhase || undefined,
         commitmentDate: targetDate,
         visibility,
         targetPartnerId: visibility === 'SHARED_WITH_PARTNER' ? (targetPartnerId || undefined) : undefined,
@@ -692,7 +695,186 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
             )}
           </div>
 
-          {/* 4. Add Deliverable Button */}
+          {/* 4. Day Phase Popover Chip */}
+          <div style={{ position: 'relative' }}>
+            <button
+              type="button"
+              onClick={() => setActiveMenu(activeMenu === 'phase' ? null : 'phase')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '5px 11px',
+                borderRadius: '6px',
+                fontSize: '0.8rem',
+                fontWeight: dayPhase ? 700 : 500,
+                cursor: 'pointer',
+                background: dayPhase ? 'rgba(226, 149, 59, 0.15)' : 'var(--bg-walnut-surface)',
+                color: dayPhase ? 'var(--saffron-ember)' : 'var(--text-kehwa-cream)',
+                border: `1px solid ${dayPhase ? 'rgba(226, 149, 59, 0.4)' : 'var(--border-walnut-faint)'}`,
+                transition: 'all 0.15s ease',
+              }}
+              title="Set optional phase of day (Morning, Day, Evening)"
+            >
+              {dayPhase === 'MORNING' ? (
+                <Sunrise size={13} color="var(--saffron-ember)" />
+              ) : dayPhase === 'DAY' ? (
+                <Sun size={13} color="#FBBF24" />
+              ) : dayPhase === 'EVENING' ? (
+                <Moon size={13} color="#A78BFA" />
+              ) : (
+                <Sun size={13} opacity={0.6} />
+              )}
+              <span>
+                {dayPhase === 'MORNING'
+                  ? '🌅 Morning'
+                  : dayPhase === 'DAY'
+                  ? '☀️ Day'
+                  : dayPhase === 'EVENING'
+                  ? '🌙 Evening'
+                  : 'Phase: Anytime'}
+              </span>
+              {dayPhase ? (
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDayPhase(null);
+                    setActiveMenu(null);
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    padding: '2px',
+                    borderRadius: '50%',
+                    color: 'var(--text-tweed-dim)',
+                    marginLeft: '2px',
+                  }}
+                  title="Clear Phase"
+                >
+                  <X size={12} />
+                </span>
+              ) : (
+                <ChevronDown size={12} opacity={0.6} />
+              )}
+            </button>
+
+            {activeMenu === 'phase' && (
+              <div style={{
+                position: 'absolute',
+                top: 'calc(100% + 6px)',
+                left: 0,
+                zIndex: 100,
+                background: 'var(--bg-walnut-card)',
+                border: '1px solid var(--border-walnut-faint)',
+                borderRadius: '8px',
+                padding: '6px',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+                minWidth: '180px',
+              }}>
+                <button
+                  type="button"
+                  onClick={() => { setDayPhase(null); setActiveMenu(null); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '7px 10px',
+                    borderRadius: '5px',
+                    fontSize: '0.78rem',
+                    fontWeight: !dayPhase ? 700 : 500,
+                    background: !dayPhase ? 'var(--bg-walnut-surface)' : 'transparent',
+                    color: !dayPhase ? 'var(--saffron-ember)' : 'var(--text-parchment-muted)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>📋</span>
+                    <span>Anytime (Flexible)</span>
+                  </div>
+                  {!dayPhase && <Check size={13} color="var(--saffron-ember)" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setDayPhase('MORNING'); setActiveMenu(null); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '7px 10px',
+                    borderRadius: '5px',
+                    fontSize: '0.78rem',
+                    fontWeight: dayPhase === 'MORNING' ? 700 : 500,
+                    background: dayPhase === 'MORNING' ? 'rgba(226, 149, 59, 0.15)' : 'transparent',
+                    color: dayPhase === 'MORNING' ? 'var(--saffron-ember)' : 'var(--text-parchment-muted)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Sunrise size={13} color="var(--saffron-ember)" />
+                    <span>🌅 Morning</span>
+                  </div>
+                  {dayPhase === 'MORNING' && <Check size={13} color="var(--saffron-ember)" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setDayPhase('DAY'); setActiveMenu(null); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '7px 10px',
+                    borderRadius: '5px',
+                    fontSize: '0.78rem',
+                    fontWeight: dayPhase === 'DAY' ? 700 : 500,
+                    background: dayPhase === 'DAY' ? 'rgba(251, 191, 36, 0.15)' : 'transparent',
+                    color: dayPhase === 'DAY' ? '#FBBF24' : 'var(--text-parchment-muted)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Sun size={13} color="#FBBF24" />
+                    <span>☀️ Day</span>
+                  </div>
+                  {dayPhase === 'DAY' && <Check size={13} color="#FBBF24" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setDayPhase('EVENING'); setActiveMenu(null); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '7px 10px',
+                    borderRadius: '5px',
+                    fontSize: '0.78rem',
+                    fontWeight: dayPhase === 'EVENING' ? 700 : 500,
+                    background: dayPhase === 'EVENING' ? 'rgba(167, 139, 250, 0.15)' : 'transparent',
+                    color: dayPhase === 'EVENING' ? '#A78BFA' : 'var(--text-parchment-muted)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Moon size={13} color="#A78BFA" />
+                    <span>🌙 Evening</span>
+                  </div>
+                  {dayPhase === 'EVENING' && <Check size={13} color="#A78BFA" />}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* 5. Add Deliverable Button */}
           {!showDeliverable && category === 'DEEP_WORK' && (
             <button
               type="button"
