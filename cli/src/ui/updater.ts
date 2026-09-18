@@ -16,7 +16,7 @@ export function getCliVersion(): string {
   } catch {
     // fallback
   }
-  return "1.0.12";
+  return "1.0.16";
 }
 
 export const CURRENT_CLI_VERSION = getCliVersion();
@@ -79,7 +79,7 @@ export function checkForCliUpdates(): void {
             } as any);
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   } catch {
     // Fail silently so update checks never crash the CLI
