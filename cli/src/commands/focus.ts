@@ -30,6 +30,14 @@ export interface CompletedFocusReceipt {
   completedAt: string;
 }
 
+export interface FocusOptions {
+  notify?: boolean;
+  sound?: boolean;
+  live?: boolean;
+  popup?: boolean;
+  window?: boolean;
+}
+
 export function saveCompletedReceipt(receipt: CompletedFocusReceipt): void {
   try {
     const dir = path.dirname(COMPLETED_FOCUS_FILE);
@@ -74,16 +82,13 @@ export function getTimerState(): BackgroundTimerState | null {
       const content = fs.readFileSync(TIMER_STATE_FILE, "utf-8");
       const state = JSON.parse(content) as BackgroundTimerState;
       const endTime = new Date(state.targetEndTime).getTime();
-      // If the target end time has already passed, clear it
       if (Date.now() < endTime) {
         return state;
       } else {
         clearTimerState();
       }
     }
-  } catch {
-    // Ignored
-  }
+  } catch {}
   return null;
 }
 
@@ -100,9 +105,7 @@ export function clearTimerState(): void {
     if (fs.existsSync(TIMER_STATE_FILE)) {
       fs.unlinkSync(TIMER_STATE_FILE);
     }
-  } catch {
-    // Ignored
-  }
+  } catch {}
 }
 
 function isProcessAlive(pid: number): boolean {
@@ -114,13 +117,9 @@ function isProcessAlive(pid: number): boolean {
   }
 }
 
-/**
- * Parses user input for duration string into seconds.
- * Supports: '25m', '45min', '1h', '1.5h', '90s', '30' (defaults to minutes)
- */
 export function parseDurationToSeconds(input?: string): number {
   if (!input || !input.trim()) {
-    return 25 * 60; // Default 25 minutes
+    return 25 * 60;
   }
 
   const clean = input.trim().toLowerCase();
@@ -174,10 +173,434 @@ function renderProgressBar(percentage: number, width: number = 24): string {
   return barColor("█".repeat(filled)) + chalk.gray("░".repeat(empty));
 }
 
-export interface FocusOptions {
-  notify?: boolean;
-  sound?: boolean;
-  live?: boolean;
+const BIG_FONT: Record<string, string[]> = {
+  "0": ["████", "█  █", "█  █", "█  █", "████"],
+  "1": ["  ██", "   █", "   █", "   █", "  ███"],
+  "2": ["████", "   █", "████", "█   ", "████"],
+  "3": ["████", "   █", "████", "   █", "████"],
+  "4": ["█  █", "█  █", "████", "   █", "   █"],
+  "5": ["████", "█   ", "████", "   █", "████"],
+  "6": ["████", "█   ", "████", "█  █", "████"],
+  "7": ["████", "   █", "  █ ", " █  ", " █  "],
+  "8": ["████", "█  █", "████", "█  █", "████"],
+  "9": ["████", "█  █", "████", "   █", "████"],
+  ":": ["    ", " ▄▄ ", "    ", " ▄▄ ", "    "],
+  " ": ["    ", "    ", "    ", "    ", "    "],
+};
+
+function renderBigClockLines(timeStr: string, isPaused: boolean): string[] {
+  const chars = timeStr.split("");
+  const lines: string[] = ["", "", "", "", ""];
+
+  for (const ch of chars) {
+    const glyph = BIG_FONT[ch] || BIG_FONT[" "];
+    for (let row = 0; row < 5; row++) {
+      lines[row] += glyph[row] + "  ";
+    }
+  }
+
+  const colorFn = isPaused ? chalk.hex("#F59E0B").bold : chalk.hex("#E2953B").bold;
+  return lines.map((l) => "   " + colorFn(l));
+}
+
+/**
+ * Generates an ultra-sleek, standalone Kashmir Harud HTML5 Popup Clock
+ */
+export function generatePopupClockHtml(
+  taskName: string,
+  totalDurationSeconds: number,
+  targetEndTimeMs: number
+): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⚡ AazDoh Focus — ${taskName.replace(/"/g, '&quot;')}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    body {
+      background: #120E0B;
+      color: #F5EFEB;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      user-select: none;
+      overflow: hidden;
+      background-image: radial-gradient(circle at 50% 20%, rgba(226, 149, 59, 0.12), transparent 70%);
+    }
+    .card {
+      background: #1C1510;
+      border: 1px solid rgba(226, 149, 59, 0.3);
+      border-radius: 24px;
+      padding: 24px 20px;
+      width: 100%;
+      max-width: 360px;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.8), 0 0 40px rgba(226, 149, 59, 0.15);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .brand-icon {
+      color: #E2953B;
+      font-size: 16px;
+    }
+    .brand-text {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #E2953B;
+    }
+    .task-badge {
+      background: rgba(226, 149, 59, 0.12);
+      border: 1px solid rgba(226, 149, 59, 0.25);
+      color: #F5EFEB;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 999px;
+      max-width: 300px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 20px;
+    }
+    .clock-container {
+      position: relative;
+      width: 220px;
+      height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    svg.progress-ring {
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+    .ring-bg {
+      stroke: rgba(255, 255, 255, 0.05);
+    }
+    .ring-circle {
+      stroke: url(#saffronGrad);
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.4s ease;
+    }
+    .clock-inner {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .time-digits {
+      font-size: 46px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      font-variant-numeric: tabular-nums;
+      color: #FFFFFF;
+      text-shadow: 0 0 25px rgba(226, 149, 59, 0.4);
+    }
+    .status-tag {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #10B981;
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10B981;
+      box-shadow: 0 0 8px #10B981;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 24px;
+      align-items: center;
+      width: 100%;
+      justify-content: center;
+    }
+    .btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #F5EFEB;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn:hover {
+      background: rgba(226, 149, 59, 0.2);
+      border-color: #E2953B;
+      transform: translateY(-1px);
+    }
+    .btn-main {
+      background: #E2953B;
+      color: #120E0B;
+      border: none;
+      font-weight: 700;
+      padding: 12px 24px;
+      border-radius: 14px;
+      box-shadow: 0 4px 15px rgba(226, 149, 59, 0.35);
+    }
+    .btn-main:hover {
+      background: #F59E0B;
+      box-shadow: 0 6px 20px rgba(226, 149, 59, 0.5);
+    }
+    .distraction-box {
+      width: 100%;
+      margin-top: 18px;
+    }
+    .distraction-input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: #F5EFEB;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .distraction-input:focus {
+      border-color: #E2953B;
+    }
+    .distraction-input::placeholder {
+      color: #8C827A;
+    }
+    .footer {
+      margin-top: 14px;
+      font-size: 11px;
+      color: #8C827A;
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">
+      <span class="brand-icon">⚡</span>
+      <span class="brand-text">AazDoh Focus Sprint</span>
+    </div>
+
+    <div class="task-badge" id="taskTitle">${taskName.replace(/</g, '&lt;')}</div>
+
+    <div class="clock-container">
+      <svg class="progress-ring" width="220" height="220">
+        <defs>
+          <linearGradient id="saffronGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#E2953B" />
+            <stop offset="100%" stop-color="#C05330" />
+          </linearGradient>
+        </defs>
+        <circle class="ring-bg" stroke-width="8" fill="transparent" r="96" cx="110" cy="110" />
+        <circle class="ring-circle" id="progressCircle" stroke-width="8" fill="transparent" r="96" cx="110" cy="110" stroke-dasharray="603.18" stroke-dashoffset="0" />
+      </svg>
+      <div class="clock-inner">
+        <div class="time-digits" id="timeDisplay">--:--</div>
+        <div class="status-tag" id="statusTag">
+          <span class="status-dot" id="statusDot"></span>
+          <span id="statusText">FOCUSING</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" onclick="adjustTime(-300)">-5m</button>
+      <button class="btn btn-main" id="playPauseBtn" onclick="togglePause()">Pause</button>
+      <button class="btn" onclick="adjustTime(300)">+5m</button>
+    </div>
+
+    <div class="distraction-box">
+      <input type="text" class="distraction-input" id="distractionInput" placeholder="💭 Park a fleeting distraction... (Enter)" onkeydown="handleDistraction(event)" />
+    </div>
+
+    <div class="footer">
+      <span id="finishTimeText">Finish: --:--</span>
+      <span id="percentText">0% done</span>
+    </div>
+  </div>
+
+  <script>
+    let totalDuration = ${totalDurationSeconds};
+    let targetEndTimeMs = ${targetEndTimeMs};
+    let isPaused = false;
+    let pauseStartedAt = null;
+    const circle = document.getElementById('progressCircle');
+    const radius = circle.r.baseVal.value;
+    const circumference = 2 * Math.PI * radius;
+    circle.style.strokeDasharray = circumference;
+
+    function playChime() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+        notes.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.08, ctx.currentTime + idx * 0.12);
+          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + idx * 0.12 + 1.2);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + idx * 0.12);
+          osc.stop(ctx.currentTime + idx * 0.12 + 1.3);
+        });
+      } catch(e) {}
+    }
+
+    function formatTime(secs) {
+      const m = Math.floor(secs / 60);
+      const s = secs % 60;
+      return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    }
+
+    function update() {
+      const now = Date.now();
+      let remaining = isPaused && pauseStartedAt 
+        ? Math.max(0, Math.round((targetEndTimeMs - pauseStartedAt) / 1000))
+        : Math.max(0, Math.round((targetEndTimeMs - now) / 1000));
+
+      const elapsed = Math.max(0, totalDuration - remaining);
+      const percent = Math.min(100, Math.round((elapsed / totalDuration) * 100));
+
+      document.getElementById('timeDisplay').innerText = formatTime(remaining);
+      document.getElementById('percentText').innerText = percent + '% done';
+      document.title = formatTime(remaining) + ' — AazDoh Focus';
+
+      const offset = circumference - (percent / 100) * circumference;
+      circle.style.strokeDashoffset = offset;
+
+      const finishDate = new Date(targetEndTimeMs);
+      document.getElementById('finishTimeText').innerText = 'Finish: ' + finishDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      if (remaining <= 0 && !isPaused) {
+        document.getElementById('timeDisplay').innerText = "00:00";
+        document.getElementById('statusText').innerText = "COMPLETED";
+        document.getElementById('statusTag').style.color = "#E2953B";
+        document.getElementById('statusDot').style.background = "#E2953B";
+        playChime();
+        clearInterval(timer);
+      }
+    }
+
+    function togglePause() {
+      if (!isPaused) {
+        isPaused = true;
+        pauseStartedAt = Date.now();
+        document.getElementById('playPauseBtn').innerText = 'Resume';
+        document.getElementById('statusText').innerText = 'PAUSED';
+        document.getElementById('statusTag').style.color = '#F59E0B';
+        document.getElementById('statusDot').style.background = '#F59E0B';
+      } else {
+        if (pauseStartedAt) {
+          targetEndTimeMs += (Date.now() - pauseStartedAt);
+          pauseStartedAt = null;
+        }
+        isPaused = false;
+        document.getElementById('playPauseBtn').innerText = 'Pause';
+        document.getElementById('statusText').innerText = 'FOCUSING';
+        document.getElementById('statusTag').style.color = '#10B981';
+        document.getElementById('statusDot').style.background = '#10B981';
+      }
+      update();
+    }
+
+    function adjustTime(secs) {
+      targetEndTimeMs += secs * 1000;
+      totalDuration = Math.max(60, totalDuration + secs);
+      update();
+    }
+
+    function handleDistraction(e) {
+      if (e.key === 'Enter') {
+        const input = document.getElementById('distractionInput');
+        if (input.value.trim()) {
+          input.value = '';
+          input.placeholder = '✨ Parked! Added to your distraction buffer.';
+          setTimeout(() => {
+            input.placeholder = '💭 Park another fleeting thought...';
+          }, 2500);
+        }
+      }
+    }
+
+    const timer = setInterval(update, 500);
+    update();
+  </script>
+</body>
+</html>`;
+}
+
+/**
+ * Launches the floating desktop popup clock window
+ */
+export function launchPopupClock(
+  taskName: string,
+  totalDurationSeconds: number,
+  targetEndTimeMs: number
+): void {
+  try {
+    const htmlContent = generatePopupClockHtml(taskName, totalDurationSeconds, targetEndTimeMs);
+    const popupFile = path.join(os.homedir(), ".aazdoh", "popup_clock.html");
+    const dir = path.dirname(popupFile);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(popupFile, htmlContent, "utf-8");
+
+    if (process.platform === "win32") {
+      const fileUrl = `file:///${popupFile.replace(/\\/g, "/")}`;
+      exec(`start msedge --app="${fileUrl}" --window-size=400,600`, (err) => {
+        if (err) {
+          exec(`start chrome --app="${fileUrl}" --window-size=400,600`, (err2) => {
+            if (err2) {
+              exec(`start "" "${popupFile}"`);
+            }
+          });
+        }
+      });
+    } else if (process.platform === "darwin") {
+      exec(`open "${popupFile}"`);
+    } else {
+      exec(`xdg-open "${popupFile}"`);
+    }
+  } catch (err: any) {
+    console.log(chalk.red(`Failed to launch popup clock: ${err.message}`));
+  }
 }
 
 /**
@@ -219,9 +642,7 @@ export function handleFocusStop(): void {
   if (state.pid && isProcessAlive(state.pid)) {
     try {
       process.kill(state.pid);
-    } catch {
-      // Ignored
-    }
+    } catch {}
   }
 
   clearTimerState();
@@ -236,7 +657,6 @@ export async function dispatchNotificationAsync(
   message: string,
   sound: boolean = true
 ): Promise<void> {
-  // 1. Play native system audio alert
   if (sound) {
     if (process.platform === "win32") {
       try {
@@ -259,7 +679,6 @@ export async function dispatchNotificationAsync(
     }
   }
 
-  // 2. Dispatch native OS toast notification
   return new Promise<void>((resolve) => {
     let resolved = false;
     const finish = () => {
@@ -269,7 +688,6 @@ export async function dispatchNotificationAsync(
       }
     };
 
-    // Safety timeout: ensure we don't hang indefinitely
     const timer = setTimeout(finish, 4000);
 
     try {
@@ -277,7 +695,7 @@ export async function dispatchNotificationAsync(
         {
           title,
           message,
-          sound: false, // Handled above via native Media.SoundPlayer
+          sound: false,
           wait: false,
           appID: "AazDoh Focus",
         },
@@ -304,7 +722,6 @@ export async function handleFocusWorker(
 ): Promise<void> {
   const targetEndTimeMs = Date.now() + seconds * 1000;
 
-  // Sleep-resilient loop: check real wall-clock time every 1 second
   while (Date.now() < targetEndTimeMs) {
     const remainingMs = targetEndTimeMs - Date.now();
     const sleepChunk = Math.min(1000, Math.max(100, remainingMs));
@@ -337,6 +754,8 @@ export async function handleFocusCommand(args: string[], options: FocusOptions =
     const t = token.trim();
     if (t === "--live" || t === "-l" || t.toLowerCase() === "live") {
       mergedOptions.live = true;
+    } else if (t === "--popup" || t === "-p" || t === "--window" || t === "-w" || t.toLowerCase() === "popup" || t.toLowerCase() === "window") {
+      mergedOptions.popup = true;
     } else if (t === "--no-notify") {
       mergedOptions.notify = false;
     } else if (t === "--no-sound") {
@@ -348,21 +767,18 @@ export async function handleFocusCommand(args: string[], options: FocusOptions =
 
   const firstArg = (cleanTokens[0] || "").toLowerCase().trim();
 
-  // Subcommand dispatch: status
   if (firstArg === "status") {
     handleFocusStatus();
     return;
   }
 
-  // Subcommand dispatch: stop / cancel
   if (firstArg === "stop" || firstArg === "cancel") {
     handleFocusStop();
     return;
   }
 
-  // Check if a timer is already active
   const existing = getTimerState();
-  if (existing && !mergedOptions.live) {
+  if (existing && !mergedOptions.live && !mergedOptions.popup) {
     const endTime = new Date(existing.targetEndTime).getTime();
     const remainingSeconds = Math.max(0, Math.round((endTime - Date.now()) / 1000));
     console.log(chalk.yellow(`\n   ⚠️  A focus timer is already running in the background:`));
@@ -381,7 +797,6 @@ export async function handleFocusCommand(args: string[], options: FocusOptions =
         taskName = cleanTokens.slice(1).join(" ").trim() || taskName;
       }
     } else {
-      // Find if any token is a duration token
       const durationIndex = cleanTokens.findIndex(isDurationToken);
       if (durationIndex !== -1) {
         durationSeconds = parseDurationToSeconds(cleanTokens[durationIndex]);
@@ -395,7 +810,16 @@ export async function handleFocusCommand(args: string[], options: FocusOptions =
     }
   }
 
-  // If live mode requested, run the interactive foreground TUI
+  // If popup window requested directly
+  if (mergedOptions.popup || mergedOptions.window) {
+    const targetEndTimeMs = Date.now() + durationSeconds * 1000;
+    launchPopupClock(taskName, durationSeconds, targetEndTimeMs);
+    console.log(`   ${chalk.bgHex("#10B981").hex("#FFFFFF").bold(" ⚡ FLOATING CLOCK POPUP OPENED ")} ${chalk.hex("#E2953B").bold(taskName)}`);
+    console.log(`   ${chalk.gray("Duration:")} ${chalk.cyan(formatTime(durationSeconds))}  |  ${chalk.gray("A sleek floating focus timer is running on your desktop.")}\n`);
+    return;
+  }
+
+  // If live mode requested, run the interactive foreground TUI with Big ASCII Clock
   if (mergedOptions.live) {
     await runLiveTimerTUI(durationSeconds, taskName, mergedOptions);
     return;
@@ -444,12 +868,14 @@ export async function handleFocusCommand(args: string[], options: FocusOptions =
       chalk.cyan("az focus stop") +
       chalk.gray(" (cancel)  •  ") +
       chalk.cyan("az focus --live") +
-      chalk.gray(" (interactive TUI)\n")
+      chalk.gray(" (Big ASCII clock)  •  ") +
+      chalk.cyan("az focus --popup") +
+      chalk.gray(" (floating popout)\n")
   );
 }
 
 /**
- * Interactive Live TUI with real wall-clock tracking across sleep / suspension
+ * Interactive Live TUI with Big ASCII Digital Clock and Popup Hotkey
  */
 async function runLiveTimerTUI(
   durationSeconds: number,
@@ -462,16 +888,10 @@ async function runLiveTimerTUI(
   let pauseStartedAt: number | null = null;
   let timerInterval: NodeJS.Timeout | null = null;
 
-  const formattedEndTime = () =>
-    new Date(targetEndTimeMs).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
+  console.clear();
   printBanner();
-  console.log(`   ${chalk.bgHex("#C05330").hex("#FFFFFF").bold(" 🎯 LIVE FOCUS MODE ")} ${chalk.hex("#E2953B").bold(taskName)}`);
-  console.log(`   ${chalk.gray("Target finish:")} ${chalk.hex("#FDFBF7")(formattedEndTime())}  |  ${chalk.gray("Duration:")} ${chalk.cyan(formatTime(totalDuration))}`);
-  console.log("");
-  console.log(chalk.gray("   Controls: [Space] Pause/Resume  [+] +5m  [-] -5m  [q] Cancel & Exit\n"));
 
-  process.stdout.write("\u001B[?25l");
+  process.stdout.write("\u001B[?25l"); // Hide cursor
 
   let keyListener: ((key: string) => void) | null = null;
 
@@ -480,7 +900,7 @@ async function runLiveTimerTUI(
       clearInterval(timerInterval);
       timerInterval = null;
     }
-    process.stdout.write("\u001B[?25h");
+    process.stdout.write("\u001B[?25h"); // Show cursor
     if (keyListener) {
       process.stdin.removeListener("data", keyListener);
       keyListener = null;
@@ -502,18 +922,37 @@ async function runLiveTimerTUI(
     const remainingSeconds = getRemainingSeconds();
     const elapsed = Math.max(0, totalDuration - remainingSeconds);
     const percent = Math.min(100, Math.round((elapsed / totalDuration) * 100));
-    const progressBar = renderProgressBar(percent, 25);
+    const progressBar = renderProgressBar(percent, 28);
     const timeFormatted = formatTime(remainingSeconds);
 
     const statusBadge = isPaused
       ? chalk.bgHex("#F59E0B").hex("#1A0E08").bold(" ⏸ PAUSED ")
-      : chalk.bgHex("#10B981").hex("#FFFFFF").bold(" ▶ FOCUS ");
+      : chalk.bgHex("#10B981").hex("#FFFFFF").bold(" ▶ FOCUSING ");
 
-    readline.cursorTo(process.stdout, 0);
-    readline.clearLine(process.stdout, 0);
+    const finishFormatted = new Date(targetEndTimeMs).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-    const output = `   ${statusBadge} [${progressBar}] ${chalk.bold(timeFormatted)} (${percent}%)`;
-    process.stdout.write(output);
+    readline.cursorTo(process.stdout, 0, 8);
+    readline.clearScreenDown(process.stdout);
+
+    console.log(`   ${statusBadge}  ${chalk.hex("#E2953B").bold(taskName)}  ${chalk.gray(`[Target: ${finishFormatted}]`)}`);
+    console.log("");
+
+    const bigLines = renderBigClockLines(timeFormatted, isPaused);
+    for (const line of bigLines) {
+      console.log(line);
+    }
+
+    console.log("");
+    console.log(`   [${progressBar}] ${chalk.bold(timeFormatted)} (${percent}%)`);
+    console.log("");
+    console.log(
+      chalk.gray("   Controls: ") +
+      chalk.cyan("[Space]") + chalk.gray(" Pause/Resume  ") +
+      chalk.cyan("[+]") + chalk.gray(" +5m  ") +
+      chalk.cyan("[-]") + chalk.gray(" -5m  ") +
+      chalk.cyan("[w/p]") + chalk.hex("#E2953B")(" Popout Window  ") +
+      chalk.cyan("[q]") + chalk.gray(" Stop & Exit")
+    );
   };
 
   return new Promise<void>((resolve) => {
@@ -525,20 +964,16 @@ async function runLiveTimerTUI(
       keyListener = (key: string) => {
         if (key === "\u0003" || key === "q" || key === "Q") {
           cleanup();
-          readline.cursorTo(process.stdout, 0);
-          readline.clearLine(process.stdout, 0);
           console.log(`\n   ${chalk.hex("#8C827A")("🛑 Focus session stopped.")}\n`);
           resolve();
           return;
         }
 
-        if (key === " " || key === "p" || key === "P") {
+        if (key === " " || (key === "p" && isPaused)) {
           if (!isPaused) {
-            // Pause
             isPaused = true;
             pauseStartedAt = Date.now();
           } else {
-            // Resume: adjust targetEndTime forward by paused duration
             if (pauseStartedAt) {
               const pausedDurationMs = Date.now() - pauseStartedAt;
               targetEndTimeMs += pausedDurationMs;
@@ -547,6 +982,13 @@ async function runLiveTimerTUI(
             isPaused = false;
           }
           renderTimerFrame();
+          return;
+        }
+
+        if (key === "w" || key === "W" || key === "o" || key === "O" || (key === "p" && !isPaused)) {
+          launchPopupClock(taskName, totalDuration, targetEndTimeMs);
+          renderTimerFrame();
+          console.log(`\n   ${chalk.green("✨ Opened sleek floating clock popup window!")}`);
           return;
         }
 
@@ -580,9 +1022,6 @@ async function runLiveTimerTUI(
 
         if (remainingSeconds <= 0) {
           cleanup();
-          readline.cursorTo(process.stdout, 0);
-          readline.clearLine(process.stdout, 0);
-
           process.stdout.write("\u0007");
 
           console.log(`\n   ${chalk.bgGreen.black.bold(" 🎉 TIME'S UP! ")} ${chalk.green.bold("Great focus session completed!")}`);
@@ -621,9 +1060,7 @@ async function runLiveTimerTUI(
                   }
                 }
               }
-            } catch {
-              // Cancelled
-            }
+            } catch {}
           }
 
           resolve();

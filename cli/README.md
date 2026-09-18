@@ -248,7 +248,7 @@ az stress-test --defense "I have zero meetings today and dedicated 4h block"
 
 ---
 
-### 6. `aazdoh focus` | `az timer` (Local Offline Focus Timer & Desktop Alerts)
+### 6. `aazdoh focus` | `az timer` (Local Offline Focus Timer, Big ASCII Clock & Popout Window)
 Run a 100% offline, zero-network Pomodoro and deep work focus timer directly on your machine. **Runs in the background by default**, freeing your terminal immediately, and alerts you with a native OS desktop toast notification when time expires.
 
 ```bash
@@ -265,8 +265,12 @@ az focus status
 # Stop / cancel active background timer
 az focus stop
 
-# Interactive live full-screen countdown with hotkeys ([Space] pause, [+] +5m)
+# Interactive live full-screen countdown with Big ASCII Digital Clock & hotkeys:
+# ([Space] Pause/Resume, [+] +5m, [-] -5m, [w/p] Popout Window, [q] Exit)
 az focus 25m --live
+
+# Launch a sleek floating desktop popup clock window (standalone borderless app mode)
+az focus 45m "Core Database Engine" --popup
 ```
 
 ---

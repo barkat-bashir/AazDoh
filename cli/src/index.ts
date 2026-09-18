@@ -76,10 +76,12 @@ program
   .command("focus [durationOrTask...]")
   .alias("timer")
   .description("Start a local offline deep focus / Pomodoro timer with desktop notifications")
-  .option("-l, --live", "Run interactive live countdown in foreground with keyboard controls")
+  .option("-l, --live", "Run interactive live countdown in terminal with big ASCII clock")
+  .option("-p, --popup", "Open a sleek floating desktop popup clock window")
+  .option("-w, --window", "Open a sleek floating desktop popup clock window")
   .option("--no-notify", "Disable native desktop notification on timer completion")
   .option("--no-sound", "Mute notification sound")
-  .action(async (args: string[], options: { notify?: boolean; sound?: boolean; live?: boolean }) => {
+  .action(async (args: string[], options: { notify?: boolean; sound?: boolean; live?: boolean; popup?: boolean; window?: boolean }) => {
     await handleFocusCommand(args, options);
   });
 
