@@ -49,8 +49,10 @@ Standard to-do apps reward dopamine checkmarks, artificial streaks, and passive 
 
 ## ⚡ Core Capabilities
 
-### 1. 🎯 Daily Commitments & Focused Capacity
+### 1. 🎯 Daily Commitments & Optional Day Phasing
 - **Active Focus First**: Default views prioritize actionable commitments (`Active Focus → Kept → All`).
+- **🌅 Day Phasing (Morning / Day / Evening / Anytime)**: Organize tasks into natural daily cognitive rhythms without brittle, anxiety-inducing hourly time-blocking.
+- **✋ Drag & Drop Reordering**: Seamlessly move commitment cards between day phases on the web UI with instant optimistic UI updates.
 - **Bounded Capacity**: Encourages sustainable limits (2–4 high-leverage promises) rather than endless backlog anxiety.
 - **Dynamic Victory State**: Visual celebration and telemetry locking once daily active promises are cleared.
 
@@ -96,14 +98,14 @@ AazDoh/
 │   │   ├── partner/         # 1-to-1 partner pairing & invitation tokens
 │   │   ├── review/          # Daily reflection & excuse classifier
 │   │   └── user/            # User profiles & execution personas
-│   └── src/main/resources/db/migration/  # Versioned Flyway SQL migrations (V1..V15)
+│   └── src/main/resources/db/migration/  # Versioned Flyway SQL migrations (V1..V19)
 │
 ├── frontend/                 # React 18, TypeScript & Vite SPA
 │   ├── src/
 │   │   ├── api/             # Typed API client services
 │   │   ├── components/
 │   │   │   ├── analytics/   # Heatmap, Duration Curve, Friction Matrix
-│   │   │   ├── commitments/ # Commitment cards, Modals, Stress-test UI
+│   │   │   ├── commitments/ # Commitment cards, Modals, Drag & Drop Day Phases, Stress-test UI
 │   │   │   ├── common/      # Chinar leaf canvas, BrandLogo, Header, Nav
 │   │   │   ├── focus/       # FocusSprintModal, FloatingFocusBar, Web Audio Telemetry
 │   │   │   ├── partners/    # 1:1 partner dashboard & discussion drawers
@@ -114,7 +116,7 @@ AazDoh/
 │
 ├── cli/                      # Autonomous TypeScript Terminal CLI Agent (`aazdoh-cli`)
 │   ├── src/
-│   │   ├── commands/        # `today`, `run`, `chat`, `stress-test`, `undo`, `stats`
+│   │   ├── commands/        # `today`, `done`, `run`, `chat`, `stress-test`, `focus`, `undo`, `stats`
 │   │   ├── services/        # Terminal API client & SSE token streamer
 │   │   └── utils/           # ASCII tables, config storage, prompt sanitization
 │   └── bin/                 # Executable binaries: `aazdoh`, `az`
@@ -151,9 +153,11 @@ az
 | Command / Shortcut | Role | Description |
 | :--- | :--- | :--- |
 | `az` *(or `aazdoh`)* | **Interactive Cockpit** | Displays today's agenda and keeps the interactive session (`az>`) open |
+| `az done` *(or `az check`)* | **Interactive Check-off** | Fast terminal multi-select checkboxes or name search with **zero AI overhead** |
+| `az today` *(or `az today -i`)* | **Daily Table** | One-shot printout of today's schedule, Day Phases, or launch interactive checkboxes (`-i`) |
 | `az "<instruction>"` | **Natural Language** | Fast one-shot task execution with live SSE action receipts |
-| `az today` | **Daily Table** | One-shot printout of today's schedule, categories, and load |
 | `az stress-test` | **Feasibility Audit** | Runs 60-second plan feasibility check against 7-day velocity |
+| `az focus [duration] [task]` | **Offline Pomodoro** | Background focus timer with OS notifications or `--live` countdown |
 | `az stats` *(or `az velocity`)* | **Velocity Metrics** | Displays 7-day compounding consistency and focus hours |
 | `az undo` | **1-Tap Rollback** | Instantly reverts the last AI agent mutation |
 

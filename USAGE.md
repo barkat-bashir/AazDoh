@@ -13,8 +13,9 @@
    - [Zero-Friction Terminal Cockpit (`az`)](#2-zero-friction-terminal-cockpit-az)
    - [Interactive Slash Commands Reference](#3-interactive-slash-commands-reference)
    - [Natural Language Task Execution](#4-natural-language-task-execution)
-   - [One-Shot Scriptable Commands](#5-one-shot-scriptable-commands)
-   - [Configuration & Credential Hierarchy](#6-configuration--credential-hierarchy)
+   - [Fast Interactive Task Check-off (`az done` / `az check`)](#5-fast-interactive-task-check-off-az-done--az-check)
+   - [One-Shot Scriptable Commands](#6-one-shot-scriptable-commands)
+   - [Configuration & Credential Hierarchy](#7-configuration--credential-hierarchy)
 3. [🤖 Part 2: Model Context Protocol (`aazdoh-mcp`)](#-part-2-model-context-protocol-aazdoh-mcp)
    - [Supported AI Environments](#1-supported-ai-environments)
    - [IDE Configuration Snippets](#2-ide-configuration-snippets)
@@ -128,13 +129,32 @@ az> postpone team sync prep to tomorrow morning
 
 ---
 
-### 5. One-Shot Scriptable Commands
+### 5. Fast Interactive Task Check-off (`az done` / `az check`)
+
+Mark commitments as completed with **zero LLM latency** via direct REST API execution:
+
+```bash
+# Interactive multi-select checkbox mode (Space to toggle, Enter to confirm)
+az done
+# (or aliases: az check, az complete)
+
+# Quick direct keyword match (marks matching task completed immediately)
+az done DSA
+az check redis
+```
+
+---
+
+### 6. One-Shot Scriptable Commands
 
 For CI/CD pipelines, shell aliases, terminal multiplexers (tmux), or quick single-line executions:
 
 ```bash
 # View today's plan and immediately return to shell
 az today
+
+# View today's plan and launch interactive checkboxes
+az today -i
 
 # View plan for a specific date
 az today --date 2026-09-15
@@ -148,13 +168,16 @@ az stress-test
 # Run stress test with cognitive defense
 az stress-test -d "Shipping critical hotfix before 2pm sync"
 
+# Offline background focus timer (desktop toast notification on completion)
+az focus 45m "PostgreSQL connection pool optimization"
+
 # Inspect 7-day velocity
 az stats
 ```
 
 ---
 
-### 6. Configuration & Credential Hierarchy
+### 7. Configuration & Credential Hierarchy
 
 AazDoh resolves credentials in the following priority:
 1. CLI runtime flag: `-k <key>` / `-u <url>`

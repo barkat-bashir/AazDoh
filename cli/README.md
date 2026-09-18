@@ -17,13 +17,16 @@
 2. [🚀 Quickstart](#-quickstart)
    - [Installation](#1-installation)
    - [Authentication](#2-authentication)
+   - [Zero-Friction Terminal Cockpit (`az`)](#3-zero-friction-terminal-cockpit-az)
 3. [💻 Commands & Usage Reference](#-commands--usage-reference)
-   - [`aazdoh today` (Daily Workload & Status)](#1-aazdoh-today--az-list)
-   - [`aazdoh "<instruction>"` (Natural Language Execution)](#2-aazdoh-instruction--az-run-instruction)
-   - [`aazdoh chat` (Interactive Multi-Turn REPL)](#3-aazdoh-chat-interactive-ai-chief-of-staff)
-   - [`aazdoh stress-test` (60-Second Overload Audit)](#4-aazdoh-stress-test-60-second-plan-stress-test)
-   - [`aazdoh undo` (Instant Action Rollback)](#5-aazdoh-undo-instant-mutation-rollback)
-   - [`aazdoh stats` (7-Day Telemetry & Velocity)](#6-aazdoh-stats--az-velocity)
+   - [`aazdoh today` (Daily Workload, Day Phasing & Status)](#1-aazdoh-today--az-list)
+   - [`aazdoh done` (Interactive Fast Task Check-Off)](#2-aazdoh-done--az-check--az-complete)
+   - [`aazdoh "<instruction>"` (Natural Language Execution)](#3-aazdoh-instruction--az-run-instruction)
+   - [`aazdoh chat` (Interactive Multi-Turn REPL)](#4-aazdoh-chat-interactive-ai-chief-of-staff)
+   - [`aazdoh stress-test` (60-Second Overload Audit)](#5-aazdoh-stress-test-60-second-plan-stress-test)
+   - [`aazdoh focus` (Offline Pomodoro & Focus Timer)](#6-aazdoh-focus--az-timer-local-offline-focus-timer--desktop-alerts)
+   - [`aazdoh undo` (Instant Action Rollback)](#7-aazdoh-undo-instant-mutation-rollback)
+   - [`aazdoh stats` (7-Day Telemetry & Velocity)](#8-aazdoh-stats--az-velocity)
 4. [⌨️ Interactive REPL Slash Commands](#-interactive-repl-slash-commands)
 5. [⚙️ Configuration & Credential Priority](#-configuration--credential-priority)
 6. [🛡️ Security, Sanitization & Cognitive Limits](#-security-sanitization--cognitive-limits)
@@ -35,11 +38,14 @@
 ## ✨ Key Features
 
 - **⚡ Zero-Friction Terminal Execution**: Type `az "completed TUF DSA, add 45m Redis optimization"` to update your ledger instantaneously.
+- **✅ Instant Interactive Task Check-Off (`az done`)**: Select pending tasks via terminal checkboxes (`[Space]` to toggle, `[Enter]` to complete) or match by name (`az done redis`) with **zero AI/LLM latency**.
+- **🌅 Day Phasing (Morning / Day / Evening / Anytime)**: Structure your daily momentum into natural cognitive phases without rigid or brittle time-blocking.
 - **🛡️ 60-Second Plan Stress Test**: Real-time diagnostic that audits your schedule against your historical 7-day velocity to prevent cognitive burnout and task fragmentation.
 - **💬 Interactive Chief of Staff REPL**: Continuous multi-turn conversational terminal session with real-time SSE token streaming and slash commands.
+- **⏱️ Local Offline Focus Timer (`az focus`)**: Sleep-immune background timer with desktop push notifications and live countdown mode.
 - **⏪ One-Tap Rollbacks (`undo`)**: Revert any AI-generated task or state change with a single keystroke.
-- **📊 Rich Terminal Aesthetics**: ANSI-colored badges (`DEEP FOCUS`, `ROUTINE`), ASCII data tables, and dynamic progress meters designed for modern developer workflows.
-- **🔒 Baked-In Production Architecture**: Pre-configured to the live production backend with layered credential overrides via `~/.aazdoh/config.json`, `.env`, or environment variables.
+- **📊 Rich Terminal Aesthetics**: ANSI-colored badges (`DEEP FOCUS`, `ROUTINE`, Day Phase badges), ASCII data tables, and dynamic progress meters.
+- **🚀 Ultra-Fast Startup**: Non-blocking background update checks and parallel pre-flight fetches for instant command responsiveness.
 
 ---
 
@@ -91,11 +97,17 @@ Inside the cockpit, type natural language instructions or slash commands: `/toda
 ## 💻 Commands & Usage Reference
 
 ### 1. `aazdoh today` | `az list`
-Inspect today’s scheduled commitments, completion statuses, priorities, categories, and total scheduled cognitive load.
+Inspect today’s scheduled commitments, completion statuses, day phases (🌅 Morning / ☀️ Day / 🌙 Evening / 📋 Anytime), priorities, categories, and total scheduled cognitive load.
 
 ```bash
+# Print today's schedule table
 az today
-# Or inspect a specific date (YYYY-MM-DD):
+
+# View today's schedule and immediately launch interactive checkbox check-off:
+az today -i
+# or: az today --interactive
+
+# Inspect a specific date (YYYY-MM-DD):
 az today --date 2026-09-14
 ```
 
@@ -106,29 +118,65 @@ az today --date 2026-09-14
 
    Plan for: 2026-09-13 | User: Barkat [Persona: BALANCED]
 
-┌──────────┬────────────────────────────────┬────────────┬──────────┬────────────────┬────────────────────────────┐
-│ Status   │ Commitment Title               │ Duration   │ Priority │ Category       │ Expected Outcome           │
-├──────────┼────────────────────────────────┼────────────┼──────────┼────────────────┼────────────────────────────┤
-│ ✅ DONE  │ Java Architecture Review       │ 60m        │ [HIGH]   │ 🎯 DEEP FOCUS  │ Core design approved       │
-│ ✅ DONE  │ Spring AI Token Streaming      │ 60m        │ [MED]    │ 🎯 DEEP FOCUS  │ SSE stream tests passing   │
-│ ⭕ PEND  │ DSA TUF Trees & Graphs         │ 60m        │ [MED]    │ 🎯 DEEP FOCUS  │ 4 Leetcode mediums solved  │
-│ ✅ DONE  │ Morning Routine & Breakfast    │ 30m        │ [HIGH]   │ ⚡ ROUTINE     │ Ready for deep focus       │
-└──────────┴────────────────────────────────┴────────────┴──────────┴────────────────┴────────────────────────────┘
+┌──────────┬────────────────────────────────┬────────────┬──────────┬──────────────┬────────────────┬────────────────────────────┐
+│ Status   │ Commitment Title               │ Duration   │ Priority │ Phase        │ Category       │ Expected Outcome           │
+├──────────┼────────────────────────────────┼────────────┼──────────┼──────────────┼────────────────┼────────────────────────────┤
+│ ✅ DONE  │ Java Architecture Review       │ 60m        │ [HIGH]   │ 🌅 Morning   │ 🎯 DEEP FOCUS  │ Core design approved       │
+│ ✅ DONE  │ Spring AI Token Streaming      │ 60m        │ [MED]    │ ☀️ Day       │ 🎯 DEEP FOCUS  │ SSE stream tests passing   │
+│ ⭕ PEND  │ DSA TUF Trees & Graphs         │ 60m        │ [MED]    │ 🌙 Evening   │ 🎯 DEEP FOCUS  │ 4 Leetcode mediums solved  │
+│ ✅ DONE  │ Morning Routine & Breakfast    │ 30m        │ [HIGH]   │ 🌅 Morning   │ ⚡ ROUTINE     │ Ready for deep focus       │
+└──────────┴────────────────────────────────┴────────────┴──────────┴──────────────┴────────────────┴────────────────────────────┘
 
    Summary: 3 Done | 1 Pending | 3.5h total scheduled (210m) •  OPTIMAL 
 ```
 
 ---
 
-### 2. `aazdoh "<instruction>"` | `az run "<instruction>"`
+### 2. `aazdoh done` | `az check` | `az complete`
+Fast, interactive terminal task check-off with **0 AI/LLM overhead**. Directly calls the REST API for instantaneous completion.
+
+#### Interactive Checkbox Mode
+Select one or multiple tasks with arrow keys and spacebar:
+```bash
+az done
+# or aliases:
+az check
+az complete
+```
+
+**Terminal Interactive View:**
+```text
+? Select commitments to mark as DONE (Space to toggle, Enter to confirm):
+❯ ◯ [DSA TUF Trees & Graphs] (60m • 🎯 DEEP FOCUS • 🌙 Evening)
+  ◯ [PostgreSQL connection pool tuning] (45m • 🎯 DEEP FOCUS • ☀️ Day)
+```
+
+#### Quick Query Match Mode
+Pass a keyword to instantly check off matching pending tasks without prompts:
+```bash
+# Mark tasks matching "DSA" as completed
+az done DSA
+
+# Mark tasks matching "redis" as completed
+az check redis
+```
+
+**Execution Output:**
+```text
+✓ Marked as completed: DSA TUF Trees & Graphs
+```
+
+---
+
+### 3. `aazdoh "<instruction>"` | `az run "<instruction>"`
 Execute natural language tasks with automatic intent parsing, live SSE reasoning indicators, and action receipts.
 
 ```bash
 # Mark tasks completed
 aazdoh "finished DSA TUF trees with 4 problems solved"
 
-# Add new high-impact deep focus blocks
-aazdoh "add 45m deep focus on PostgreSQL connection pool tuning"
+# Add new high-impact deep focus blocks with day phases
+aazdoh "add 45m deep focus on PostgreSQL connection pool tuning for evening"
 
 # Reschedule or postpone
 aazdoh "postpone team sync prep to tomorrow morning"
@@ -145,7 +193,7 @@ aazdoh "postpone team sync prep to tomorrow morning"
 
 ---
 
-### 3. `aazdoh chat` (Interactive AI Chief of Staff)
+### 4. `aazdoh chat` (Interactive AI Chief of Staff)
 Launch a persistent, multi-turn terminal conversation. Includes sliding-window session history, live token streaming, and instant slash commands.
 
 ```bash
@@ -171,7 +219,7 @@ az> knock out DSA TUF and mark it done
 
 ---
 
-### 4. `aazdoh stress-test` (60-Second Plan Stress Test)
+### 5. `aazdoh stress-test` (60-Second Plan Stress Test)
 Audits your daily workload against historical capacity, identifying context-switching bottlenecks, cognitive fragmentation, and over-scheduling risks.
 
 ```bash
@@ -200,29 +248,7 @@ az stress-test --defense "I have zero meetings today and dedicated 4h block"
 
 ---
 
-### 5. `aazdoh undo` (Instant Mutation Rollback)
-Instantly rollback the most recent action executed by the AI Agent (task creation, status change, or rescheduling).
-
-```bash
-aazdoh undo
-```
-
----
-
-### 6. `aazdoh stats` | `az velocity`
-Displays 7-day velocity metrics, completion consistency, total deep work hours, and failure breakdown.
-
-```bash
-# Default 7-day analysis
-az stats
-
-# Custom time window
-az stats --days 14
-```
-
----
-
-### 7. `aazdoh focus` | `az timer` (Local Offline Focus Timer & Desktop Alerts)
+### 6. `aazdoh focus` | `az timer` (Local Offline Focus Timer & Desktop Alerts)
 Run a 100% offline, zero-network Pomodoro and deep work focus timer directly on your machine. **Runs in the background by default**, freeing your terminal immediately, and alerts you with a native OS desktop toast notification when time expires.
 
 ```bash
@@ -241,6 +267,28 @@ az focus stop
 
 # Interactive live full-screen countdown with hotkeys ([Space] pause, [+] +5m)
 az focus 25m --live
+```
+
+---
+
+### 7. `aazdoh undo` (Instant Mutation Rollback)
+Instantly rollback the most recent action executed by the AI Agent (task creation, status change, or rescheduling).
+
+```bash
+aazdoh undo
+```
+
+---
+
+### 8. `aazdoh stats` | `az velocity`
+Displays 7-day velocity metrics, completion consistency, total deep work hours, and failure breakdown.
+
+```bash
+# Default 7-day analysis
+az stats
+
+# Custom time window
+az stats --days 14
 ```
 
 ---

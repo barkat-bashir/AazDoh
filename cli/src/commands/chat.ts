@@ -8,17 +8,20 @@ import { renderCommitmentsTable, renderTelemetryTable } from "../ui/table.js";
 import { stressTestCommand } from "./stressTest.js";
 import { handleFocusCommand, checkAndDisplayCompletedFocus } from "./focus.js";
 
+import { handleDoneCommand, promptAndCompleteCommitments } from "./done.js";
+
 function printHelpMenu(): void {
   console.log(chalk.hex("#E2953B").bold("\n   ⚡ AAZDOH INTERACTIVE COCKPIT COMMANDS:"));
   const table = new Table({
     head: [chalk.hex("#E2953B").bold("Command"), chalk.hex("#E2953B").bold("Description")],
-    colWidths: [22, 58],
+    colWidths: [24, 56],
     wordWrap: true,
     style: { head: [], border: ["grey"] },
   });
 
   table.push(
-    [chalk.cyan("/today") + chalk.gray(" (or /list)"), chalk.hex("#FDFBF7")("Display today's commitments, progress, and scheduled load")],
+    [chalk.cyan("/today") + chalk.gray(" (or /list) [-i]"), chalk.hex("#FDFBF7")("Display today's commitments, progress, and scheduled load")],
+    [chalk.cyan("/done") + chalk.gray(" (or /check) [query]"), chalk.hex("#FDFBF7")("Interactively check off completed tasks or match by keyword")],
     [chalk.cyan("/stress-test"), chalk.hex("#FDFBF7")("Run 60-second plan feasibility check against 7-day velocity baseline")],
     [chalk.cyan("/stats") + chalk.gray(" (or /velocity)"), chalk.hex("#FDFBF7")("View 7-day velocity, consistency score, and focus hour metrics")],
     [chalk.cyan("/focus") + chalk.gray(" [duration] [task]"), chalk.hex("#FDFBF7")("Start a local offline deep focus / Pomodoro timer (e.g. /focus 25m)")],
@@ -127,6 +130,26 @@ export async function chatCommand(): Promise<void> {
       continue;
     }
 
+    if (
+      trimmed === "/today -i" ||
+      trimmed === "/today --interactive" ||
+      lower === "today -i" ||
+      lower === "today --interactive" ||
+      trimmed === "/list -i" ||
+      lower === "list -i"
+    ) {
+      const spinner = ora(chalk.gray("Fetching today's commitments...")).start();
+      try {
+        const list = await client.getTodayCommitments();
+        spinner.stop();
+        renderCommitmentsTable(list);
+        await promptAndCompleteCommitments(list);
+      } catch (e: any) {
+        spinner.fail(chalk.red(`Failed to fetch today's plan: ${e.message}`));
+      }
+      continue;
+    }
+
     if (trimmed === "/today" || trimmed === "/list" || lower === "today" || lower === "list") {
       const spinner = ora(chalk.gray("Fetching today's commitments...")).start();
       try {
@@ -136,6 +159,25 @@ export async function chatCommand(): Promise<void> {
       } catch (e: any) {
         spinner.fail(chalk.red(`Failed to fetch today's plan: ${e.message}`));
       }
+      continue;
+    }
+
+    if (
+      trimmed === "/done" ||
+      trimmed.startsWith("/done ") ||
+      trimmed === "/check" ||
+      trimmed.startsWith("/check ") ||
+      trimmed === "/complete" ||
+      trimmed.startsWith("/complete ") ||
+      lower === "done" ||
+      lower.startsWith("done ") ||
+      lower === "check" ||
+      lower.startsWith("check ") ||
+      lower === "complete" ||
+      lower.startsWith("complete ")
+    ) {
+      const queryWords = trimmed.replace(/^\/?(done|check|complete)\s*/i, "").trim().split(/\s+/).filter(Boolean);
+      await handleDoneCommand(queryWords);
       continue;
     }
 

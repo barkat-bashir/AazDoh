@@ -1,6 +1,6 @@
 {
   "name": "aazdoh-mcp",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Production-Grade Model Context Protocol (MCP) Server for AazDoh",
   "type": "module",
   "bin": {

@@ -118,6 +118,5 @@ export async function handleDoneCommand(queryWords?: string[], options?: { date?
     await promptAndCompleteCommitments(commitments);
   } catch (err: any) {
     spinner.fail(chalk.red(`Failed to process command: ${err.message}`));
-    process.exit(1);
   }
 }

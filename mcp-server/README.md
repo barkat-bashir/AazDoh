@@ -2,6 +2,11 @@
 
 Official **Model Context Protocol (MCP)** server for [AazDoh](https://aazdoh.com) — the AI-Powered Peer & Self Accountability Platform.
 
+[![npm version](https://img.shields.io/npm/v/aazdoh-mcp.svg?style=flat-square&color=2E7D52)](https://www.npmjs.com/package/aazdoh-mcp)
+[![npm downloads](https://img.shields.io/npm/dm/aazdoh-mcp.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/aazdoh-mcp)
+[![Node Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+
 ---
 
 > 📖 **Looking for full documentation, tool schemas & prompt recipes?** See the root [USAGE.md](../USAGE.md).
@@ -28,10 +33,10 @@ Official **Model Context Protocol (MCP)** server for [AazDoh](https://aazdoh.com
 
 ## 🛠️ Complete Suite of Available Tools
 
-### 1. Daily Commitment Execution
-- `get_today_plan`: Fetch daily commitment schedule, progress summary, and cognitive workload.
-- `create_commitment`: Lock in a new focus task, deep work sprint, or routine errand with duration and definition of done.
-- `update_commitment`: Update details of an existing commitment (e.g. adjust title, duration, priority, or category).
+### 1. Daily Commitment Execution & Day Phasing
+- `get_today_plan`: Fetch daily commitment schedule, progress summary, Day Phases (Morning/Day/Evening/Anytime), and cognitive workload.
+- `create_commitment`: Lock in a new focus task, deep work sprint, or routine errand with duration, Day Phase (`MORNING`, `DAY`, `EVENING`, `ANYTIME`), and definition of done.
+- `update_commitment`: Update details of an existing commitment (e.g. adjust title, duration, priority, category, or `dayPhase`).
 - `complete_commitment`: Mark a commitment as kept and completed, updating velocity and streaks.
 - `postpone_commitment`: Postpone/reschedule an active commitment to a future date with reason & cognitive debt tracking.
 - `reopen_commitment`: Reopen a postponed commitment back to today's active pending list.
