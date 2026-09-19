@@ -20,8 +20,20 @@
 1. [📖 Overview & Philosophy](#-overview--philosophy)
 2. [⚡ Core Capabilities](#-core-capabilities)
 3. [🏗️ Monorepo Architecture](#️-monorepo-architecture)
-4. [💻 CLI Agent (`aazdoh-cli`)](#-cli-agent-aazdoh-cli)
+4. [💻 Terminal CLI Agent (`aazdoh-cli`)](#-terminal-cli-agent-aazdoh-cli)
+   - [CLI Core Highlights](#cli-core-highlights)
+   - [Installation & Setup](#installation--setup)
+   - [Zero-Friction Terminal Cockpit (`az`)](#zero-friction-terminal-cockpit-az)
+   - [Complete CLI Command Reference](#complete-cli-command-reference)
+   - [Interactive REPL Slash Commands](#interactive-repl-slash-commands)
+   - [Configuration & Credential Hierarchy](#configuration--credential-hierarchy)
+   - [Security & Input Guardrails](#security--input-guardrails)
 5. [🤖 Model Context Protocol (`aazdoh-mcp`)](#-model-context-protocol-aazdoh-mcp)
+   - [Supported AI Environments](#supported-ai-environments)
+   - [IDE Configuration Snippets](#ide-configuration-snippets)
+   - [Complete Suite of 18 Native MCP Tools](#complete-suite-of-18-native-mcp-tools)
+   - [AI Prompting Recipes & Workflows](#ai-prompting-recipes--workflows)
+   - [Daily Developer Operational Playbook](#daily-developer-operational-playbook)
 6. [🚀 Quickstart & Installation](#-quickstart--installation)
    - [Prerequisites](#prerequisites)
    - [1. Database Setup](#1-database-setup)
@@ -129,54 +141,271 @@ AazDoh/
 
 ---
 
-## 💻 CLI Agent (`aazdoh-cli`)
+## 💻 Terminal CLI Agent (`aazdoh-cli`)
 
-AazDoh includes a full-featured terminal client published to npm as **`aazdoh-cli`** (providing both `aazdoh` and `az` commands).
+[![npm version](https://img.shields.io/npm/v/aazdoh-cli.svg?style=flat-square&color=E2953B)](https://www.npmjs.com/package/aazdoh-cli)
+[![npm downloads](https://img.shields.io/npm/dm/aazdoh-cli.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/aazdoh-cli)
+[![Node Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
 
-> 📖 **Looking for full documentation and recipes?** See the [Complete User Guide (USAGE.md)](USAGE.md).
+The **AazDoh CLI** (`aazdoh-cli`, providing both `aazdoh` and `az` commands) brings the complete AazDoh cognitive engine directly to your command line. Engineered for terminal-first developers, it enables natural language task planning, zero-latency direct check-offs, 60-second capacity stress-testing, offline sleep-immune Pomodoro sprints, and instant 1-tap undo rollbacks.
 
-### Installation & Interactive Cockpit
+> 📖 **Full Guide & Recipes:** See the root [USAGE.md](USAGE.md) and [cli/README.md](cli/README.md).
+
+### CLI Core Highlights
+- ⚡ **Zero-Friction Cockpit (`az`)**: Typing `az` pre-renders today's commitments table and leaves the `az>` prompt open for continuous commands.
+- ✅ **Instant Interactive Check-off (`az done`)**: Interactive checkboxes or fast keyword matching with **0 AI/LLM overhead**.
+- 🌅 **Day Phasing Support**: View and categorize tasks into 🌅 Morning, ☀️ Day, 🌙 Evening, or 📋 Anytime blocks.
+- 🛡️ **60-Second Plan Feasibility Audit (`az stress-test`)**: Audits cognitive load against historical 7-day capacity before planning fallacy sets in.
+- ⏱️ **Offline Sleep-Immune Focus Timer (`az focus`)**: Runs in the background by default with OS desktop toast alerts, live Big ASCII digital countdown (`--live`), or standalone borderless popup window (`--popup`).
+- ⏪ **1-Tap Rollbacks (`az undo`)**: Immediately revert accidental AI agent mutations or reschedules.
+- 💬 **Interactive AI Chief of Staff (`az chat`)**: Multi-turn conversational REPL with live token streaming and instant slash commands.
+
+---
+
+### Installation & Setup
 
 ```bash
-# Global install
+# Install globally from npm (exposes both 'aazdoh' and 'az' commands)
 npm install -g aazdoh-cli
 
 # Authenticate once with your API key
-az login -k aazdoh_live_your_api_key
+az login -k aazdoh_live_your_api_key_here
 
-# Launch Zero-Friction Terminal Cockpit (pre-loads today's table & stays open)
+# (Optional) Verify version and connectivity
+az --version
+```
+
+Credentials are saved securely to `~/.aazdoh/config.json`.
+
+---
+
+### Zero-Friction Terminal Cockpit (`az`)
+
+To eliminate the friction of exiting back to bash/zsh after each command, run `az` with no arguments:
+
+```bash
 az
 ```
 
-### Key CLI Commands
+**What happens:**
+1. Renders the ASCII Harud banner and authenticated user persona.
+2. Automatically pre-fetches and renders **today's commitments table** with scheduled load stats.
+3. Keeps the interactive prompt **`az>`** open for continuous execution.
 
-| Command / Shortcut | Role | Description |
+```text
+   ⚡ AAZDOH COGNITIVE ACCOUNTABILITY CLI
+   Commit. Do. Report. Reflect. (Zero BS)
+
+   Plan for: 2026-09-19 | User: Barkat [Persona: BALANCED]
+
+┌──────────┬────────────────────────────────┬────────────┬──────────┬──────────────┬────────────────┬────────────────────────────┐
+│ Status   │ Commitment Title               │ Duration   │ Priority │ Phase        │ Category       │ Expected Outcome           │
+├──────────┼────────────────────────────────┼────────────┼──────────┼──────────────┼────────────────┼────────────────────────────┤
+│ ⭕ PEND  │ PostgreSQL Connection Pooling  │ 45m        │ [HIGH]   │ 🌅 Morning   │ 🎯 DEEP FOCUS  │ HikariCP tuned & verified  │
+│ ⭕ PEND  │ Spring AI Stream Integration   │ 60m        │ [MED]    │ ☀️ Day       │ 🎯 DEEP FOCUS  │ SSE stream tests passing   │
+│ ✅ DONE  │ Architecture Standup & Sync    │ 30m        │ [HIGH]   │ 🌅 Morning   │ ⚡ ROUTINE     │ Roadmap aligned            │
+└──────────┴────────────────────────────────┴────────────┴──────────┴──────────────┴────────────────┴────────────────────────────┘
+
+   Summary: 1 Done | 2 Pending | 2.2h total scheduled (135m) •  OPTIMAL 
+
+   Type instructions or commands (/today, /stress-test, /stats, /undo, /help, /exit):
+
+az> 
+```
+
+---
+
+### Complete CLI Command Reference
+
+#### 1. `aazdoh today` | `az list` — Daily Workload & Day Phasing
+Inspect today's scheduled commitments, completion statuses, day phases, priorities, categories, and scheduled cognitive load.
+
+```bash
+# Print today's schedule table
+az today
+
+# View today's schedule and immediately open interactive check-off mode:
+az today -i
+# or: az today --interactive
+
+# Inspect schedule for a specific date:
+az today --date 2026-09-20
+```
+
+#### 2. `aazdoh done` | `az check` | `az complete` — Zero-Latency Task Check-Off
+Fast, interactive terminal task completion with **0 AI overhead**. Directly hits the REST API for instant execution.
+
+```bash
+# Interactive multi-select mode ([Space] to toggle, [Enter] to confirm):
+az done
+
+# Quick direct keyword matching (marks matching pending task done immediately):
+az done "PostgreSQL"
+az check redis
+```
+
+#### 3. `aazdoh "<instruction>"` | `az run "<instruction>"` — Natural Language Execution
+Execute natural language instructions with automatic intent parsing, live SSE reasoning indicators, and action receipts.
+
+```bash
+# Mark tasks completed
+az "finished PostgreSQL connection pool tuning with HikariCP benchmarked"
+
+# Add new high-impact deep focus blocks with day phases
+az "add 60m deep focus on Spring AI token streaming for afternoon"
+
+# Reschedule or postpone
+az "postpone security audit to tomorrow morning"
+```
+
+#### 4. `aazdoh chat` — Interactive Multi-Turn AI Chief of Staff
+Launch a persistent conversational REPL with sliding context window, live SSE token streaming, and slash commands.
+
+```bash
+az chat
+```
+
+#### 5. `aazdoh stress-test` — 60-Second Plan Feasibility Audit
+Audits your daily workload against your historical 7-day velocity baseline to flag cognitive overload, task fragmentation, and planning fallacy.
+
+```bash
+# Run standard audit
+az stress-test
+
+# Pass a defense justification to re-evaluate:
+az stress-test --defense "No meetings today, dedicated uninterrupted focus block"
+```
+
+#### 6. `aazdoh focus` | `az timer` — Offline Pomodoro, Big ASCII Clock & Popout Window
+Run a 100% offline, zero-network focus timer. **Runs in the background by default**, freeing your terminal immediately, and triggers native OS desktop toast notifications upon completion.
+
+```bash
+# 25-minute Pomodoro in background (frees terminal immediately)
+az focus
+
+# Custom duration & task in background
+az focus 45m "PostgreSQL pool optimization"
+az focus 1.5h "Drafting system architecture"
+
+# Check active timer status & ASCII progress bar
+az focus status
+
+# Stop / cancel active background timer
+az focus stop
+
+# Interactive live full-screen countdown with Big ASCII Digital Clock & hotkeys:
+# ([Space] Pause/Resume, [+] +5m, [-] -5m, [w/p] Popout Window, [q] Exit)
+az focus 25m --live
+
+# Launch a sleek floating desktop popup clock window (borderless app mode)
+az focus 45m "Core Engine Architecture" --popup
+```
+
+#### 7. `aazdoh undo` — Instant Mutation Rollback
+Instantly rollback the most recent action executed by the AI Agent (task creation, status change, or rescheduling).
+
+```bash
+az undo
+```
+
+#### 8. `aazdoh stats` | `az velocity` — 7-Day Telemetry & Velocity
+Displays 7-day compounding consistency, total focus hours, planning optimism ratio, and completion breakdown.
+
+```bash
+az stats
+az stats --days 14
+```
+
+---
+
+### Interactive REPL Slash Commands
+
+Inside the interactive cockpit (`az>`) or `az chat`, use the following slash commands:
+
+| Slash Command | Alias | Description |
 | :--- | :--- | :--- |
-| `az` *(or `aazdoh`)* | **Interactive Cockpit** | Displays today's agenda and keeps the interactive session (`az>`) open |
-| `az done` *(or `az check`)* | **Interactive Check-off** | Fast terminal multi-select checkboxes or name search with **zero AI overhead** |
-| `az today` *(or `az today -i`)* | **Daily Table** | One-shot printout of today's schedule, Day Phases, or launch interactive checkboxes (`-i`) |
-| `az "<instruction>"` | **Natural Language** | Fast one-shot task execution with live SSE action receipts |
-| `az stress-test` | **Feasibility Audit** | Runs 60-second plan feasibility check against 7-day velocity |
-| `az focus [duration] [task]` | **Offline Pomodoro** | Background focus timer with OS notifications or `--live` countdown |
-| `az stats` *(or `az velocity`)* | **Velocity Metrics** | Displays 7-day compounding consistency and focus hours |
-| `az undo` | **1-Tap Rollback** | Instantly reverts the last AI agent mutation |
+| `/today` | `/list` | Refreshes and renders today's commitments table and load breakdown |
+| `/stress-test` | `/stresstest` | Runs the 60-second plan feasibility diagnostic against 7-day capacity |
+| `/stats` | `/velocity` | Renders 7-day velocity metrics, consistency score, and focus hour distributions |
+| `/undo` | — | Instantly reverts the last AI agent mutation or state change |
+| `/help` | `/?` | Displays the command cheatsheet and natural language examples |
+| `/clear` | — | Clears the terminal screen and reprints the active daily cockpit |
+| `/exit` | `/quit`, `:q` | Exits the interactive session cleanly back to your system shell |
 
-Inside the cockpit (`az>`), use slash commands: `/today`, `/stress-test`, `/stats`, `/undo`, `/help`, `/clear`, `/exit`.
+---
+
+### Configuration & Credential Priority
+
+The CLI resolves configuration through a strict **5-layer hierarchy** (highest to lowest):
+
+```
+1. CLI Runtime Flags       (--key <key>, --url <url>)
+2. System Environment      (export AAZDOH_API_KEY=aazdoh_live_...)
+3. Directory .env          (AAZDOH_API_KEY in current working directory)
+4. Local User Config       (~/.aazdoh/config.json via `az login`)
+5. Hardcoded Default       (https://aazdoh.onrender.com)
+```
+
+**Configuration File (`~/.aazdoh/config.json`):**
+```json
+{
+  "apiUrl": "https://aazdoh.onrender.com",
+  "apiKey": "aazdoh_live_...",
+  "userFullName": "Barkat",
+  "userEmail": "barkat@example.com",
+  "aiPersona": "BALANCED"
+}
+```
+
+---
+
+### Security & Input Guardrails
+
+- **500-Character Universal Input Ceiling**: All prompt inputs and natural language instructions are capped at 500 characters to prevent prompt injection and oversized payload attacks.
+- **Delimiter Neutralization**: Backticks and markdown block delimiters are sanitized before passing to backend LLMs.
+- **Zero Local Credential Leakage**: Configuration is stored in OS-isolated user directories (`~/.aazdoh`) with appropriate file permissions.
+- **Reversible Mutations**: All agent executions are recorded with reversible log receipts for 1-click rollback via `az undo`.
 
 ---
 
 ## 🤖 Model Context Protocol (`aazdoh-mcp`)
 
-AazDoh provides a production-grade **Model Context Protocol (MCP)** server published as **`aazdoh-mcp`**. It connects your AI coding assistants directly to your accountability system.
+[![npm version](https://img.shields.io/npm/v/aazdoh-mcp.svg?style=flat-square&color=2E7D52)](https://www.npmjs.com/package/aazdoh-mcp)
+[![npm downloads](https://img.shields.io/npm/dm/aazdoh-mcp.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/aazdoh-mcp)
+[![Node Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
 
-### Supported Environments
-- **Claude Desktop**
+The **AazDoh MCP Server** (`aazdoh-mcp`) is an official [Model Context Protocol](https://modelcontextprotocol.io/) server that directly bridges your AI coding assistants with your personal accountability system. It turns coding assistants in **Cursor**, **Claude Desktop**, and **Antigravity** into proactive **AI Chiefs of Staff** capable of auditing cognitive load, locking in focus blocks before refactoring, validating proof-of-work, and updating accountability partners.
+
+> 📖 **Full Guide & Tool Schemas:** See [mcp-server/README.md](mcp-server/README.md) and [USAGE.md](USAGE.md).
+
+```
+                      ┌─────────────────────────────────────────┐
+                      │          AazDoh MCP Server              │
+                      └────────────────────┬────────────────────┘
+                                           │
+         ┌──────────────────┬──────────────┴─────┬──────────────────┐
+         │                  │                    │                  │
+┌────────▼────────┐ ┌───────▼────────┐ ┌─────────▼────────┐ ┌───────▼────────┐
+│ Plan & Commit   │ │ AI Intelligence│ │ Daily Reflection │ │ Partner Feeds  │
+│ 8 Tools         │ │ 6 Tools        │ │ 2 Tools          │ │ 4 Tools        │
+└─────────────────┘ └────────────────┘ └──────────────────┘ └────────────────┘
+```
+
+---
+
+### Supported AI Environments
+
+- **Antigravity IDE**
 - **Cursor IDE**
-- **Antigravity**
+- **Claude Desktop**
+- **Windsurf / Cascade**
+- **VS Code** (via Cline, Roo Code, Claude Dev)
 
-### IDE Configuration (`mcpServers`)
+---
 
-Add the following to your AI client's configuration file (e.g., `claude_desktop_config.json` or `.cursor/mcp.json`):
+### IDE Configuration Snippets
+
+#### 1. Antigravity IDE & Cursor (`mcp_config.json` or `.cursor/mcp.json`)
 
 ```json
 {
@@ -193,10 +422,95 @@ Add the following to your AI client's configuration file (e.g., `claude_desktop_
 }
 ```
 
-### Native Tools Exposed via MCP
-- **Plan & Commitments**: `get_today_plan`, `create_commitment`, `update_commitment`, `complete_commitment`, `postpone_commitment`, `reopen_commitment`, `delete_commitment`, `get_commitments_range`.
-- **AI & Feasibility**: `stress_test_plan`, `apply_optimized_plan`, `get_ai_insights`, `review_missed_commitment`, `detect_excuse`, `get_telemetry_stats`.
-- **Reviews & Partners**: `submit_review`, `get_commitment_review`, `get_partnerships`, `get_partner_feed`, `get_discussion_thread`, `send_partner_update`.
+#### 2. Claude Desktop (`claude_desktop_config.json`)
+* **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+* **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "aazdoh": {
+      "command": "npx",
+      "args": ["-y", "aazdoh-mcp@latest"],
+      "env": {
+        "AAZDOH_API_KEY": "aazdoh_live_your_api_key_here",
+        "AAZDOH_API_URL": "https://aazdoh.onrender.com"
+      }
+    }
+  }
+}
+```
+
+---
+
+### Complete Suite of 18 Native MCP Tools
+
+The MCP server exposes 18 specialized tools organized into 4 functional domains:
+
+#### 🎯 1. Plan & Commitment Execution (8 Tools)
+| Tool Name | Parameters | Purpose |
+| :--- | :--- | :--- |
+| `get_today_plan` | `[date]` | Fetches daily commitment list, completion status, Day Phases, and cognitive workload |
+| `create_commitment` | `title`, `durationMinutes`, `category`, `priority`, `dayPhase`, `expectedOutcome` | Locks in a new focus task, deep work sprint, or routine errand |
+| `update_commitment` | `id`, `[title]`, `[durationMinutes]`, `[priority]`, `[category]`, `[dayPhase]` | Updates details or day phase of an existing commitment |
+| `complete_commitment` | `id` | Marks a commitment as kept and completed, updating velocity and streaks |
+| `postpone_commitment` | `id`, `targetDate`, `reason` | Reschedules an active commitment to a future date with reason & excuse tracking |
+| `reopen_commitment` | `id` | Reopens a postponed commitment back to today's active pending list |
+| `delete_commitment` | `id` | Deletes or drops an unneeded commitment from your schedule |
+| `get_commitments_range` | `startDate`, `endDate` | Retrieves commitments scheduled across a multi-day or weekly date range |
+
+#### 🛡️ 2. AI Behavioral Intelligence & Stress-Testing (6 Tools)
+| Tool Name | Parameters | Purpose |
+| :--- | :--- | :--- |
+| `stress_test_plan` | `[defense]` | Runs 60-second plan feasibility check against 7-day velocity to identify overload |
+| `apply_optimized_plan` | `adjustments` | Applies 1-click AI-optimized task splits, trims, and reschedules |
+| `get_ai_insights` | — | Retrieves synthesized behavioral patterns, friction bottlenecks, and tactical habits |
+| `review_missed_commitment` | `id` | Runs an instant AI post-mortem on a missed commitment to diagnose initiation friction |
+| `detect_excuse` | `reason` | AI Anti-Self-Deception Mirror: evaluates excuses against historical excuse receipts |
+| `get_telemetry_stats` | `[days]` | Retrieves 7-day velocity, streak health, and focus duration distributions |
+
+#### 🪞 3. Daily Retrospective & Reflection (2 Tools)
+| Tool Name | Parameters | Purpose |
+| :--- | :--- | :--- |
+| `submit_review` | `date`, `rating`, `reflection`, `frictionCategory` | Submits end-of-day retrospective review and failure root-cause analysis |
+| `get_commitment_review` | `id` | Inspects the submitted review and reflection record for a commitment |
+
+#### 🤝 4. Peer Accountability & Discussion Threads (4 Tools)
+| Tool Name | Parameters | Purpose |
+| :--- | :--- | :--- |
+| `get_partnerships` | — | Lists active 1-to-1 accountability partnerships and peer details |
+| `get_partner_feed` | `partnerId`, `[date]` | Views partner's daily commitment feed, completion progress, and AI risk brief |
+| `get_discussion_thread` | `commitmentId` | Fetches in-context proof-of-work discussion messages on a commitment |
+| `send_partner_update` | `commitmentId`, `message` | Posts an update, Git commit proof, or blocker note to a commitment thread |
+
+---
+
+### AI Prompting Recipes & Workflows
+
+Once `aazdoh-mcp` is configured in your IDE, use these practical prompt patterns during development:
+
+#### 🌅 Recipe 1: Morning Standup & Cognitive Load Audit
+> *"Check my AazDoh today's plan using `get_today_plan`. If my scheduled cognitive load exceeds 4.5 hours, run `stress_test_plan` and help me prioritize the 2 highest-leverage deep focus tasks for our coding session."*
+
+#### ⏱️ Recipe 2: Deep Focus Sprint Lock-In Before Refactoring
+> *"We're about to refactor the database connection pool. Lock in a 45m DEEP_WORK commitment in AazDoh titled 'PostgreSQL Pool Tuning' with HIGH priority in the MORNING phase and an expected outcome of 'Passing concurrency stress tests'."*
+
+#### ✅ Recipe 3: Task Completion & Partner Proof-of-Work
+> *"We just fixed the token refresh race condition and all unit tests passed. Mark the authentication commitment complete in AazDoh and post a partner update to the thread with a summary of what we changed."*
+
+#### 🪞 Recipe 4: Evening Retrospective & Friction Analysis
+> *"Review today's completed vs missed commitments in AazDoh. Summarize our velocity and submit our daily reflection with insights on what caused friction during the afternoon block."*
+
+---
+
+### Daily Developer Operational Playbook
+
+| Phase | Time | Terminal CLI Action (`az`) | AI IDE Action (MCP) |
+| :--- | :--- | :--- | :--- |
+| **Kick-off** | 08:30 AM | Run `az` $\rightarrow$ inspect load $\rightarrow$ `/stress-test` | Prompt: *"Inspect today's plan and review focus load."* |
+| **Deep Work** | 09:30 AM | `az "started PostgreSQL indexing"` | Prompt: *"Lock in 45m deep focus commitment."* |
+| **In Flow** | 02:00 PM | `az "completed indexing, add 30m API review"` | Prompt: *"Mark task done and log next focus sprint."* |
+| **Reflection**| 06:00 PM | `az /stats` $\rightarrow$ inspect 7-day velocity curve | Prompt: *"Run evening review and summarize friction."* |
 
 ---
 
