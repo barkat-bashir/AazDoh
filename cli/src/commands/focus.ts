@@ -907,7 +907,9 @@ async function runLiveTimerTUI(
     }
     if (process.stdin.isTTY && process.stdin.setRawMode) {
       process.stdin.setRawMode(false);
-      process.stdin.pause();
+    }
+    if (process.stdin.isPaused()) {
+      process.stdin.resume();
     }
   };
 
