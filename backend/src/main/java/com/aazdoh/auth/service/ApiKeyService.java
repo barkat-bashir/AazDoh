@@ -89,6 +89,7 @@ public class ApiKeyService {
     }
 
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = "apiKeyValidation", allEntries = true)
     public void revokeApiKey(UUID userId, UUID keyId) {
         ApiKey apiKey = apiKeyRepository.findByIdAndUserId(keyId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("API key not found"));
@@ -99,6 +100,7 @@ public class ApiKeyService {
     }
 
     @Transactional
+    @org.springframework.cache.annotation.Cacheable(value = "apiKeyValidation", key = "#rawKey", unless = "#result.isEmpty()")
     public Optional<User> validateKeyAndGetUser(String rawKey) {
         if (rawKey == null || !rawKey.startsWith(API_KEY_PREFIX)) {
             return Optional.empty();
@@ -116,9 +118,11 @@ public class ApiKeyService {
             return Optional.empty();
         }
 
-        // Update lastUsedAt timestamp
-        apiKey.setLastUsedAt(OffsetDateTime.now());
-        apiKeyRepository.save(apiKey);
+        // Throttle lastUsedAt updates: only write to DB once every 5 minutes
+        if (apiKey.getLastUsedAt() == null || apiKey.getLastUsedAt().isBefore(OffsetDateTime.now().minusMinutes(5))) {
+            apiKey.setLastUsedAt(OffsetDateTime.now());
+            apiKeyRepository.save(apiKey);
+        }
 
         return Optional.of(apiKey.getUser());
     }

@@ -25,6 +25,7 @@ public class UserService {
     }
 
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"userDetailsByEmail", "userDetailsById"}, allEntries = true)
     public UserProfileDto updatePreferences(UUID userId, UpdatePreferencesRequest request) {
         User user = findUserById(userId);
 
