@@ -20,6 +20,7 @@ spring:
       connection-timeout: 20000
 
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: validate
     show-sql: false
@@ -27,6 +28,17 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  health:
+    db:
+      enabled: false
+    defaults:
+      enabled: false
 
   flyway:
     enabled: true

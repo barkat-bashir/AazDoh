@@ -73,7 +73,19 @@ public class DatabaseConfig {
         if (password != null && !password.isBlank()) {
             config.setPassword(password);
         }
-        config.setDriverClassName("org.postgresql.Driver");
+
+        if (cleanUrl != null && cleanUrl.startsWith("jdbc:h2:")) {
+            config.setDriverClassName("org.h2.Driver");
+        } else {
+            config.setDriverClassName("org.postgresql.Driver");
+        }
+
+        // Optimize connection pool for serverless PostgreSQL (Neon auto-suspend)
+        config.setMaximumPoolSize(10);
+        config.setMinimumIdle(0);
+        config.setIdleTimeout(60000);
+        config.setMaxLifetime(1800000);
+        config.setConnectionTimeout(20000);
 
         return new HikariDataSource(config);
     }
