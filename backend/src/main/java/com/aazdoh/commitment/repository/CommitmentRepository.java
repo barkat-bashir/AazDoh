@@ -25,8 +25,33 @@ public interface CommitmentRepository extends JpaRepository<Commitment, UUID> {
     @Query("SELECT c FROM Commitment c JOIN FETCH c.user u WHERE c.user.id = :userId AND c.commitmentDate = :date AND c.deletedAt IS NULL ORDER BY c.priority DESC, c.createdAt ASC")
     List<Commitment> findByUserIdAndCommitmentDate(@Param("userId") UUID userId, @Param("date") LocalDate date);
 
+    @Query("SELECT c, " +
+           "  (SELECT COUNT(cr.id) > 0 FROM CommitmentReview cr WHERE cr.commitment.id = c.id), " +
+           "  (SELECT COUNT(dm.id) FROM DiscussionMessage dm WHERE dm.discussion.commitment.id = c.id), " +
+           "  (SELECT COUNT(dm2.id) FROM DiscussionMessage dm2 WHERE dm2.discussion.commitment.id = c.id AND dm2.author.id != :userId AND dm2.readAt IS NULL) " +
+           "FROM Commitment c JOIN FETCH c.user u " +
+           "WHERE c.user.id = :userId AND c.commitmentDate = :date AND c.deletedAt IS NULL " +
+           "ORDER BY c.priority DESC, c.createdAt ASC")
+    List<Object[]> findEnrichedByUserIdAndCommitmentDate(
+            @Param("userId") UUID userId,
+            @Param("date") LocalDate date
+    );
+
     @Query("SELECT c FROM Commitment c JOIN FETCH c.user u WHERE c.user.id = :userId AND c.commitmentDate BETWEEN :startDate AND :endDate AND c.deletedAt IS NULL ORDER BY c.commitmentDate DESC, c.createdAt ASC")
     List<Commitment> findByUserIdAndDateRange(
+            @Param("userId") UUID userId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
+    @Query("SELECT c, " +
+           "  (SELECT COUNT(cr.id) > 0 FROM CommitmentReview cr WHERE cr.commitment.id = c.id), " +
+           "  (SELECT COUNT(dm.id) FROM DiscussionMessage dm WHERE dm.discussion.commitment.id = c.id), " +
+           "  (SELECT COUNT(dm2.id) FROM DiscussionMessage dm2 WHERE dm2.discussion.commitment.id = c.id AND dm2.author.id != :userId AND dm2.readAt IS NULL) " +
+           "FROM Commitment c JOIN FETCH c.user u " +
+           "WHERE c.user.id = :userId AND c.commitmentDate BETWEEN :startDate AND :endDate AND c.deletedAt IS NULL " +
+           "ORDER BY c.commitmentDate DESC, c.createdAt ASC")
+    List<Object[]> findEnrichedByUserIdAndDateRange(
             @Param("userId") UUID userId,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate

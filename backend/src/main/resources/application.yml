@@ -29,17 +29,6 @@ spring:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
-  health:
-    db:
-      enabled: false
-    defaults:
-      enabled: false
-
   flyway:
     enabled: true
     baseline-on-migrate: true
@@ -53,6 +42,17 @@ management:
       chat:
         options:
           model: ${AI_MODEL:gemini-3.6-flash}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  health:
+    db:
+      enabled: false
+    defaults:
+      enabled: false
 
 aazdoh:
   jwt:

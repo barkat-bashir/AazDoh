@@ -87,26 +87,40 @@ public class CommitmentService {
     @Transactional(readOnly = true)
     public List<CommitmentResponse> getTodayCommitments(UUID userId, LocalDate date) {
         rolloverScheduler.rolloverUserOverdueAsync(userId);
-        List<Commitment> list = commitmentRepository.findByUserIdAndCommitmentDate(userId, date);
-        Map<UUID, String> partnerNameMap = getPartnerNameMap(list);
-        List<CommitmentResponse> responses = list.stream()
-                .map(c -> mapToResponse(c, partnerNameMap))
-                .collect(Collectors.toList());
-        populateDiscussionStats(responses, userId);
-        populateReviewedStatus(responses);
-        return responses;
+        List<Object[]> rows = commitmentRepository.findEnrichedByUserIdAndCommitmentDate(userId, date);
+        return mapEnrichedRowsToResponses(rows);
     }
 
     @Transactional(readOnly = true)
     public List<CommitmentResponse> getCommitmentsByRange(UUID userId, LocalDate startDate, LocalDate endDate) {
         rolloverScheduler.rolloverUserOverdueAsync(userId);
-        List<Commitment> list = commitmentRepository.findByUserIdAndDateRange(userId, startDate, endDate);
-        Map<UUID, String> partnerNameMap = getPartnerNameMap(list);
-        List<CommitmentResponse> responses = list.stream()
-                .map(c -> mapToResponse(c, partnerNameMap))
+        List<Object[]> rows = commitmentRepository.findEnrichedByUserIdAndDateRange(userId, startDate, endDate);
+        return mapEnrichedRowsToResponses(rows);
+    }
+
+    private List<CommitmentResponse> mapEnrichedRowsToResponses(List<Object[]> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+
+        List<Commitment> commitments = rows.stream()
+                .map(r -> (Commitment) r[0])
                 .collect(Collectors.toList());
-        populateDiscussionStats(responses, userId);
-        populateReviewedStatus(responses);
+        Map<UUID, String> partnerNameMap = getPartnerNameMap(commitments);
+
+        List<CommitmentResponse> responses = new java.util.ArrayList<>(rows.size());
+        for (Object[] row : rows) {
+            Commitment c = (Commitment) row[0];
+            boolean isReviewed = row[1] instanceof Boolean b ? b : (row[1] != null && Boolean.parseBoolean(row[1].toString()));
+            long totalMessages = row[2] instanceof Number n ? n.longValue() : 0L;
+            long unreadMessages = row[3] instanceof Number n ? n.longValue() : 0L;
+
+            CommitmentResponse resp = mapToResponse(c, partnerNameMap);
+            resp.setReviewed(isReviewed);
+            resp.setDiscussionMessageCount((int) totalMessages);
+            resp.setHasUnreadDiscussion(unreadMessages > 0);
+            responses.add(resp);
+        }
         return responses;
     }
 
