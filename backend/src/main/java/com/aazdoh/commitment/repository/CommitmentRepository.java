@@ -52,6 +52,10 @@ public interface CommitmentRepository extends JpaRepository<Commitment, UUID> {
     @Query("SELECT c FROM Commitment c JOIN FETCH c.user u WHERE c.status = 'PENDING' AND c.commitmentDate < :date AND c.deletedAt IS NULL")
     List<Commitment> findOverduePendingCommitments(@Param("date") LocalDate date);
 
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE Commitment c SET c.status = com.aazdoh.commitment.entity.CommitmentStatus.MISSED WHERE c.user.id = :userId AND c.status = com.aazdoh.commitment.entity.CommitmentStatus.PENDING AND c.commitmentDate < :userToday AND c.deletedAt IS NULL")
+    int rolloverOverdueForUser(@Param("userId") UUID userId, @Param("userToday") LocalDate userToday);
+
     @Query("SELECT c FROM Commitment c WHERE c.user.id = :userId AND c.postponeReason IS NOT NULL AND c.deletedAt IS NULL ORDER BY c.commitmentDate DESC")
     List<Commitment> findRecentPostponedCommitmentsWithReasons(@Param("userId") UUID userId);
 

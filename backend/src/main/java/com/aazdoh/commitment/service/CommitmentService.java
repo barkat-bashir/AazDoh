@@ -36,6 +36,7 @@ public class CommitmentService {
     private final DiscussionMessageRepository discussionMessageRepository;
     private final ReviewRepository reviewRepository;
     private final UserExecutionStatsService statsService;
+    private final com.aazdoh.commitment.scheduler.CommitmentRolloverScheduler rolloverScheduler;
 
     public CommitmentService(
             CommitmentRepository commitmentRepository,
@@ -43,7 +44,8 @@ public class CommitmentService {
             UserRepository userRepository,
             DiscussionMessageRepository discussionMessageRepository,
             ReviewRepository reviewRepository,
-            UserExecutionStatsService statsService
+            UserExecutionStatsService statsService,
+            com.aazdoh.commitment.scheduler.CommitmentRolloverScheduler rolloverScheduler
     ) {
         this.commitmentRepository = commitmentRepository;
         this.userService = userService;
@@ -51,6 +53,7 @@ public class CommitmentService {
         this.discussionMessageRepository = discussionMessageRepository;
         this.reviewRepository = reviewRepository;
         this.statsService = statsService;
+        this.rolloverScheduler = rolloverScheduler;
     }
 
     @Transactional
@@ -83,6 +86,7 @@ public class CommitmentService {
 
     @Transactional(readOnly = true)
     public List<CommitmentResponse> getTodayCommitments(UUID userId, LocalDate date) {
+        rolloverScheduler.rolloverUserOverdueAsync(userId);
         List<Commitment> list = commitmentRepository.findByUserIdAndCommitmentDate(userId, date);
         Map<UUID, String> partnerNameMap = getPartnerNameMap(list);
         List<CommitmentResponse> responses = list.stream()
@@ -95,6 +99,7 @@ public class CommitmentService {
 
     @Transactional(readOnly = true)
     public List<CommitmentResponse> getCommitmentsByRange(UUID userId, LocalDate startDate, LocalDate endDate) {
+        rolloverScheduler.rolloverUserOverdueAsync(userId);
         List<Commitment> list = commitmentRepository.findByUserIdAndDateRange(userId, startDate, endDate);
         Map<UUID, String> partnerNameMap = getPartnerNameMap(list);
         List<CommitmentResponse> responses = list.stream()
