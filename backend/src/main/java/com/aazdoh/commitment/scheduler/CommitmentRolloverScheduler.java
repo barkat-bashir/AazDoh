@@ -26,9 +26,9 @@ public class CommitmentRolloverScheduler {
     }
 
     /**
-     * Runs hourly to sweep and roll over stale PENDING commitments past their local day boundary.
+     * Runs daily at 1:00 AM UTC to sweep and roll over stale PENDING commitments past their local day boundary.
      */
-    @Scheduled(cron = "0 0 * * * *")
+    @Scheduled(cron = "${aazdoh.scheduler.rollover-cron:0 0 1 * * *}", zone = "UTC")
     @Transactional
     public void rolloverOverdueCommitments() {
         // Query potential overdue commitments
