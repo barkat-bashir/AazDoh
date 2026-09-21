@@ -89,7 +89,7 @@ public class ApiKeyService {
     }
 
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = "apiKeyValidation", allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = "apiKeyUserDetails", allEntries = true)
     public void revokeApiKey(UUID userId, UUID keyId) {
         ApiKey apiKey = apiKeyRepository.findByIdAndUserId(keyId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("API key not found"));
@@ -100,22 +100,22 @@ public class ApiKeyService {
     }
 
     @Transactional
-    @org.springframework.cache.annotation.Cacheable(value = "apiKeyValidation", key = "#rawKey", unless = "#result.isEmpty()")
-    public Optional<User> validateKeyAndGetUser(String rawKey) {
+    @org.springframework.cache.annotation.Cacheable(value = "apiKeyUserDetails", key = "#rawKey", unless = "#result == null")
+    public CustomUserDetails validateKeyAndGetUserDetails(String rawKey) {
         if (rawKey == null || !rawKey.startsWith(API_KEY_PREFIX)) {
-            return Optional.empty();
+            return null;
         }
 
         String keyHash = hashKey(rawKey.trim());
         Optional<ApiKey> keyOpt = apiKeyRepository.findActiveByKeyHash(keyHash);
 
         if (keyOpt.isEmpty()) {
-            return Optional.empty();
+            return null;
         }
 
         ApiKey apiKey = keyOpt.get();
         if (!apiKey.isValid()) {
-            return Optional.empty();
+            return null;
         }
 
         // Throttle lastUsedAt updates: only write to DB once every 5 minutes
@@ -124,7 +124,7 @@ public class ApiKeyService {
             apiKeyRepository.save(apiKey);
         }
 
-        return Optional.of(apiKey.getUser());
+        return new CustomUserDetails(apiKey.getUser());
     }
 
     public static String hashKey(String rawKey) {

@@ -7,6 +7,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,6 +21,8 @@ import java.util.Optional;
 
 @Component
 public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(ApiKeyAuthenticationFilter.class);
 
     private final ApiKeyService apiKeyService;
 
@@ -43,11 +47,9 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
         if (rawKey != null && rawKey.startsWith("aazdoh_live_")) {
             try {
-                Optional<User> userOpt = apiKeyService.validateKeyAndGetUser(rawKey);
-                if (userOpt.isPresent()) {
-                    User user = userOpt.get();
-                    if (user.isActive()) {
-                        CustomUserDetails userDetails = new CustomUserDetails(user);
+                CustomUserDetails userDetails = apiKeyService.validateKeyAndGetUserDetails(rawKey);
+                if (userDetails != null) {
+                    if (userDetails.isEnabled()) {
                         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                                 userDetails,
                                 null,
@@ -55,10 +57,15 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
                         );
                         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                         SecurityContextHolder.getContext().setAuthentication(authToken);
+                        log.debug("Successfully authenticated API key for user: {}", userDetails.getUsername());
+                    } else {
+                        log.warn("API key matched user but account is inactive: {}", userDetails.getUsername());
                     }
+                } else {
+                    log.warn("API key validation returned empty for key with prefix: {}", rawKey.substring(0, Math.min(rawKey.length(), 20)));
                 }
             } catch (Exception ex) {
-                // Let filter chain proceed; unauthenticated requests to protected endpoints will be rejected by SecurityConfig
+                log.error("Exception during API key authentication: {}", ex.getMessage(), ex);
             }
         }
 
