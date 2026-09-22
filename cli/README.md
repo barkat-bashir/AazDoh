@@ -37,7 +37,7 @@
 
 ## ✨ Key Features
 
-- **⚡ Zero-Friction Terminal Execution**: Type `az "completed TUF DSA, add 45m Redis optimization"` to update your ledger instantaneously.
+- **⚡ Zero-Friction Terminal Execution**: Type `az "completed DSA practice, add 45m Redis optimization"` to update your ledger instantaneously.
 - **✅ Instant Interactive Task Check-Off (`az done`)**: Select pending tasks via terminal checkboxes (`[Space]` to toggle, `[Enter]` to complete) or match by name (`az done redis`) with **zero AI/LLM latency**.
 - **🌅 Day Phasing (Morning / Day / Evening / Anytime)**: Structure your daily momentum into natural cognitive phases without rigid or brittle time-blocking.
 - **🛡️ 60-Second Plan Stress Test**: Real-time diagnostic that audits your schedule against your historical 7-day velocity to prevent cognitive burnout and task fragmentation.
@@ -69,7 +69,7 @@ az --version
 
 ### 2. Authentication
 
-Authenticate once using your AazDoh API key (generate one from **Web App ➔ Settings ➔ Developer API Keys**):
+Authenticate once using your AazDoh API key (generate one from **[https://aazdoh.zblslabs.online/](https://aazdoh.zblslabs.online/) ➔ Settings ➔ Developer API Keys**):
 
 ```bash
 # Authenticate directly via flag:
@@ -123,7 +123,7 @@ az today --date 2026-09-14
 ├──────────┼────────────────────────────────┼────────────┼──────────┼──────────────┼────────────────┼────────────────────────────┤
 │ ✅ DONE  │ Java Architecture Review       │ 60m        │ [HIGH]   │ 🌅 Morning   │ 🎯 DEEP FOCUS  │ Core design approved       │
 │ ✅ DONE  │ Spring AI Token Streaming      │ 60m        │ [MED]    │ ☀️ Day       │ 🎯 DEEP FOCUS  │ SSE stream tests passing   │
-│ ⭕ PEND  │ DSA TUF Trees & Graphs         │ 60m        │ [MED]    │ 🌙 Evening   │ 🎯 DEEP FOCUS  │ 4 Leetcode mediums solved  │
+│ ⭕ PEND  │ DSA Trees & Graphs             │ 60m        │ [MED]    │ 🌙 Evening   │ 🎯 DEEP FOCUS  │ 4 Leetcode mediums solved  │
 │ ✅ DONE  │ Morning Routine & Breakfast    │ 30m        │ [HIGH]   │ 🌅 Morning   │ ⚡ ROUTINE     │ Ready for deep focus       │
 └──────────┴────────────────────────────────┴────────────┴──────────┴──────────────┴────────────────┴────────────────────────────┘
 
@@ -147,7 +147,7 @@ az complete
 **Terminal Interactive View:**
 ```text
 ? Select commitments to mark as DONE (Space to toggle, Enter to confirm):
-❯ ◯ [DSA TUF Trees & Graphs] (60m • 🎯 DEEP FOCUS • 🌙 Evening)
+❯ ◯ [DSA Trees & Graphs] (60m • 🎯 DEEP FOCUS • 🌙 Evening)
   ◯ [PostgreSQL connection pool tuning] (45m • 🎯 DEEP FOCUS • ☀️ Day)
 ```
 
@@ -163,7 +163,7 @@ az check redis
 
 **Execution Output:**
 ```text
-✓ Marked as completed: DSA TUF Trees & Graphs
+✓ Marked as completed: DSA Trees & Graphs
 ```
 
 ---
@@ -173,7 +173,7 @@ Execute natural language tasks with automatic intent parsing, live SSE reasoning
 
 ```bash
 # Mark tasks completed
-aazdoh "finished DSA TUF trees with 4 problems solved"
+aazdoh "finished DSA trees with 4 problems solved"
 
 # Add new high-impact deep focus blocks with day phases
 aazdoh "add 45m deep focus on PostgreSQL connection pool tuning for evening"
@@ -185,7 +185,7 @@ aazdoh "postpone team sync prep to tomorrow morning"
 **Execution Receipt:**
 ```text
    ⚡ Executed Actions:
-   ✓ Completed Commitment: "DSA TUF Trees & Graphs"
+   ✓ Completed Commitment: "DSA Trees & Graphs"
    ✓ Created Commitment: "PostgreSQL connection pool tuning" (45m, DEEP_WORK)
 
    (Run 'aazdoh undo' to revert)
@@ -206,14 +206,14 @@ Solid execution today. You've completed 7 of 8 commitments (300m total), locking
 your Java/Spring prep and LangChain modules.
 
 Only 1 task remains on your ledger for 2026-09-13:
-• ⏳ DSA TUF (60m | DEEP_WORK | Priority: MEDIUM)
+• ⏳ DSA Trees & Graphs (60m | DEEP_WORK | Priority: MEDIUM)
 
 You are 60 minutes away from a 100% execution day within your 6-hour cognitive ceiling.
 
 az> /today
 [Renders today's table live]
 
-az> knock out DSA TUF and mark it done
+az> knock out DSA Trees & Graphs and mark it done
 [Streams tokens & updates ledger]
 ```
 

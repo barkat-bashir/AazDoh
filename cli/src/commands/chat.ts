@@ -10,6 +10,8 @@ import { handleFocusCommand, checkAndDisplayCompletedFocus } from "./focus.js";
 
 import { handleDoneCommand, promptAndCompleteCommitments } from "./done.js";
 
+import { isConfigured, getConfig, saveConfig } from "../config.js";
+
 function printHelpMenu(): void {
   console.log(chalk.hex("#E2953B").bold("\n   ⚡ AAZDOH INTERACTIVE COCKPIT COMMANDS:"));
   const table = new Table({
@@ -41,34 +43,48 @@ function printHelpMenu(): void {
 export async function chatCommand(): Promise<void> {
   printBanner();
 
-  const client = new AazDohApiClient();
-  
-  // Parallel pre-flight fetch: fetch user profile and today's commitments concurrently
-  const [userResult, todayResult] = await Promise.allSettled([
-    client.getCurrentUser(),
-    client.getTodayCommitments(),
-  ]);
-
-  if (userResult.status === "rejected") {
-    console.log(chalk.red(`   ⚠️  Authentication error: ${userResult.reason.message}`));
-    console.log(chalk.gray(`   Run ${chalk.cyan("aazdoh login")} to configure your credentials.`));
+  if (!isConfigured()) {
+    console.log(chalk.red(`   ⚠️  AazDoh CLI is not configured.`));
+    console.log(chalk.gray(`   Run ${chalk.cyan("aazdoh login")} to configure your credentials.\n`));
     return;
   }
 
-  const user = userResult.value;
+  const config = getConfig();
+  const client = new AazDohApiClient();
+
+  // Instant local load without blocking on network round-trips
+  const displayName = config.userFullName || config.userEmail || "Accountability Champion";
+  const personaBadge = config.aiPersona ? formatPersonaBadge(config.aiPersona) : "";
+
   console.log(
-    `   Logged in as: ${chalk.hex("#FDFBF7").bold(user.fullName || user.email)} ` +
-    `[Persona: ${formatPersonaBadge(user.aiPersona)}]\n`
+    `   👋 Welcome back, ${chalk.hex("#FDFBF7").bold(displayName)}! ` +
+    (personaBadge ? `[Persona: ${personaBadge}]` : "") + "\n"
   );
 
-  if (todayResult.status === "fulfilled" && todayResult.value && todayResult.value.length > 0) {
-    renderCommitmentsTable(todayResult.value);
-  } else {
-    console.log(chalk.hex("#8C827A")("   No commitments scheduled for today."));
-    console.log(chalk.gray('   Lock in your focus: type "add 45m deep work on <task>"\n'));
-  }
+  console.log(chalk.hex("#E2953B").bold("   ⚡ Quick Commands:"));
+  console.log(chalk.gray("      • ") + chalk.cyan("/today") + chalk.gray("       Show today's commitments & progress (or ") + chalk.cyan("/today -i") + chalk.gray(")"));
+  console.log(chalk.gray("      • ") + chalk.cyan("/done") + chalk.gray("        Interactively check off completed tasks"));
+  console.log(chalk.gray("      • ") + chalk.cyan("/focus [25m]") + chalk.gray(" Start deep focus / Pomodoro timer"));
+  console.log(chalk.gray("      • ") + chalk.cyan("/stats") + chalk.gray("       View 7-day velocity, streaks & focus hours"));
+  console.log(chalk.gray("      • ") + chalk.cyan("/stress-test") + chalk.gray(" Feasibility audit against historical velocity"));
+  console.log(chalk.gray("      • ") + chalk.cyan("/undo") + chalk.gray("        Revert last AI action"));
+  console.log(chalk.gray("      • ") + chalk.cyan("/help") + chalk.gray("        Show full interactive command list"));
+  console.log(chalk.gray("      • ") + chalk.cyan("/exit") + chalk.gray("        Exit cockpit"));
+  console.log("");
+  console.log(chalk.gray('   💡 Or type any natural language instruction:'));
+  console.log(chalk.hex("#8C827A")('      • "completed DSA practice, add 45m system design"'));
+  console.log(chalk.hex("#8C827A")('      • "move reading to tomorrow morning"\n'));
 
-  console.log(chalk.gray("   Type instructions or commands (/today, /stress-test, /stats, /undo, /help, /exit):\n"));
+  // Non-blocking background sync of profile details if missing in config
+  if (!config.userFullName || !config.aiPersona) {
+    client.getCurrentUser().then((profile) => {
+      saveConfig({
+        userFullName: profile.fullName,
+        userEmail: profile.email,
+        aiPersona: profile.aiPersona,
+      });
+    }).catch(() => {});
+  }
 
   const history: Array<{ role: string; content: string }> = [];
 
@@ -116,12 +132,11 @@ export async function chatCommand(): Promise<void> {
     if (trimmed === "/clear" || lower === "clear" || lower === "cls") {
       console.clear();
       printBanner();
-      try {
-        const todayList = await client.getTodayCommitments();
-        if (todayList && todayList.length > 0) {
-          renderCommitmentsTable(todayList);
-        }
-      } catch {}
+      console.log(
+        `   👋 Welcome back, ${chalk.hex("#FDFBF7").bold(displayName)}! ` +
+        (personaBadge ? `[Persona: ${personaBadge}]` : "") + "\n"
+      );
+      console.log(chalk.gray("   Type /help for commands or enter instructions.\n"));
       continue;
     }
 

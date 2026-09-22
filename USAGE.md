@@ -30,7 +30,7 @@
 
 Both the **CLI** and the **MCP Server** authenticate via your personal AazDoh API key (`aazdoh_live_...`).
 
-1. Log into your AazDoh instance at [https://aazdoh.onrender.com](https://aazdoh.onrender.com) (or your local `http://localhost:3000`).
+1. Log into your AazDoh instance at [https://aazdoh.zblslabs.online/](https://aazdoh.zblslabs.online/) (or your local `http://localhost:3000`).
 2. Navigate to **Settings** (or user profile).
 3. Under **Developer API Keys**, click **Generate New API Key**.
 4. Copy the secret key (`aazdoh_live_...`). Keep it safe.
@@ -160,7 +160,7 @@ az today -i
 az today --date 2026-09-15
 
 # One-shot natural language prompt
-az "completed DSA TUF trees with 4 problems solved"
+az "completed DSA trees with 4 problems solved"
 
 # Run standalone 60-second plan stress test
 az stress-test

@@ -14,7 +14,7 @@ export async function handleLoginCommand(options: { key?: string; url?: string }
 
   if (!apiKey) {
     console.log(chalk.hex("#8C827A")("Authenticate your terminal with your AazDoh API key."));
-    console.log(chalk.gray("(Generate an API Key from Web App -> Settings -> Developer API Keys)\n"));
+    console.log(chalk.gray("(Generate an API Key from https://aazdoh.zblslabs.online/ -> Settings -> Developer API Keys)\n"));
 
     apiKey = await password({
       message: "Enter your AazDoh API Key:",
@@ -49,7 +49,7 @@ export async function handleLoginCommand(options: { key?: string; url?: string }
     console.log("");
     console.log(chalk.hex("#E2953B")("⚡ You're ready! Try running:"));
     console.log(chalk.gray('   aazdoh today'));
-    console.log(chalk.gray('   aazdoh "completed TUF DSA, add 45m System Design"'));
+    console.log(chalk.gray('   aazdoh "completed DSA practice, add 45m System Design"'));
     console.log(chalk.gray('   aazdoh chat'));
     console.log("");
   } catch (err: any) {
