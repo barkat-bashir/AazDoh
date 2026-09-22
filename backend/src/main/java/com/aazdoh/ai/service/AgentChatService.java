@@ -33,6 +33,7 @@ import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.security.core.Authentication;
@@ -52,6 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -68,6 +70,7 @@ public class AgentChatService {
     private final UserService userService;
     private final UserExecutionStatsService statsService;
     private final ObjectMapper objectMapper;
+    private final Executor agentStreamExecutor;
 
     @Value("${aazdoh.ai.enabled:true}")
     private boolean aiEnabled;
@@ -88,7 +91,8 @@ public class AgentChatService {
             CommitmentService commitmentService,
             UserService userService,
             UserExecutionStatsService statsService,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            @Qualifier("agentStreamExecutor") Executor agentStreamExecutor
     ) {
         this.chatClient = chatClient;
         this.agentTools = agentTools;
@@ -98,6 +102,7 @@ public class AgentChatService {
         this.userService = userService;
         this.statsService = statsService;
         this.objectMapper = objectMapper;
+        this.agentStreamExecutor = agentStreamExecutor;
     }
 
     private List<String> getCandidateModels() {
@@ -222,15 +227,22 @@ public class AgentChatService {
     }
 
     public SseEmitter chatStream(UUID userId, AgentChatRequest request) {
-        SseEmitter emitter = new SseEmitter(180_000L);
-        emitter.onCompletion(() -> log.debug("SSE stream completed for user {}", userId));
+        SseEmitter emitter = new SseEmitter(90_000L);
+        AtomicBoolean isCancelled = new AtomicBoolean(false);
+
+        emitter.onCompletion(() -> {
+            isCancelled.set(true);
+            log.debug("SSE stream completed for user {}", userId);
+        });
         emitter.onTimeout(() -> {
+            isCancelled.set(true);
             log.warn("SSE stream timed out for user {}", userId);
             try {
                 emitter.complete();
             } catch (Exception ignored) {}
         });
         emitter.onError(e -> {
+            isCancelled.set(true);
             log.debug("SSE stream error for user {}: {}", userId, e.getMessage());
             try {
                 emitter.complete();
@@ -243,11 +255,13 @@ public class AgentChatService {
             SecurityContextHolder.getContext().setAuthentication(auth);
             try {
                 AgentProgressListener.setListener(step -> {
+                    if (isCancelled.get()) return;
                     try {
                         emitter.send(SseEmitter.event()
                                 .name("STEP")
                                 .data(AgentStreamEvent.step(step)));
                     } catch (Exception e) {
+                        isCancelled.set(true);
                         log.debug("SSE step emission failed: {}", e.getMessage());
                     }
                 });
@@ -262,12 +276,14 @@ public class AgentChatService {
                 String userMessage = request.getMessage().trim();
                 if (isTrivialGreeting(userMessage)) {
                     String greetingReply = generateFastGreetingReply(user, persona, todayPlan);
-                    emitter.send(SseEmitter.event()
-                            .name("DELTA")
-                            .data(AgentStreamEvent.delta(greetingReply)));
-                    emitter.send(SseEmitter.event()
-                            .name("DONE")
-                            .data(AgentStreamEvent.done(greetingReply, Collections.emptyList(), false, null)));
+                    if (!isCancelled.get()) {
+                        emitter.send(SseEmitter.event()
+                                .name("DELTA")
+                                .data(AgentStreamEvent.delta(greetingReply)));
+                        emitter.send(SseEmitter.event()
+                                .name("DONE")
+                                .data(AgentStreamEvent.done(greetingReply, Collections.emptyList(), false, null)));
+                    }
                     emitter.complete();
                     return;
                 }
@@ -280,6 +296,10 @@ public class AgentChatService {
 
                 if (aiEnabled && chatClient != null) {
                     for (int i = 0; i < candidateModels.size(); i++) {
+                        if (isCancelled.get()) {
+                            log.debug("Client stream cancelled before attempting model index {}", i);
+                            break;
+                        }
                         String modelName = candidateModels.get(i);
                         try {
                             log.info("Executing reactive streaming Agent with model: {}", modelName);
@@ -294,29 +314,36 @@ public class AgentChatService {
                                     .stream()
                                     .content();
 
-                            streamFlux.doOnNext(chunk -> {
-                                if (chunk == null || chunk.isEmpty()) return;
-                                accumulated.append(chunk);
-                                String current = accumulated.toString();
+                            streamFlux.takeWhile(chunk -> !isCancelled.get())
+                                    .doOnNext(chunk -> {
+                                        if (chunk == null || chunk.isEmpty()) return;
+                                        accumulated.append(chunk);
+                                        String current = accumulated.toString();
 
-                                if (current.contains("```actions") || current.contains("```json")) {
-                                    isBufferingActions.set(true);
-                                }
+                                        if (current.contains("```actions") || current.contains("```json")) {
+                                            isBufferingActions.set(true);
+                                        }
 
-                                if (!isBufferingActions.get()) {
-                                    try {
-                                        emitter.send(SseEmitter.event()
-                                                .name("DELTA")
-                                                .data(AgentStreamEvent.delta(chunk)));
-                                    } catch (Exception ignored) {}
-                                }
-                            }).blockLast();
+                                        if (!isBufferingActions.get() && !isCancelled.get()) {
+                                            try {
+                                                emitter.send(SseEmitter.event()
+                                                        .name("DELTA")
+                                                        .data(AgentStreamEvent.delta(chunk)));
+                                            } catch (Exception e) {
+                                                isCancelled.set(true);
+                                            }
+                                        }
+                                    }).blockLast();
 
                             rawAccumulated = accumulated.toString();
-                            if (!rawAccumulated.isBlank()) {
+                            if (!rawAccumulated.isBlank() || isCancelled.get()) {
                                 break;
                             }
                         } catch (Exception ex) {
+                            if (isCancelled.get()) {
+                                log.debug("Client stream cancelled during execution of model {}", modelName);
+                                break;
+                            }
                             log.warn("Streaming model '{}' failed ({}: {}). Trying fallback...",
                                     modelName, ex.getClass().getSimpleName(), ex.getMessage());
                             if (i < candidateModels.size() - 1) {
@@ -325,6 +352,14 @@ public class AgentChatService {
                             }
                         }
                     }
+                }
+
+                if (isCancelled.get()) {
+                    log.debug("SSE stream cancelled by client, skipping action execution.");
+                    try {
+                        emitter.complete();
+                    } catch (Exception ignored) {}
+                    return;
                 }
 
                 String reply = null;
@@ -372,22 +407,26 @@ public class AgentChatService {
 
                 boolean undoAvailable = !receipts.isEmpty();
 
-                emitter.send(SseEmitter.event()
-                        .name("DONE")
-                        .data(AgentStreamEvent.done(
-                                reply != null ? reply.trim() : "",
-                                receipts,
-                                undoAvailable,
-                                cognitiveWarning
-                        )));
+                if (!isCancelled.get()) {
+                    emitter.send(SseEmitter.event()
+                            .name("DONE")
+                            .data(AgentStreamEvent.done(
+                                    reply != null ? reply.trim() : "",
+                                    receipts,
+                                    undoAvailable,
+                                    cognitiveWarning
+                            )));
+                }
 
                 emitter.complete();
             } catch (Exception e) {
                 log.error("Streaming chat failed for user {}: {}", userId, e.getMessage(), e);
                 try {
-                    emitter.send(SseEmitter.event()
-                            .name("ERROR")
-                            .data(AgentStreamEvent.error(e.getMessage() != null ? e.getMessage() : "Agent execution error.")));
+                    if (!isCancelled.get()) {
+                        emitter.send(SseEmitter.event()
+                                .name("ERROR")
+                                .data(AgentStreamEvent.error(e.getMessage() != null ? e.getMessage() : "Agent execution error.")));
+                    }
                 } catch (Exception ignored) {
                 } finally {
                     try {
@@ -398,7 +437,7 @@ public class AgentChatService {
                 SecurityContextHolder.clearContext();
                 AgentProgressListener.clear();
             }
-        });
+        }, agentStreamExecutor);
 
         return emitter;
     }
