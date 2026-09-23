@@ -94,6 +94,11 @@ export const createCommitmentSchema = z.object({
     .enum(["DEEP_WORK", "ROUTINE", "STRATEGIC_PLANNING", "COMMUNICATION", "FITNESS_HEALTH", "LEARNING", "ADMIN_MAINTENANCE", "OTHER"])
     .default("DEEP_WORK")
     .describe("Commitment category"),
+  dayPhase: z
+    .enum(["MORNING", "DAY", "EVENING", "ANYTIME"])
+    .default("ANYTIME")
+    .optional()
+    .describe("Day phase breakdown: MORNING, DAY, EVENING, ANYTIME"),
   priority: z
     .enum(["URGENT", "HIGH", "MEDIUM", "LOW"])
     .default("HIGH")
@@ -145,6 +150,7 @@ export async function handleCreateCommitment(args: z.infer<typeof createCommitme
     title: args.title,
     category: args.category || "DEEP_WORK",
     priority: args.priority || "HIGH",
+    dayPhase: args.dayPhase || "ANYTIME",
     estimatedMinutes: args.estimatedMinutes || 30,
     commitmentDate: targetDate,
     expectedOutcome: args.expectedOutcome,
@@ -158,7 +164,7 @@ export async function handleCreateCommitment(args: z.infer<typeof createCommitme
     content: [
       {
         type: "text" as const,
-        text: `🔒 **Commitment Locked In!**\n- **Title**: ${created.title}\n- **ID**: \`${created.id}\`\n- **Duration**: ${created.estimatedMinutes}m | Priority: ${created.priority} | Category: ${created.category}\n- **Status**: ${created.status}\n${created.expectedOutcome ? `- **Outcome**: _"${created.expectedOutcome}"_\n` : ""}`,
+        text: `🔒 **Commitment Locked In!**\n- **Title**: ${created.title}\n- **ID**: \`${created.id}\`\n- **Duration**: ${created.estimatedMinutes}m | Phase: ${created.dayPhase || "ANYTIME"} | Priority: ${created.priority} | Category: ${created.category}\n- **Status**: ${created.status}\n${created.expectedOutcome ? `- **Outcome**: _"${created.expectedOutcome}"_\n` : ""}`,
       },
     ],
     structuredData: created,
@@ -172,6 +178,10 @@ export const updateCommitmentSchema = z.object({
     .enum(["DEEP_WORK", "ROUTINE", "STRATEGIC_PLANNING", "COMMUNICATION", "FITNESS_HEALTH", "LEARNING", "ADMIN_MAINTENANCE", "OTHER"])
     .optional()
     .describe("Updated category"),
+  dayPhase: z
+    .enum(["MORNING", "DAY", "EVENING", "ANYTIME"])
+    .optional()
+    .describe("Updated day phase: MORNING, DAY, EVENING, ANYTIME"),
   priority: z.enum(["URGENT", "HIGH", "MEDIUM", "LOW"]).optional().describe("Updated priority"),
   estimatedMinutes: z.number().int().min(1).max(720).optional().describe("Updated estimated duration in minutes"),
   expectedOutcome: z.string().max(500, "Expected outcome must not exceed 500 characters").optional().describe("Updated definition of done"),

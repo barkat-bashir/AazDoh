@@ -17,6 +17,7 @@ import com.aazdoh.commitment.entity.CommitmentCategory;
 import com.aazdoh.commitment.entity.CommitmentPriority;
 import com.aazdoh.commitment.entity.CommitmentStatus;
 import com.aazdoh.commitment.entity.CommitmentVisibility;
+import com.aazdoh.commitment.entity.DayPhase;
 import com.aazdoh.commitment.repository.CommitmentRepository;
 import com.aazdoh.commitment.service.CommitmentService;
 import com.aazdoh.common.exception.ResourceNotFoundException;
@@ -117,6 +118,7 @@ public class AgentTools {
             m.put("status", c.getStatus());
             m.put("priority", c.getPriority());
             m.put("category", c.getCategory() != null ? c.getCategory().name() : "DEEP_WORK");
+            m.put("dayPhase", c.getDayPhase() != null ? c.getDayPhase().name() : "ANYTIME");
             m.put("estimatedMinutes", c.getEstimatedMinutes());
             m.put("expectedOutcome", c.getExpectedOutcome());
             m.put("postponementCount", c.getPostponementCount());
@@ -135,7 +137,7 @@ public class AgentTools {
             CommitmentPriority priority,
             String expectedOutcome
     ) {
-        return createCommitment(userId, title, estimatedMinutes, priority, "DEEP_WORK", expectedOutcome, LocalDate.now());
+        return createCommitment(userId, title, estimatedMinutes, priority, "DEEP_WORK", expectedOutcome, LocalDate.now(), null);
     }
 
     @Transactional
@@ -147,6 +149,20 @@ public class AgentTools {
             String categoryStr,
             String expectedOutcome,
             LocalDate targetDate
+    ) {
+        return createCommitment(userId, title, estimatedMinutes, priority, categoryStr, expectedOutcome, targetDate, null);
+    }
+
+    @Transactional
+    public Map<String, Object> createCommitment(
+            UUID userId,
+            String title,
+            Integer estimatedMinutes,
+            CommitmentPriority priority,
+            String categoryStr,
+            String expectedOutcome,
+            LocalDate targetDate,
+            String dayPhaseStr
     ) {
         User user = userService.findUserById(userId);
         LocalDate target = targetDate != null ? targetDate : LocalDate.now();
@@ -177,11 +193,20 @@ public class AgentTools {
             }
         }
 
+        DayPhase dayPhase = DayPhase.ANYTIME;
+        if (dayPhaseStr != null && !dayPhaseStr.isBlank()) {
+            try {
+                dayPhase = DayPhase.valueOf(dayPhaseStr.toUpperCase().trim());
+            } catch (Exception ignored) {
+            }
+        }
+
         CreateCommitmentRequest request = new CreateCommitmentRequest();
         request.setTitle(title.trim());
         request.setEstimatedMinutes(minutes);
         request.setPriority(priority != null ? priority : CommitmentPriority.MEDIUM);
         request.setCategory(category);
+        request.setDayPhase(dayPhase);
         request.setCommitmentDate(target);
         request.setVisibility(CommitmentVisibility.PRIVATE);
         request.setExpectedOutcome(expectedOutcome);
@@ -206,6 +231,7 @@ public class AgentTools {
         result.put("commitmentId", created.getId());
         result.put("title", created.getTitle());
         result.put("estimatedMinutes", created.getEstimatedMinutes());
+        result.put("dayPhase", created.getDayPhase() != null ? created.getDayPhase().name() : "ANYTIME");
         result.put("logId", savedLog.getId());
         return result;
     }
@@ -221,6 +247,21 @@ public class AgentTools {
             String expectedOutcome,
             LocalDate targetDate
     ) {
+        return updateCommitment(userId, commitmentId, title, estimatedMinutes, priority, categoryStr, expectedOutcome, targetDate, null);
+    }
+
+    @Transactional
+    public Map<String, Object> updateCommitment(
+            UUID userId,
+            UUID commitmentId,
+            String title,
+            Integer estimatedMinutes,
+            CommitmentPriority priority,
+            String categoryStr,
+            String expectedOutcome,
+            LocalDate targetDate,
+            String dayPhaseStr
+    ) {
         User user = userService.findUserById(userId);
         Commitment existing = commitmentRepository.findActiveByIdAndUserId(commitmentId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Commitment not found: " + commitmentId));
@@ -235,6 +276,11 @@ public class AgentTools {
         if (categoryStr != null && !categoryStr.isBlank()) {
             try {
                 request.setCategory(CommitmentCategory.valueOf(categoryStr.toUpperCase().trim()));
+            } catch (Exception ignored) {}
+        }
+        if (dayPhaseStr != null && !dayPhaseStr.isBlank()) {
+            try {
+                request.setDayPhase(DayPhase.valueOf(dayPhaseStr.toUpperCase().trim()));
             } catch (Exception ignored) {}
         }
         if (expectedOutcome != null) request.setExpectedOutcome(expectedOutcome.trim());
@@ -260,6 +306,7 @@ public class AgentTools {
         result.put("estimatedMinutes", updated.getEstimatedMinutes());
         result.put("category", updated.getCategory() != null ? updated.getCategory().name() : "DEEP_WORK");
         result.put("priority", updated.getPriority() != null ? updated.getPriority().name() : "MEDIUM");
+        result.put("dayPhase", updated.getDayPhase() != null ? updated.getDayPhase().name() : "ANYTIME");
         result.put("commitmentDate", updated.getCommitmentDate() != null ? updated.getCommitmentDate().toString() : LocalDate.now().toString());
         result.put("logId", savedLog.getId());
         return result;

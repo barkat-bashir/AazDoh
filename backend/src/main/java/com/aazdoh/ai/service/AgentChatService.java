@@ -667,8 +667,9 @@ public class AgentChatService {
             Object est = c.get("estimatedMinutes");
             Object priority = c.get("priority");
             Object category = c.get("category");
-            sb.append(String.format("- [%s] \"%s\" (~%sm, Priority: %s, %s)\n",
-                    status, title, est != null ? est : 30, priority != null ? priority : "MEDIUM", category != null ? category : "DEEP_WORK"));
+            Object dayPhase = c.get("dayPhase");
+            sb.append(String.format("- [%s] \"%s\" (~%sm, Phase: %s, Priority: %s, %s)\n",
+                    status, title, est != null ? est : 30, dayPhase != null ? dayPhase : "ANYTIME", priority != null ? priority : "MEDIUM", category != null ? category : "DEEP_WORK"));
         }
         return sb.toString().trim();
     }
@@ -839,7 +840,7 @@ public class AgentChatService {
                             String category = item.getCategory() != null ? item.getCategory() : "DEEP_WORK";
                             String outcome = item.getExpectedOutcome();
                             LocalDate targetDate = parseDate(item.getTargetDate());
-                            agentTools.createCommitment(userId, title, minutes, priority, category, outcome, targetDate != null ? targetDate : LocalDate.now());
+                            agentTools.createCommitment(userId, title, minutes, priority, category, outcome, targetDate != null ? targetDate : LocalDate.now(), item.getDayPhase());
                         }
                     }
                     case "POSTPONE_COMMITMENT" -> {
@@ -870,7 +871,7 @@ public class AgentChatService {
                         if (targetId != null) {
                             CommitmentPriority priority = item.getPriority() != null ? parsePriority(item.getPriority()) : null;
                             LocalDate targetDate = parseDate(item.getTargetDate());
-                            agentTools.updateCommitment(userId, targetId, item.getTitle(), item.getEstimatedMinutes(), priority, item.getCategory(), item.getExpectedOutcome(), targetDate);
+                            agentTools.updateCommitment(userId, targetId, item.getTitle(), item.getEstimatedMinutes(), priority, item.getCategory(), item.getExpectedOutcome(), targetDate, item.getDayPhase());
                         }
                     }
                     case "DELETE_COMMITMENT" -> {

@@ -11,11 +11,20 @@ public class AgentActionItem {
     private Integer estimatedMinutes;
     private String priority; // HIGH, MEDIUM, LOW, URGENT
     private String category; // DEEP_WORK, ROUTINE, LEARNING, HABIT, HEALTH
+    private String dayPhase; // MORNING, DAY, EVENING, ANYTIME
     private String expectedOutcome;
     private String targetDate; // YYYY-MM-DD
     private String reason;
 
     public AgentActionItem() {
+    }
+
+    public String getDayPhase() {
+        return dayPhase;
+    }
+
+    public void setDayPhase(String dayPhase) {
+        this.dayPhase = dayPhase;
     }
 
     public String getActionType() {

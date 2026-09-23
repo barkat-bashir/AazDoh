@@ -45,6 +45,7 @@ public class AgentFunctionConfig {
             @JsonPropertyDescription("Estimated duration in minutes (e.g. 15, 30, 45, 60)") Integer estimatedMinutes,
             @JsonPropertyDescription("Priority level: URGENT, HIGH, MEDIUM, LOW. Default: MEDIUM") String priority,
             @JsonPropertyDescription("Category: ROUTINE, DEEP_WORK, LEARNING, FITNESS_HEALTH, COMMUNICATION. Default: DEEP_WORK") String category,
+            @JsonPropertyDescription("Day phase: MORNING, DAY, EVENING, ANYTIME. Default: ANYTIME") String dayPhase,
             @JsonPropertyDescription("Definition of done or expected outcome") String expectedOutcome,
             @JsonPropertyDescription("Target date (YYYY-MM-DD). Defaults to today") String targetDate
     ) {}
@@ -52,7 +53,7 @@ public class AgentFunctionConfig {
     public record CreateCommitmentFunctionResponse(boolean success, UUID commitmentId, String title, int estimatedMinutes, String message) {}
 
     @Bean
-    @Description("Create a new daily commitment for the user with title, estimated minutes, priority, category, and definition of done")
+    @Description("Create a new daily commitment for the user with title, estimated minutes, priority, category, day phase, and definition of done")
     public Function<CreateCommitmentFunctionRequest, CreateCommitmentFunctionResponse> createCommitmentFunction(AgentTools agentTools) {
         return request -> {
             try {
@@ -73,7 +74,8 @@ public class AgentFunctionConfig {
                         prio,
                         request.category() != null ? request.category() : "DEEP_WORK",
                         request.expectedOutcome(),
-                        date
+                        date,
+                        request.dayPhase()
                 );
 
                 return new CreateCommitmentFunctionResponse(
@@ -268,6 +270,7 @@ public class AgentFunctionConfig {
             @JsonPropertyDescription("Updated estimated duration in minutes") Integer estimatedMinutes,
             @JsonPropertyDescription("Updated priority (URGENT, HIGH, MEDIUM, LOW)") String priority,
             @JsonPropertyDescription("Updated category (ROUTINE, DEEP_WORK, LEARNING, FITNESS_HEALTH, COMMUNICATION)") String category,
+            @JsonPropertyDescription("Updated day phase (MORNING, DAY, EVENING, ANYTIME)") String dayPhase,
             @JsonPropertyDescription("Updated definition of done or expected outcome") String expectedOutcome,
             @JsonPropertyDescription("Updated target date (YYYY-MM-DD)") String targetDate
     ) {}
@@ -275,7 +278,7 @@ public class AgentFunctionConfig {
     public record UpdateCommitmentFunctionResponse(boolean success, UUID commitmentId, String title, int estimatedMinutes, String message) {}
 
     @Bean
-    @Description("Update details of an existing commitment (e.g. adjust title, duration estimate in minutes, priority, or category)")
+    @Description("Update details of an existing commitment (e.g. adjust title, duration estimate in minutes, priority, day phase, or category)")
     public Function<UpdateCommitmentFunctionRequest, UpdateCommitmentFunctionResponse> updateCommitmentFunction(AgentTools agentTools) {
         return request -> {
             try {
@@ -298,7 +301,8 @@ public class AgentFunctionConfig {
                         prio,
                         request.category(),
                         request.expectedOutcome(),
-                        date
+                        date,
+                        request.dayPhase()
                 );
 
                 return new UpdateCommitmentFunctionResponse(
