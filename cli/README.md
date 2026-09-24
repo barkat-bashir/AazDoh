@@ -270,6 +270,7 @@ az focus stop
 az focus 25m --live
 
 # Launch a sleek floating desktop popup clock window (standalone borderless app mode)
+# Includes persistent distraction buffer & 1-click harvest to Today/Tomorrow/Custom plan:
 az focus 45m "Core Database Engine" --popup
 ```
 

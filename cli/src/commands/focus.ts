@@ -7,7 +7,7 @@ import { spawn, exec, execFile } from "child_process";
 import chalk from "chalk";
 import notifier from "node-notifier";
 import { confirm, select } from "@inquirer/prompts";
-import { isConfigured } from "../config.js";
+import { isConfigured, getConfig } from "../config.js";
 import { AazDohApiClient } from "../client.js";
 import { printBanner } from "../ui/banner.js";
 
@@ -205,18 +205,23 @@ function renderBigClockLines(timeStr: string, isPaused: boolean): string[] {
 
 /**
  * Generates an ultra-sleek, standalone Kashmir Harud HTML5 Popup Clock
+ * with persistent distraction buffer and flexible 1-click commitment harvesting.
  */
 export function generatePopupClockHtml(
   taskName: string,
   totalDurationSeconds: number,
-  targetEndTimeMs: number
+  targetEndTimeMs: number,
+  apiUrl: string = "https://aazdoh.onrender.com",
+  apiKey: string = ""
 ): string {
+  const safeTaskName = taskName.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>⚡ AazDoh Focus — ${taskName.replace(/"/g, '&quot;')}</title>
+  <title>⚡ AazDoh Focus — ${safeTaskName.replace(/"/g, '&quot;')}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
     body {
@@ -225,21 +230,31 @@ export function generatePopupClockHtml(
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       min-height: 100vh;
-      padding: 20px;
+      padding: 16px;
       user-select: none;
-      overflow: hidden;
-      background-image: radial-gradient(circle at 50% 20%, rgba(226, 149, 59, 0.12), transparent 70%);
+      overflow-y: auto;
+      background-image: radial-gradient(circle at 50% 15%, rgba(226, 149, 59, 0.15), transparent 75%);
+    }
+    body::-webkit-scrollbar {
+      width: 5px;
+    }
+    body::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    body::-webkit-scrollbar-thumb {
+      background: rgba(226, 149, 59, 0.25);
+      border-radius: 4px;
     }
     .card {
       background: #1C1510;
       border: 1px solid rgba(226, 149, 59, 0.3);
-      border-radius: 24px;
-      padding: 24px 20px;
+      border-radius: 20px;
+      padding: 20px 16px;
       width: 100%;
-      max-width: 360px;
-      box-shadow: 0 25px 50px rgba(0,0,0,0.8), 0 0 40px rgba(226, 149, 59, 0.15);
+      max-width: 380px;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.85), 0 0 40px rgba(226, 149, 59, 0.15);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -249,14 +264,14 @@ export function generatePopupClockHtml(
       display: flex;
       align-items: center;
       gap: 6px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
     .brand-icon {
       color: #E2953B;
-      font-size: 16px;
+      font-size: 15px;
     }
     .brand-text {
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 800;
       letter-spacing: 2px;
       text-transform: uppercase;
@@ -266,20 +281,21 @@ export function generatePopupClockHtml(
       background: rgba(226, 149, 59, 0.12);
       border: 1px solid rgba(226, 149, 59, 0.25);
       color: #F5EFEB;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
-      padding: 6px 14px;
+      padding: 5px 12px;
       border-radius: 999px;
-      max-width: 300px;
+      max-width: 320px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
+      text-align: center;
     }
     .clock-container {
       position: relative;
-      width: 220px;
-      height: 220px;
+      width: 190px;
+      height: 190px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -304,7 +320,7 @@ export function generatePopupClockHtml(
       justify-content: center;
     }
     .time-digits {
-      font-size: 46px;
+      font-size: 40px;
       font-weight: 800;
       letter-spacing: -1px;
       font-variant-numeric: tabular-nums;
@@ -312,12 +328,12 @@ export function generatePopupClockHtml(
       text-shadow: 0 0 25px rgba(226, 149, 59, 0.4);
     }
     .status-tag {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
       letter-spacing: 1.5px;
       text-transform: uppercase;
       color: #10B981;
-      margin-top: 4px;
+      margin-top: 2px;
       display: flex;
       align-items: center;
       gap: 5px;
@@ -337,8 +353,8 @@ export function generatePopupClockHtml(
     }
     .controls {
       display: flex;
-      gap: 10px;
-      margin-top: 24px;
+      gap: 8px;
+      margin-top: 16px;
       align-items: center;
       width: 100%;
       justify-content: center;
@@ -347,9 +363,9 @@ export function generatePopupClockHtml(
       background: rgba(255, 255, 255, 0.06);
       border: 1px solid rgba(255, 255, 255, 0.12);
       color: #F5EFEB;
-      border-radius: 12px;
-      padding: 10px 14px;
-      font-size: 13px;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 12px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
@@ -367,64 +383,262 @@ export function generatePopupClockHtml(
       color: #120E0B;
       border: none;
       font-weight: 700;
-      padding: 12px 24px;
-      border-radius: 14px;
+      padding: 9px 20px;
+      border-radius: 12px;
       box-shadow: 0 4px 15px rgba(226, 149, 59, 0.35);
     }
     .btn-main:hover {
       background: #F59E0B;
       box-shadow: 0 6px 20px rgba(226, 149, 59, 0.5);
     }
+    
+    /* Distraction & Parking Lot UI */
     .distraction-box {
       width: 100%;
-      margin-top: 18px;
+      margin-top: 16px;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 14px;
+      padding: 10px;
     }
     .distraction-input {
       width: 100%;
-      background: rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
       padding: 8px 12px;
       font-size: 12px;
       color: #F5EFEB;
       outline: none;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
     .distraction-input:focus {
       border-color: #E2953B;
+      box-shadow: 0 0 10px rgba(226, 149, 59, 0.25);
     }
     .distraction-input::placeholder {
       color: #8C827A;
     }
-    .footer {
-      margin-top: 14px;
+    .drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px;
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 6px;
+      transition: background 0.15s;
+    }
+    .drawer-header:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .drawer-title {
       font-size: 11px;
+      font-weight: 700;
+      color: #8C827A;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+    .count-badge {
+      background: rgba(226, 149, 59, 0.2);
+      color: #E2953B;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-weight: 800;
+    }
+    .drawer-arrow {
+      font-size: 10px;
+      color: #8C827A;
+      transition: transform 0.2s ease;
+    }
+    .drawer-arrow.open {
+      transform: rotate(180deg);
+    }
+    .distractions-drawer {
+      margin-top: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-right: 2px;
+    }
+    .distractions-drawer::-webkit-scrollbar {
+      width: 4px;
+    }
+    .distractions-drawer::-webkit-scrollbar-thumb {
+      background: rgba(226, 149, 59, 0.2);
+      border-radius: 2px;
+    }
+    .empty-state {
+      font-size: 11px;
+      color: #6B625B;
+      text-align: center;
+      padding: 10px 0 4px 0;
+      font-style: italic;
+    }
+    .distraction-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      animation: fadeIn 0.2s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .item-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .item-text {
+      font-size: 11.5px;
+      color: #F5EFEB;
+      line-height: 1.35;
+      word-break: break-word;
+      user-select: text;
+    }
+    .btn-del {
+      background: none;
+      border: none;
+      color: #8C827A;
+      cursor: pointer;
+      font-size: 11px;
+      padding: 0 2px;
+      line-height: 1;
+      transition: color 0.15s;
+    }
+    .btn-del:hover {
+      color: #EF4444;
+    }
+    .item-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding-top: 4px;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .item-time {
+      font-size: 10px;
+      color: #8C827A;
+    }
+    .action-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .action-pill {
+      background: rgba(226, 149, 59, 0.1);
+      border: 1px solid rgba(226, 149, 59, 0.25);
+      color: #E2953B;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .action-pill:hover {
+      background: #E2953B;
+      color: #120E0B;
+    }
+    .converted-tag {
+      font-size: 10px;
+      font-weight: 700;
+      color: #10B981;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .custom-date-box {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 4px;
+      width: 100%;
+    }
+    .date-input {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #F5EFEB;
+      font-size: 10px;
+      padding: 3px 6px;
+      border-radius: 6px;
+      outline: none;
+      flex: 1;
+    }
+    .date-input:focus {
+      border-color: #E2953B;
+    }
+    .footer {
+      margin-top: 12px;
+      font-size: 10.5px;
       color: #8C827A;
       display: flex;
       justify-content: space-between;
       width: 100%;
     }
+    
+    /* Sleek Floating Toast */
+    .toast {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-35px);
+      background: rgba(28, 21, 16, 0.95);
+      border: 1px solid #E2953B;
+      color: #F5EFEB;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.8), 0 0 12px rgba(226, 149, 59, 0.35);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 1000;
+      white-space: nowrap;
+      backdrop-filter: blur(10px);
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
   </style>
 </head>
 <body>
+  <div id="toast" class="toast">✨ Action confirmed</div>
+
   <div class="card">
     <div class="brand">
       <span class="brand-icon">⚡</span>
       <span class="brand-text">AazDoh Focus Sprint</span>
     </div>
 
-    <div class="task-badge" id="taskTitle">${taskName.replace(/</g, '&lt;')}</div>
+    <div class="task-badge" id="taskTitle">${safeTaskName}</div>
 
     <div class="clock-container">
-      <svg class="progress-ring" width="220" height="220">
+      <svg class="progress-ring" width="190" height="190">
         <defs>
           <linearGradient id="saffronGrad" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stop-color="#E2953B" />
             <stop offset="100%" stop-color="#C05330" />
           </linearGradient>
         </defs>
-        <circle class="ring-bg" stroke-width="8" fill="transparent" r="96" cx="110" cy="110" />
-        <circle class="ring-circle" id="progressCircle" stroke-width="8" fill="transparent" r="96" cx="110" cy="110" stroke-dasharray="603.18" stroke-dashoffset="0" />
+        <circle class="ring-bg" stroke-width="7" fill="transparent" r="82" cx="95" cy="95" />
+        <circle class="ring-circle" id="progressCircle" stroke-width="7" fill="transparent" r="82" cx="95" cy="95" stroke-dasharray="515.22" stroke-dashoffset="0" />
       </svg>
       <div class="clock-inner">
         <div class="time-digits" id="timeDisplay">--:--</div>
@@ -442,7 +656,19 @@ export function generatePopupClockHtml(
     </div>
 
     <div class="distraction-box">
-      <input type="text" class="distraction-input" id="distractionInput" placeholder="💭 Park a fleeting distraction... (Enter)" onkeydown="handleDistraction(event)" />
+      <input type="text" class="distraction-input" id="distractionInput" placeholder="💭 Park stray thought & hit Enter..." onkeydown="handleDistraction(event)" />
+      
+      <div class="drawer-header" onclick="toggleDrawer()">
+        <div class="drawer-title">
+          <span>💭 Parked Buffer</span>
+          <span class="count-badge" id="distractionCountBadge">0</span>
+        </div>
+        <span class="drawer-arrow open" id="drawerArrow">▾</span>
+      </div>
+
+      <div class="distractions-drawer" id="distractionsDrawer">
+        <div id="distractionList"></div>
+      </div>
     </div>
 
     <div class="footer">
@@ -452,21 +678,41 @@ export function generatePopupClockHtml(
   </div>
 
   <script>
+    const API_URL = ${JSON.stringify(apiUrl)};
+    const API_KEY = ${JSON.stringify(apiKey)};
+    const TASK_NAME = ${JSON.stringify(taskName)};
+    const STORAGE_KEY = 'aazdoh_distraction_buffer';
+
     let totalDuration = ${totalDurationSeconds};
     let targetEndTimeMs = ${targetEndTimeMs};
     let isPaused = false;
     let pauseStartedAt = null;
+    let isDrawerOpen = true;
+    let distractions = [];
+
     const circle = document.getElementById('progressCircle');
     const radius = circle.r.baseVal.value;
     const circumference = 2 * Math.PI * radius;
     circle.style.strokeDasharray = circumference;
 
+    // Toast helper
+    function showToast(msg, isWarn = false) {
+      const toast = document.getElementById('toast');
+      toast.innerText = msg;
+      toast.style.borderColor = isWarn ? '#F59E0B' : '#E2953B';
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2400);
+    }
+
+    // Audio chime on completion
     function playChime() {
       try {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (!AudioCtx) return;
         const ctx = new AudioCtx();
-        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+        const notes = [523.25, 659.25, 783.99, 1046.50];
         notes.forEach((freq, idx) => {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
@@ -514,6 +760,7 @@ export function generatePopupClockHtml(
         document.getElementById('statusDot').style.background = "#E2953B";
         playChime();
         clearInterval(timer);
+        recordTelemetryOnComplete();
       }
     }
 
@@ -545,19 +792,230 @@ export function generatePopupClockHtml(
       update();
     }
 
+    // Date Utilities
+    function getTodayDateStr() {
+      const d = new Date();
+      return d.toISOString().split('T')[0];
+    }
+
+    function getTomorrowDateStr() {
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      return d.toISOString().split('T')[0];
+    }
+
+    function escapeHtml(str) {
+      return (str || '')
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // Persistence & Buffer Logic
+    function loadDistractions() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        distractions = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(distractions)) distractions = [];
+      } catch (e) {
+        distractions = [];
+      }
+      renderDistractions();
+    }
+
+    function saveDistractions() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(distractions));
+      } catch (e) {}
+      renderDistractions();
+    }
+
+    function toggleDrawer() {
+      isDrawerOpen = !isDrawerOpen;
+      const drawer = document.getElementById('distractionsDrawer');
+      const arrow = document.getElementById('drawerArrow');
+      drawer.style.display = isDrawerOpen ? 'flex' : 'none';
+      if (isDrawerOpen) {
+        arrow.classList.add('open');
+      } else {
+        arrow.classList.remove('open');
+      }
+    }
+
+    function renderDistractions() {
+      document.getElementById('distractionCountBadge').innerText = distractions.length;
+      const container = document.getElementById('distractionList');
+      
+      if (distractions.length === 0) {
+        container.innerHTML = '<div class="empty-state">No parked thoughts yet. Unload your mind here!</div>';
+        return;
+      }
+
+      const todayStr = getTodayDateStr();
+      const tomorrowStr = getTomorrowDateStr();
+
+      container.innerHTML = distractions.map((item) => {
+        const timeStr = item.createdAt ? new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        const isConverted = item.converted;
+        
+        return \`
+          <div class="distraction-item" id="item_\${item.id}">
+            <div class="item-top">
+              <span class="item-text">\${escapeHtml(item.text)}</span>
+              <button class="btn-del" onclick="deleteDistraction('\${item.id}')" title="Delete">✕</button>
+            </div>
+            <div class="item-bottom">
+              <span class="item-time">\${timeStr}</span>
+              \${isConverted ? \`
+                <span class="converted-tag">✓ Added to \${item.convertedTarget || 'Plan'} (\${item.convertedDate || ''})</span>
+              \` : \`
+                <div class="action-group">
+                  <button class="action-pill" onclick="convertDistraction('\${item.id}', '\${todayStr}', 'Today')">⚡ Today</button>
+                  <button class="action-pill" onclick="convertDistraction('\${item.id}', '\${tomorrowStr}', 'Tomorrow')">📅 Tomorrow</button>
+                  <button class="action-pill" onclick="toggleCustomDatePicker('\${item.id}')">🗓️ Pick</button>
+                </div>
+              \`}
+            </div>
+            <div class="custom-date-box" id="dateBox_\${item.id}" style="display: none;">
+              <input type="date" class="date-input" id="customDate_\${item.id}" value="\${tomorrowStr}" />
+              <button class="action-pill" onclick="commitCustomDate('\${item.id}')">Save</button>
+            </div>
+          </div>
+        \`;
+      }).join('');
+    }
+
     function handleDistraction(e) {
       if (e.key === 'Enter') {
         const input = document.getElementById('distractionInput');
-        if (input.value.trim()) {
+        const text = input.value.trim();
+        if (text) {
+          const newDistraction = {
+            id: 'd_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+            text: text,
+            taskName: TASK_NAME,
+            createdAt: new Date().toISOString(),
+            converted: false,
+            convertedDate: null,
+            convertedTarget: null
+          };
+          distractions.unshift(newDistraction);
+          saveDistractions();
+
           input.value = '';
           input.placeholder = '✨ Parked! Added to your distraction buffer.';
+          showToast('💭 Thought parked to local buffer');
           setTimeout(() => {
             input.placeholder = '💭 Park another fleeting thought...';
-          }, 2500);
+          }, 2200);
+
+          if (!isDrawerOpen) {
+            toggleDrawer();
+          }
         }
       }
     }
 
+    function deleteDistraction(id) {
+      distractions = distractions.filter(d => d.id !== id);
+      saveDistractions();
+      showToast('🗑️ Thought removed');
+    }
+
+    function toggleCustomDatePicker(id) {
+      const box = document.getElementById('dateBox_' + id);
+      if (box) {
+        box.style.display = box.style.display === 'none' ? 'flex' : 'none';
+      }
+    }
+
+    function commitCustomDate(id) {
+      const input = document.getElementById('customDate_' + id);
+      if (input && input.value) {
+        convertDistraction(id, input.value, input.value);
+      }
+    }
+
+    async function convertDistraction(id, dateStr, label) {
+      const item = distractions.find(d => d.id === id);
+      if (!item) return;
+
+      const payload = {
+        title: item.text,
+        description: 'Captured from AazDoh Focus Sprint: ' + TASK_NAME,
+        commitmentDate: dateStr,
+        estimatedMinutes: 30,
+        priority: 'MEDIUM',
+        category: 'DEEP_WORK',
+        visibility: 'SHARED_WITH_PARTNER'
+      };
+
+      try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (API_KEY) {
+          headers['X-API-Key'] = API_KEY;
+          headers['Authorization'] = 'Bearer ' + API_KEY;
+        }
+
+        const response = await fetch(API_URL + '/api/v1/commitments', {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          item.converted = true;
+          item.convertedDate = dateStr;
+          item.convertedTarget = label;
+          saveDistractions();
+          showToast('✨ Commitment scheduled for ' + label + '!');
+        } else {
+          // If unauthenticated or backend rejects, still mark locally
+          item.converted = true;
+          item.convertedDate = dateStr;
+          item.convertedTarget = label + ' (Local)';
+          saveDistractions();
+          showToast('⚠️ Saved locally (Log in via CLI to sync)', true);
+        }
+      } catch (err) {
+        item.converted = true;
+        item.convertedDate = dateStr;
+        item.convertedTarget = label + ' (Offline)';
+        saveDistractions();
+        showToast('⚠️ Offline: Saved in local buffer', true);
+      }
+    }
+
+    async function recordTelemetryOnComplete() {
+      if (!API_KEY) return;
+      try {
+        const payload = {
+          durationMinutes: Math.round(totalDuration / 60),
+          actualSecondsSpent: totalDuration,
+          mode: 'FOCUS',
+          status: 'COMPLETED',
+          distractionsCount: distractions.length,
+          distractionNotes: distractions.map(d => d.text),
+          startedAt: new Date(Date.now() - totalDuration * 1000).toISOString(),
+          completedAt: new Date().toISOString()
+        };
+
+        await fetch(API_URL + '/api/v1/focus/record', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': API_KEY,
+            'Authorization': 'Bearer ' + API_KEY
+          },
+          body: JSON.stringify(payload)
+        });
+      } catch(e) {}
+    }
+
+    // Initialize
+    loadDistractions();
     const timer = setInterval(update, 500);
     update();
   </script>
@@ -574,7 +1032,14 @@ export function launchPopupClock(
   targetEndTimeMs: number
 ): void {
   try {
-    const htmlContent = generatePopupClockHtml(taskName, totalDurationSeconds, targetEndTimeMs);
+    const config = getConfig();
+    const htmlContent = generatePopupClockHtml(
+      taskName,
+      totalDurationSeconds,
+      targetEndTimeMs,
+      config.apiUrl,
+      config.apiKey
+    );
     const popupFile = path.join(os.homedir(), ".aazdoh", "popup_clock.html");
     const dir = path.dirname(popupFile);
     if (!fs.existsSync(dir)) {
@@ -584,9 +1049,9 @@ export function launchPopupClock(
 
     if (process.platform === "win32") {
       const fileUrl = `file:///${popupFile.replace(/\\/g, "/")}`;
-      exec(`start msedge --app="${fileUrl}" --window-size=400,600`, (err) => {
+      exec(`start msedge --app="${fileUrl}" --window-size=430,720`, (err) => {
         if (err) {
-          exec(`start chrome --app="${fileUrl}" --window-size=400,600`, (err2) => {
+          exec(`start chrome --app="${fileUrl}" --window-size=430,720`, (err2) => {
             if (err2) {
               exec(`start "" "${popupFile}"`);
             }
