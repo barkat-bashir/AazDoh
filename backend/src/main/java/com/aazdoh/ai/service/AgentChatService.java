@@ -120,14 +120,27 @@ public class AgentChatService {
         return list;
     }
 
+    private ZoneId resolveUserZone(User user) {
+        if (user != null && user.getTimezone() != null && !user.getTimezone().isBlank()) {
+            try {
+                return ZoneId.of(user.getTimezone().trim());
+            } catch (Exception ignored) {
+            }
+        }
+        return ZoneId.systemDefault();
+    }
+
     public AgentChatResponse chat(UUID userId, AgentChatRequest request) {
         User user = userService.findUserById(userId);
         AiPersona persona = user.getAiPersona() != null ? user.getAiPersona() : AiPersona.BALANCED;
+        ZoneId userZone = resolveUserZone(user);
+        LocalDate userToday = LocalDate.now(userZone);
+        LocalDate userYesterday = userToday.minusDays(1);
         OffsetDateTime turnStart = OffsetDateTime.now();
 
         // 1. Inspect user's current context
-        Map<String, Object> todayPlan = agentTools.getTodayPlan(userId);
-        Map<String, Object> yesterdayPlan = agentTools.getPlanForDate(userId, LocalDate.now().minusDays(1));
+        Map<String, Object> todayPlan = agentTools.getPlanForDate(userId, userToday);
+        Map<String, Object> yesterdayPlan = agentTools.getPlanForDate(userId, userYesterday);
 
         String userMessage = request.getMessage().trim();
         if (isTrivialGreeting(userMessage)) {
@@ -135,10 +148,19 @@ public class AgentChatService {
             return new AgentChatResponse(greetingReply, Collections.emptyList(), false, null);
         }
 
-        // 2. Build system prompt with persona
-        String systemPromptText = buildSystemPrompt(persona, todayPlan, yesterdayPlan);
+        // 2. Extract referenced dates and fetch on-demand schedule context
+        List<LocalDate> referencedDates = extractReferencedDates(userMessage, userToday);
+        List<Map<String, Object>> referencedPlans = new ArrayList<>();
+        for (LocalDate refDate : referencedDates) {
+            referencedPlans.add(agentTools.getPlanForDate(userId, refDate));
+        }
+
+        // 3. Build system prompt with persona and temporal context
+        String systemPromptText = buildSystemPrompt(user, persona, todayPlan, yesterdayPlan, referencedPlans, userZone, userToday);
 
         String reply = null;
+        java.util.Set<LocalDate> affectedDates = new java.util.HashSet<>();
+        affectedDates.add(userToday);
 
         try {
             if (aiEnabled && chatClient != null) {
@@ -162,7 +184,7 @@ public class AgentChatService {
                         if (rawResponse != null && !rawResponse.isBlank()) {
                             AgentDecisionPlan plan = parseDecisionPlan(rawResponse);
                             if (plan != null) {
-                                executeActionPlan(userId, plan, todayPlan, yesterdayPlan);
+                                executeActionPlan(userId, plan, todayPlan, yesterdayPlan, userToday, affectedDates);
                                 reply = plan.getReply();
                             } else {
                                 reply = rawResponse.trim();
@@ -191,7 +213,7 @@ public class AgentChatService {
             reply = null;
         }
 
-        // 3. Find any action logs created in this turn
+        // 4. Find any action logs created in this turn
         List<AgentActionLog> turnLogs = actionLogRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
                 .filter(l -> l.getCreatedAt().isAfter(turnStart.minusSeconds(2)))
                 .collect(Collectors.toList());
@@ -202,7 +224,7 @@ public class AgentChatService {
                         .map(l -> "* " + l.getDescription())
                         .collect(Collectors.joining("\n"));
             } else {
-                reply = handleHeuristicExecutionAndReply(user, todayPlan, yesterdayPlan, userMessage);
+                reply = handleHeuristicExecutionAndReply(user, todayPlan, yesterdayPlan, userMessage, userToday);
             }
         }
 
@@ -214,12 +236,8 @@ public class AgentChatService {
                 l.getCreatedAt()
         )).collect(Collectors.toList());
 
-        // 4. Check for cognitive overload warning
-        int totalMinutes = (int) todayPlan.getOrDefault("totalEstimatedMinutes", 0);
-        String cognitiveWarning = null;
-        if (totalMinutes > 360) {
-            cognitiveWarning = "Warning: You have " + totalMinutes + " minutes scheduled today (> 6 hours). Consider pruning non-essential commitments.";
-        }
+        // 5. Check cognitive capacity across affected dates
+        String cognitiveWarning = checkCognitiveOverload(userId, affectedDates, todayPlan, userToday);
 
         boolean undoAvailable = !receipts.isEmpty();
 
@@ -268,10 +286,13 @@ public class AgentChatService {
 
                 User user = userService.findUserById(userId);
                 AiPersona persona = user.getAiPersona() != null ? user.getAiPersona() : AiPersona.BALANCED;
+                ZoneId userZone = resolveUserZone(user);
+                LocalDate userToday = LocalDate.now(userZone);
+                LocalDate userYesterday = userToday.minusDays(1);
                 OffsetDateTime turnStart = OffsetDateTime.now();
 
-                Map<String, Object> todayPlan = agentTools.getTodayPlan(userId);
-                Map<String, Object> yesterdayPlan = agentTools.getPlanForDate(userId, LocalDate.now().minusDays(1));
+                Map<String, Object> todayPlan = agentTools.getPlanForDate(userId, userToday);
+                Map<String, Object> yesterdayPlan = agentTools.getPlanForDate(userId, userYesterday);
 
                 String userMessage = request.getMessage().trim();
                 if (isTrivialGreeting(userMessage)) {
@@ -288,11 +309,20 @@ public class AgentChatService {
                     return;
                 }
 
-                String systemPromptText = buildSystemPrompt(persona, todayPlan, yesterdayPlan);
+                List<LocalDate> referencedDates = extractReferencedDates(userMessage, userToday);
+                List<Map<String, Object>> referencedPlans = new ArrayList<>();
+                for (LocalDate refDate : referencedDates) {
+                    referencedPlans.add(agentTools.getPlanForDate(userId, refDate));
+                }
+
+                String systemPromptText = buildSystemPrompt(user, persona, todayPlan, yesterdayPlan, referencedPlans, userZone, userToday);
                 List<Message> messages = buildChatMessages(systemPromptText, request.getHistory(), request.getMessage());
 
                 List<String> candidateModels = getCandidateModels();
                 String rawAccumulated = null;
+
+                java.util.Set<LocalDate> affectedDates = new java.util.HashSet<>();
+                affectedDates.add(userToday);
 
                 if (aiEnabled && chatClient != null) {
                     for (int i = 0; i < candidateModels.size(); i++) {
@@ -366,7 +396,7 @@ public class AgentChatService {
                 if (rawAccumulated != null && !rawAccumulated.isBlank()) {
                     AgentDecisionPlan plan = parseDecisionPlan(rawAccumulated);
                     if (plan != null) {
-                        executeActionPlan(userId, plan, todayPlan, yesterdayPlan);
+                        executeActionPlan(userId, plan, todayPlan, yesterdayPlan, userToday, affectedDates);
                         reply = plan.getReply();
                     } else {
                         reply = rawAccumulated.replaceAll("```actions[\\s\\S]*?```", "").trim();
@@ -383,7 +413,7 @@ public class AgentChatService {
                                 .map(l -> "* " + l.getDescription())
                                 .collect(Collectors.joining("\n"));
                     } else {
-                        reply = handleHeuristicExecutionAndReply(user, todayPlan, yesterdayPlan, request.getMessage().trim());
+                        reply = handleHeuristicExecutionAndReply(user, todayPlan, yesterdayPlan, request.getMessage().trim(), userToday);
                     }
                     try {
                         emitter.send(SseEmitter.event()
@@ -400,11 +430,7 @@ public class AgentChatService {
                         l.getCreatedAt()
                 )).collect(Collectors.toList());
 
-                int totalMinutes = (int) todayPlan.getOrDefault("totalEstimatedMinutes", 0);
-                String cognitiveWarning = totalMinutes > 360
-                        ? "Warning: You have " + totalMinutes + " minutes scheduled today (> 6 hours). Consider pruning non-essential commitments."
-                        : null;
-
+                String cognitiveWarning = checkCognitiveOverload(userId, affectedDates, todayPlan, userToday);
                 boolean undoAvailable = !receipts.isEmpty();
 
                 if (!isCancelled.get()) {
@@ -508,7 +534,15 @@ public class AgentChatService {
                         Commitment c = commitmentRepository.findActiveByIdAndUserId(log.getTargetEntityId(), userId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Commitment not found"));
                         JsonNode before = objectMapper.readTree(log.getBeforeStateJson());
-                        c.setCommitmentDate(LocalDate.now());
+                        if (before.has("commitmentDate") && !before.get("commitmentDate").isNull()) {
+                            try {
+                                c.setCommitmentDate(LocalDate.parse(before.get("commitmentDate").asText()));
+                            } catch (Exception e) {
+                                c.setCommitmentDate(LocalDate.now());
+                            }
+                        } else {
+                            c.setCommitmentDate(LocalDate.now());
+                        }
                         c.setStatus(CommitmentStatus.PENDING);
                         c.setPostponeReason(before.has("postponeReason") && !before.get("postponeReason").isNull() ? before.get("postponeReason").asText() : null);
                         c.setPostponementCount(before.has("postponementCount") ? before.get("postponementCount").asInt() : Math.max(0, c.getPostponementCount() - 1));
@@ -578,7 +612,6 @@ public class AgentChatService {
         messages.add(new SystemMessage(systemPromptText));
 
         if (rawHistory != null && !rawHistory.isEmpty()) {
-            // Defensive sliding window: keep at most the last 6 messages
             int startIdx = Math.max(0, rawHistory.size() - 6);
             List<AgentChatMessageDto> recentHistory = rawHistory.subList(startIdx, rawHistory.size());
 
@@ -598,7 +631,6 @@ public class AgentChatService {
             }
         }
 
-        // Sanitize user message: clamp to 500 chars and neutralize delimiter injection
         String sanitizedUserMsg = userMessage != null ? userMessage.trim() : "";
         if (sanitizedUserMsg.length() > 500) {
             sanitizedUserMsg = sanitizedUserMsg.substring(0, 500);
@@ -611,7 +643,7 @@ public class AgentChatService {
         return messages;
     }
 
-    private String buildSystemPrompt(AiPersona persona, Map<String, Object> todayPlan, Map<String, Object> yesterdayPlan) {
+    private String buildSystemPrompt(User user, AiPersona persona, Map<String, Object> todayPlan, Map<String, Object> yesterdayPlan, List<Map<String, Object>> referencedPlans, ZoneId userZone, LocalDate userToday) {
         String basePrompt = cachedSystemPrompt;
         if (basePrompt == null) {
             try {
@@ -627,24 +659,38 @@ public class AgentChatService {
             basePrompt = "You are the AazDoh Cognitive Accountability Coach. Help the user execute daily commitments with zero BS.";
         }
 
-        LocalDate today = LocalDate.now();
-        LocalDate tomorrow = today.plusDays(1);
-        LocalDate yesterday = today.minusDays(1);
+        LocalDate tomorrow = userToday.plusDays(1);
+        LocalDate yesterday = userToday.minusDays(1);
+        LocalDate nextFriday = userToday.with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.FRIDAY));
+        LocalDate nextMonday = userToday.with(java.time.temporal.TemporalAdjusters.next(java.time.DayOfWeek.MONDAY));
 
-        String todaySchedule = formatCompactSchedule(todayPlan);
-        String yesterdaySchedule = formatCompactSchedule(yesterdayPlan);
+        StringBuilder scheduleContext = new StringBuilder();
+        scheduleContext.append("\n\nTEMPORAL CALENDAR CONTEXT:");
+        scheduleContext.append("\n- TODAY'S DATE: ").append(userToday).append(" (").append(userToday.getDayOfWeek()).append(")");
+        scheduleContext.append("\n- TOMORROW'S DATE: ").append(tomorrow).append(" (").append(tomorrow.getDayOfWeek()).append(")");
+        scheduleContext.append("\n- YESTERDAY'S DATE: ").append(yesterday).append(" (").append(yesterday.getDayOfWeek()).append(")");
+        scheduleContext.append("\n- USER TIMEZONE: ").append(userZone.getId());
+        scheduleContext.append("\n\nCURRENT USER SCHEDULE TODAY (").append(userToday).append("):\n").append(formatCompactSchedule(todayPlan));
+        scheduleContext.append("\n\nUSER SCHEDULE YESTERDAY (").append(yesterday).append("):\n").append(formatCompactSchedule(yesterdayPlan));
+
+        if (referencedPlans != null && !referencedPlans.isEmpty()) {
+            for (Map<String, Object> refPlan : referencedPlans) {
+                String refDateStr = String.valueOf(refPlan.getOrDefault("date", ""));
+                scheduleContext.append("\n\nUSER SCHEDULE FOR REFERENCED DATE (").append(refDateStr).append("):\n")
+                        .append(formatCompactSchedule(refPlan));
+            }
+        }
 
         return basePrompt
                 .replace("{persona}", persona.name())
-                .replace("{todayDate}", today.toString())
+                .replace("{todayDate}", userToday.toString())
+                .replace("{todayDayOfWeek}", userToday.getDayOfWeek().name())
                 .replace("{tomorrowDate}", tomorrow.toString())
                 .replace("{yesterdayDate}", yesterday.toString())
-                + "\n\nTEMPORAL CALENDAR CONTEXT:"
-                + "\n- TODAY'S DATE: " + today + " (" + today.getDayOfWeek() + ")"
-                + "\n- TOMORROW'S DATE: " + tomorrow + " (" + tomorrow.getDayOfWeek() + ")"
-                + "\n- YESTERDAY'S DATE: " + yesterday + " (" + yesterday.getDayOfWeek() + ")"
-                + "\n\nCURRENT USER SCHEDULE TODAY (" + today + "):\n" + todaySchedule
-                + "\n\nUSER SCHEDULE YESTERDAY (" + yesterday + "):\n" + yesterdaySchedule;
+                .replace("{userTimezone}", userZone.getId())
+                .replace("{fridayExampleDate}", nextFriday.toString())
+                .replace("{mondayExampleDate}", nextMonday.toString())
+                + scheduleContext.toString();
     }
 
     @SuppressWarnings("unchecked")
@@ -675,7 +721,7 @@ public class AgentChatService {
     }
 
     @SuppressWarnings("unchecked")
-    private String handleHeuristicExecutionAndReply(User user, Map<String, Object> todayPlan, Map<String, Object> yesterdayPlan, String prompt) {
+    private String handleHeuristicExecutionAndReply(User user, Map<String, Object> todayPlan, Map<String, Object> yesterdayPlan, String prompt, LocalDate userToday) {
         String lower = prompt.toLowerCase().trim();
         List<Map<String, Object>> todayCommitments = (List<Map<String, Object>>) todayPlan.getOrDefault("commitments", new ArrayList<>());
         List<Map<String, Object>> yesterdayCommitments = yesterdayPlan != null
@@ -708,12 +754,12 @@ public class AgentChatService {
                 return String.format("⚡ **Executed Action:** Marked yesterday's '%s' as COMPLETED.", matchedTitle);
             }
 
-            // If task was not scheduled today or yesterday, auto-log it as a completed commitment
+            // If task was not scheduled today or yesterday, auto-log it as a completed commitment for today
             if (!target.isBlank()) {
                 String properTitle = Character.toUpperCase(target.charAt(0)) + target.substring(1);
-                Map<String, Object> created = agentTools.createCommitment(user.getId(), properTitle, 30, CommitmentPriority.MEDIUM, "Logged and completed via coach");
-                if (created != null && created.get("id") != null) {
-                    agentTools.completeCommitment(user.getId(), (UUID) created.get("id"));
+                Map<String, Object> created = agentTools.createCommitment(user.getId(), properTitle, 30, CommitmentPriority.MEDIUM, "DEEP_WORK", "Logged and completed via coach", userToday, "ANYTIME");
+                if (created != null && created.get("commitmentId") != null) {
+                    agentTools.completeCommitment(user.getId(), (UUID) created.get("commitmentId"));
                     return String.format("⚡ **Executed Action:** Auto-logged and completed '%s' (30m).", properTitle);
                 }
             }
@@ -732,10 +778,10 @@ public class AgentChatService {
                 String title = match != null && match.get("title") != null ? String.valueOf(match.get("title")) : target;
 
                 PostponeCommitmentRequest req = new PostponeCommitmentRequest();
-                req.setNewDate(LocalDate.now().plusDays(1));
+                req.setNewDate(userToday.plusDays(1));
                 req.setReason("Rebalanced via coach");
                 commitmentService.postponeCommitment(user.getId(), matchId, req);
-                return String.format("⚡ **Executed Action:** Postponed '%s' to tomorrow (%s).", title, LocalDate.now().plusDays(1));
+                return String.format("⚡ **Executed Action:** Postponed '%s' to tomorrow (%s).", title, userToday.plusDays(1));
             }
         }
 
@@ -758,7 +804,6 @@ public class AgentChatService {
         try {
             String clean = raw.trim();
 
-            // 1. Text-First + ```actions [ ... ] ``` format
             if (clean.contains("```actions")) {
                 int startIdx = clean.indexOf("```actions");
                 int endIdx = clean.indexOf("```", startIdx + 10);
@@ -774,7 +819,6 @@ public class AgentChatService {
                 return new AgentDecisionPlan("Text-first action plan", actions, reply);
             }
 
-            // 2. Legacy JSON format ```json { ... } ``` or raw { ... }
             if (clean.startsWith("```json")) {
                 clean = clean.substring(7);
             } else if (clean.startsWith("```")) {
@@ -797,7 +841,14 @@ public class AgentChatService {
     }
 
     @SuppressWarnings("unchecked")
-    private void executeActionPlan(UUID userId, AgentDecisionPlan plan, Map<String, Object> todayPlan, Map<String, Object> yesterdayPlan) {
+    private void executeActionPlan(
+            UUID userId,
+            AgentDecisionPlan plan,
+            Map<String, Object> todayPlan,
+            Map<String, Object> yesterdayPlan,
+            LocalDate userToday,
+            java.util.Set<LocalDate> affectedDates
+    ) {
         if (plan == null || plan.getActions() == null || plan.getActions().isEmpty()) {
             return;
         }
@@ -815,20 +866,39 @@ public class AgentChatService {
                 switch (type) {
                     case "COMPLETE_COMMITMENT" -> {
                         UUID targetId = item.getTargetId();
+                        LocalDate explicitSourceDate = parseDate(item.getSourceDate(), userToday);
+                        LocalDate explicitTargetDate = parseDate(item.getTargetDate(), userToday);
+
                         if (targetId == null && item.getTargetTitle() != null) {
-                            targetId = findMatchingCommitmentId(todayCommitments, item.getTargetTitle(), "ACTIVE_OR_MISSED");
+                            if (explicitSourceDate != null) {
+                                targetId = findCommitmentIdOnDate(userId, explicitSourceDate, item.getTargetTitle(), "ACTIVE_OR_MISSED");
+                            } else if (explicitTargetDate != null) {
+                                targetId = findCommitmentIdOnDate(userId, explicitTargetDate, item.getTargetTitle(), "ACTIVE_OR_MISSED");
+                            }
+
+                            if (targetId == null) {
+                                targetId = findMatchingCommitmentId(todayCommitments, item.getTargetTitle(), "ACTIVE_OR_MISSED");
+                            }
                             if (targetId == null) {
                                 targetId = findMatchingCommitmentId(yesterdayCommitments, item.getTargetTitle(), "ACTIVE_OR_MISSED");
                             }
+                            if (targetId == null) {
+                                targetId = findCommitmentIdInRange(userId, userToday.minusDays(7), userToday.plusDays(14), item.getTargetTitle(), "ACTIVE_OR_MISSED");
+                            }
                         }
+
                         if (targetId != null) {
                             agentTools.completeCommitment(userId, targetId);
                         } else if (item.getTargetTitle() != null && !item.getTargetTitle().isBlank()) {
+                            // Auto-log retrospective or new commitment and complete it
                             String title = item.getTargetTitle().trim();
                             int minutes = item.getEstimatedMinutes() != null ? item.getEstimatedMinutes() : 30;
-                            Map<String, Object> created = agentTools.createCommitment(userId, title, minutes, CommitmentPriority.MEDIUM, "Logged via coach");
-                            if (created != null && created.get("id") != null) {
-                                agentTools.completeCommitment(userId, (UUID) created.get("id"));
+                            LocalDate logDate = explicitTargetDate != null ? explicitTargetDate : (explicitSourceDate != null ? explicitSourceDate : userToday);
+                            if (affectedDates != null) affectedDates.add(logDate);
+
+                            Map<String, Object> created = agentTools.createCommitment(userId, title, minutes, CommitmentPriority.MEDIUM, "DEEP_WORK", "Logged via coach", logDate, item.getDayPhase());
+                            if (created != null && created.get("commitmentId") != null) {
+                                agentTools.completeCommitment(userId, (UUID) created.get("commitmentId"));
                             }
                         }
                     }
@@ -839,47 +909,93 @@ public class AgentChatService {
                             CommitmentPriority priority = parsePriority(item.getPriority());
                             String category = item.getCategory() != null ? item.getCategory() : "DEEP_WORK";
                             String outcome = item.getExpectedOutcome();
-                            LocalDate targetDate = parseDate(item.getTargetDate());
-                            agentTools.createCommitment(userId, title, minutes, priority, category, outcome, targetDate != null ? targetDate : LocalDate.now(), item.getDayPhase());
+                            LocalDate targetDate = parseDate(item.getTargetDate(), userToday);
+                            if (targetDate == null) targetDate = userToday;
+
+                            if (affectedDates != null) affectedDates.add(targetDate);
+                            agentTools.createCommitment(userId, title, minutes, priority, category, outcome, targetDate, item.getDayPhase());
                         }
                     }
                     case "POSTPONE_COMMITMENT" -> {
                         UUID targetId = item.getTargetId();
+                        LocalDate sourceDate = parseDate(item.getSourceDate(), userToday);
+
                         if (targetId == null && item.getTargetTitle() != null) {
-                            targetId = findMatchingCommitmentId(todayCommitments, item.getTargetTitle(), "ACTIVE_OR_MISSED");
+                            if (sourceDate != null) {
+                                targetId = findCommitmentIdOnDate(userId, sourceDate, item.getTargetTitle(), "ACTIVE_OR_MISSED");
+                            }
+                            if (targetId == null) {
+                                targetId = findMatchingCommitmentId(todayCommitments, item.getTargetTitle(), "ACTIVE_OR_MISSED");
+                            }
                             if (targetId == null) {
                                 targetId = findMatchingCommitmentId(yesterdayCommitments, item.getTargetTitle(), "ACTIVE_OR_MISSED");
                             }
+                            if (targetId == null) {
+                                targetId = findCommitmentIdInRange(userId, userToday.minusDays(7), userToday.plusDays(14), item.getTargetTitle(), "ACTIVE_OR_MISSED");
+                            }
                         }
+
                         if (targetId != null) {
-                            LocalDate targetDate = parseDate(item.getTargetDate());
-                            if (targetDate == null) targetDate = LocalDate.now().plusDays(1);
+                            // Guardrail: check historical boundary (do not postpone tasks older than 7 days that are already completed/missed)
+                            Commitment existing = commitmentRepository.findActiveByIdAndUserId(targetId, userId).orElse(null);
+                            if (existing != null && existing.getCommitmentDate().isBefore(userToday.minusDays(7)) && existing.getStatus() != CommitmentStatus.PENDING) {
+                                log.warn("Skipping postponement of historical commitment {} ({})", existing.getTitle(), existing.getCommitmentDate());
+                                continue;
+                            }
+
+                            LocalDate destDate = parseDate(item.getTargetDate(), userToday);
+                            if (destDate == null) destDate = userToday.plusDays(1);
+                            if (affectedDates != null) affectedDates.add(destDate);
+
                             PostponeCommitmentRequest req = new PostponeCommitmentRequest();
-                            req.setNewDate(targetDate);
+                            req.setNewDate(destDate);
                             req.setReason(item.getReason() != null ? item.getReason() : "Postponed via coach");
                             commitmentService.postponeCommitment(userId, targetId, req);
                         }
                     }
                     case "UPDATE_COMMITMENT" -> {
                         UUID targetId = item.getTargetId();
+                        LocalDate sourceDate = parseDate(item.getSourceDate(), userToday);
+                        LocalDate targetDate = parseDate(item.getTargetDate(), userToday);
+
                         if (targetId == null && item.getTargetTitle() != null) {
-                            targetId = findMatchingCommitmentId(todayCommitments, item.getTargetTitle(), null);
+                            if (sourceDate != null) {
+                                targetId = findCommitmentIdOnDate(userId, sourceDate, item.getTargetTitle(), null);
+                            } else if (targetDate != null) {
+                                targetId = findCommitmentIdOnDate(userId, targetDate, item.getTargetTitle(), null);
+                            }
+                            if (targetId == null) {
+                                targetId = findMatchingCommitmentId(todayCommitments, item.getTargetTitle(), null);
+                            }
                             if (targetId == null) {
                                 targetId = findMatchingCommitmentId(yesterdayCommitments, item.getTargetTitle(), null);
                             }
+                            if (targetId == null) {
+                                targetId = findCommitmentIdInRange(userId, userToday.minusDays(7), userToday.plusDays(14), item.getTargetTitle(), null);
+                            }
                         }
+
                         if (targetId != null) {
+                            if (targetDate != null && affectedDates != null) affectedDates.add(targetDate);
                             CommitmentPriority priority = item.getPriority() != null ? parsePriority(item.getPriority()) : null;
-                            LocalDate targetDate = parseDate(item.getTargetDate());
                             agentTools.updateCommitment(userId, targetId, item.getTitle(), item.getEstimatedMinutes(), priority, item.getCategory(), item.getExpectedOutcome(), targetDate, item.getDayPhase());
                         }
                     }
                     case "DELETE_COMMITMENT" -> {
                         UUID targetId = item.getTargetId();
+                        LocalDate sourceDate = parseDate(item.getSourceDate(), userToday);
                         if (targetId == null && item.getTargetTitle() != null) {
-                            targetId = findMatchingCommitmentId(todayCommitments, item.getTargetTitle(), null);
+                            if (sourceDate != null) {
+                                targetId = findCommitmentIdOnDate(userId, sourceDate, item.getTargetTitle(), null);
+                            }
+                            if (targetId == null) {
+                                targetId = findMatchingCommitmentId(todayCommitments, item.getTargetTitle(), null);
+                            }
                             if (targetId == null) {
                                 targetId = findMatchingCommitmentId(yesterdayCommitments, item.getTargetTitle(), null);
+                            }
+                            if (targetId == null) {
+                                targetId = findCommitmentIdInRange(userId, userToday.minusDays(7), userToday.plusDays(14), item.getTargetTitle(), null);
                             }
                         }
                         if (targetId != null) {
@@ -888,8 +1004,20 @@ public class AgentChatService {
                     }
                     case "MARK_MISSED" -> {
                         UUID targetId = item.getTargetId();
+                        LocalDate sourceDate = parseDate(item.getSourceDate(), userToday);
                         if (targetId == null && item.getTargetTitle() != null) {
-                            targetId = findMatchingCommitmentId(todayCommitments, item.getTargetTitle(), "PENDING");
+                            if (sourceDate != null) {
+                                targetId = findCommitmentIdOnDate(userId, sourceDate, item.getTargetTitle(), "PENDING");
+                            }
+                            if (targetId == null) {
+                                targetId = findMatchingCommitmentId(todayCommitments, item.getTargetTitle(), "PENDING");
+                            }
+                            if (targetId == null) {
+                                targetId = findMatchingCommitmentId(yesterdayCommitments, item.getTargetTitle(), "PENDING");
+                            }
+                            if (targetId == null) {
+                                targetId = findCommitmentIdInRange(userId, userToday.minusDays(7), userToday.plusDays(14), item.getTargetTitle(), "PENDING");
+                            }
                         }
                         if (targetId != null) {
                             agentTools.markCommitmentMissed(userId, targetId, item.getReason() != null ? item.getReason() : "Marked missed via coach");
@@ -900,6 +1028,32 @@ public class AgentChatService {
                 log.warn("Failed executing action {} for user {}: {}", type, userId, ex.getMessage());
             }
         }
+    }
+
+    private UUID findCommitmentIdOnDate(UUID userId, LocalDate date, String targetTitle, String allowedStatus) {
+        if (userId == null || date == null || targetTitle == null || targetTitle.isBlank()) return null;
+        List<Commitment> list = commitmentRepository.findByUserIdAndCommitmentDate(userId, date);
+        List<Map<String, Object>> mapped = list.stream().map(c -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", c.getId());
+            m.put("title", c.getTitle());
+            m.put("status", c.getStatus() != null ? c.getStatus().name() : "PENDING");
+            return m;
+        }).collect(Collectors.toList());
+        return findMatchingCommitmentId(mapped, targetTitle, allowedStatus);
+    }
+
+    private UUID findCommitmentIdInRange(UUID userId, LocalDate start, LocalDate end, String targetTitle, String allowedStatus) {
+        if (userId == null || targetTitle == null || targetTitle.isBlank()) return null;
+        List<Commitment> list = commitmentRepository.findByUserIdAndDateRange(userId, start, end);
+        List<Map<String, Object>> mapped = list.stream().map(c -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", c.getId());
+            m.put("title", c.getTitle());
+            m.put("status", c.getStatus() != null ? c.getStatus().name() : "PENDING");
+            return m;
+        }).collect(Collectors.toList());
+        return findMatchingCommitmentId(mapped, targetTitle, allowedStatus);
     }
 
     private Map<String, Object> findCommitmentById(List<Map<String, Object>> commitments, UUID id) {
@@ -934,14 +1088,13 @@ public class AgentChatService {
             String cleanTitle = title.replaceAll("[^a-zA-Z0-9\\s]", " ").trim().toLowerCase();
 
             if (cleanTitle.equals(cleanTarget)) {
-                return (UUID) c.get("id"); // Exact match
+                return (UUID) c.get("id");
             }
 
             if (cleanTitle.contains(cleanTarget) || cleanTarget.contains(cleanTitle)) {
-                return (UUID) c.get("id"); // Substring match
+                return (UUID) c.get("id");
             }
 
-            // Token overlap score
             int score = 0;
             for (String token : targetTokens) {
                 if (token.length() > 1 && cleanTitle.contains(token)) {
@@ -966,17 +1119,121 @@ public class AgentChatService {
         }
     }
 
-    private LocalDate parseDate(String d) {
-        if (d == null || d.isBlank()) return null;
-        try {
-            String trimmed = d.trim();
-            if ("today".equalsIgnoreCase(trimmed)) return LocalDate.now();
-            if ("tomorrow".equalsIgnoreCase(trimmed)) return LocalDate.now().plusDays(1);
-            if ("yesterday".equalsIgnoreCase(trimmed)) return LocalDate.now().minusDays(1);
-            return LocalDate.parse(trimmed);
-        } catch (Exception e) {
-            return null;
+    public LocalDate parseDate(String input, LocalDate userToday) {
+        if (input == null || input.isBlank()) return null;
+        LocalDate base = userToday != null ? userToday : LocalDate.now();
+        String d = input.trim().toLowerCase();
+
+        // Relative keywords
+        if ("today".equals(d) || "now".equals(d)) return base;
+        if ("tomorrow".equals(d) || "tmrw".equals(d)) return base.plusDays(1);
+        if ("yesterday".equals(d) || "yst".equals(d)) return base.minusDays(1);
+        if ("day after tomorrow".equals(d)) return base.plusDays(2);
+        if ("day before yesterday".equals(d)) return base.minusDays(2);
+
+        // Relative offsets: "+2d", "-1d", "in 3 days", "3 days ago"
+        if (d.matches("^(\\+|-)?\\d+d$")) {
+            try {
+                int days = Integer.parseInt(d.replace("d", "").replace("+", ""));
+                return base.plusDays(days);
+            } catch (Exception ignored) {}
         }
+        if (d.matches("^in\\s+\\d+\\s+days?$")) {
+            try {
+                int days = Integer.parseInt(d.replaceAll("[^0-9]", ""));
+                return base.plusDays(days);
+            } catch (Exception ignored) {}
+        }
+        if (d.matches("^\\d+\\s+days?\\s+ago$")) {
+            try {
+                int days = Integer.parseInt(d.replaceAll("[^0-9]", ""));
+                return base.minusDays(days);
+            } catch (Exception ignored) {}
+        }
+
+        // Weekday parsing ("monday", "next monday", "this friday", "last tuesday")
+        java.time.DayOfWeek targetDow = null;
+        for (java.time.DayOfWeek dow : java.time.DayOfWeek.values()) {
+            if (d.contains(dow.name().toLowerCase())) {
+                targetDow = dow;
+                break;
+            }
+        }
+        if (targetDow != null) {
+            if (d.startsWith("last ")) {
+                return base.with(java.time.temporal.TemporalAdjusters.previous(targetDow));
+            } else if (d.startsWith("next ")) {
+                return base.with(java.time.temporal.TemporalAdjusters.next(targetDow));
+            } else {
+                return base.with(java.time.temporal.TemporalAdjusters.nextOrSame(targetDow));
+            }
+        }
+
+        // Standard ISO dates YYYY-MM-DD or YYYY/MM/DD
+        try {
+            if (d.matches("^\\d{4}-\\d{1,2}-\\d{1,2}$")) {
+                return LocalDate.parse(d);
+            }
+            if (d.matches("^\\d{4}/\\d{1,2}/\\d{1,2}$")) {
+                return LocalDate.parse(d.replace('/', '-'));
+            }
+        } catch (Exception ignored) {}
+
+        return null;
+    }
+
+    private List<LocalDate> extractReferencedDates(String message, LocalDate userToday) {
+        if (message == null || message.isBlank()) return Collections.emptyList();
+        List<LocalDate> dates = new ArrayList<>();
+        String lower = message.toLowerCase();
+
+        for (java.time.DayOfWeek dow : java.time.DayOfWeek.values()) {
+            String dowName = dow.name().toLowerCase();
+            if (lower.contains(dowName)) {
+                if (lower.contains("last " + dowName)) {
+                    dates.add(userToday.with(java.time.temporal.TemporalAdjusters.previous(dow)));
+                } else if (lower.contains("next " + dowName)) {
+                    dates.add(userToday.with(java.time.temporal.TemporalAdjusters.next(dow)));
+                } else {
+                    dates.add(userToday.with(java.time.temporal.TemporalAdjusters.nextOrSame(dow)));
+                }
+            }
+        }
+
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\b(\\d{4}-\\d{2}-\\d{2})\\b").matcher(message);
+        while (m.find()) {
+            try {
+                dates.add(LocalDate.parse(m.group(1)));
+            } catch (Exception ignored) {}
+        }
+
+        java.util.regex.Matcher offsetMatcher = java.util.regex.Pattern.compile("\\b(in\\s+\\d+\\s+days?|\\d+\\s+days?\\s+ago)\\b").matcher(lower);
+        while (offsetMatcher.find()) {
+            LocalDate parsed = parseDate(offsetMatcher.group(1), userToday);
+            if (parsed != null) dates.add(parsed);
+        }
+
+        return dates.stream()
+                .distinct()
+                .filter(d -> !d.equals(userToday) && !d.equals(userToday.minusDays(1)))
+                .collect(Collectors.toList());
+    }
+
+    private String checkCognitiveOverload(UUID userId, java.util.Set<LocalDate> affectedDates, Map<String, Object> todayPlan, LocalDate userToday) {
+        if (affectedDates == null || affectedDates.isEmpty()) {
+            int totalMinutes = todayPlan != null ? (int) todayPlan.getOrDefault("totalEstimatedMinutes", 0) : 0;
+            return totalMinutes > 360 ? "Warning: You have " + totalMinutes + " minutes scheduled today (> 6 hours). Consider pruning non-essential commitments." : null;
+        }
+
+        for (LocalDate d : affectedDates) {
+            Map<String, Object> plan = d.equals(userToday) ? todayPlan : agentTools.getPlanForDate(userId, d);
+            int totalMins = plan != null ? (int) plan.getOrDefault("totalEstimatedMinutes", 0) : 0;
+            if (totalMins > 360) {
+                String label = d.equals(userToday) ? "today" : "on " + d + " (" + d.getDayOfWeek() + ")";
+                return "Warning: You have " + totalMins + " minutes scheduled " + label + " (> 6 hours). Consider pruning non-essential commitments.";
+            }
+        }
+        return null;
     }
 
     private boolean isTrivialGreeting(String message) {
@@ -1026,7 +1283,6 @@ public class AgentChatService {
             return sb.toString();
         }
 
-        // Standard active day breakdown
         switch (persona) {
             case GENTLE -> {
                 sb.append("Welcome back! Let's check in on your day:\n\n");
@@ -1075,3 +1331,4 @@ public class AgentChatService {
         return sb.toString();
     }
 }
+

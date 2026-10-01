@@ -13,7 +13,8 @@ public class AgentActionItem {
     private String category; // DEEP_WORK, ROUTINE, LEARNING, HABIT, HEALTH
     private String dayPhase; // MORNING, DAY, EVENING, ANYTIME
     private String expectedOutcome;
-    private String targetDate; // YYYY-MM-DD
+    private String sourceDate; // YYYY-MM-DD (optional source date of existing task to modify)
+    private String targetDate; // YYYY-MM-DD (destination or target date)
     private String reason;
 
     public AgentActionItem() {
@@ -89,6 +90,14 @@ public class AgentActionItem {
 
     public void setExpectedOutcome(String expectedOutcome) {
         this.expectedOutcome = expectedOutcome;
+    }
+
+    public String getSourceDate() {
+        return sourceDate;
+    }
+
+    public void setSourceDate(String sourceDate) {
+        this.sourceDate = sourceDate;
     }
 
     public String getTargetDate() {
