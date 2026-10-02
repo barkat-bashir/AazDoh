@@ -110,7 +110,7 @@ Inside the interactive shell (`az>`), use these commands for instant actions:
 
 ### 4. Natural Language Task Execution
 
-In the cockpit prompt (`az>`), simply speak naturally:
+In the cockpit prompt (`az>`), speak naturally with full day-agnostic support across any date, weekday, or relative offset:
 
 ```text
 az> finished Java Architecture Review with approved specs
@@ -118,9 +118,13 @@ az> finished Java Architecture Review with approved specs
    ✓ Completed Commitment: "Java Architecture Review"
    (Run '/undo' to revert)
 
-az> add 45m deep focus on PostgreSQL connection pool tuning
+az> add 45m deep focus on System Design for Friday morning
    ⚡ Executed Actions:
-   ✓ Created Commitment: "PostgreSQL connection pool tuning" (45m, DEEP_WORK)
+   ✓ Created Commitment: "System Design" (45m, MORNING, DEEP_WORK) for 2026-09-18
+
+az> move Friday's AI Reading to next Monday
+   ⚡ Executed Actions:
+   ✓ Postponed Commitment: "AI Reading" -> 2026-09-21 (Rebalanced schedule)
 
 az> postpone team sync prep to tomorrow morning
    ⚡ Executed Actions:

@@ -94,6 +94,13 @@ Standard to-do apps reward dopamine checkmarks, artificial streaks, and passive 
 - **Capacity Execution Efficiency**: Tracks planned vs. actual hours delivered to compute your empirical **Planning Optimism Ratio**.
 - **Sprint Duration Sweet-Spot Curve**: Highlights task completion win-rates across 25m, 45m, and 90m+ duration buckets.
 
+### 7. 🤖 Day-Agnostic AI Accountability Coach & Dynamic Scheduling
+- **Fluid Multi-Day Temporal Horizon**: Plan, query, complete, reschedule, and update commitments for *any* past, present, or future date (*"today"*, *"tomorrow"*, *"this Friday"*, *"next Monday"*, *"3 days ago"*, or ISO `YYYY-MM-DD`).
+- **Timezone Drift Immunity**: Anchors all temporal reasoning to the user's configured local timezone (`ZoneId`), eliminating midnight UTC boundary errors.
+- **Cross-Day Source & Destination Disambiguation**: Intelligently separates source dates from destination dates during cross-day moves (e.g. moving Friday's deep work sprint to next Tuesday).
+- **Multi-Day Cognitive Capacity Defense**: Evaluates planned cognitive loads across all touched dates to proactively alert users when any single day exceeds **6 hours (> 360m)**.
+- **Undo State Fidelity**: 1-tap mutation rollbacks restore exact historical dates and states, with safety boundaries preserving closed past records.
+
 ---
 
 ## 🏗️ Monorepo Architecture
@@ -245,17 +252,20 @@ az check redis
 ```
 
 #### 3. `aazdoh "<instruction>"` | `az run "<instruction>"` — Natural Language Execution
-Execute natural language instructions with automatic intent parsing, live SSE reasoning indicators, and action receipts.
+Execute day-agnostic natural language instructions with automatic temporal date resolution, live SSE reasoning indicators, and action receipts.
 
 ```bash
-# Mark tasks completed
+# Mark tasks completed (today or retrospective)
 az "finished PostgreSQL connection pool tuning with HikariCP benchmarked"
+az "completed yesterday's DSA practice"
 
-# Add new high-impact deep focus blocks with day phases
+# Add new high-impact deep focus blocks with day phases and future dates
 az "add 60m deep focus on Spring AI token streaming for afternoon"
+az "add 45m of System Design on Friday morning with HIGH priority"
 
-# Reschedule or postpone
+# Multi-day and cross-day rescheduling
 az "postpone security audit to tomorrow morning"
+az "move Friday's AI Reading to next Monday"
 ```
 
 #### 4. `aazdoh chat` — Interactive Multi-Turn AI Chief of Staff
