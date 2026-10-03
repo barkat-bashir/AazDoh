@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { Commitment } from '../../api/commitmentApi';
-import { Plus, CheckSquare, Sparkles, Flame, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { PlanStressTestResponse } from '../../api/aiApi';
+import { Plus, CheckSquare, Sparkles, Flame, ChevronLeft, ChevronRight, Calendar, Zap, ShieldAlert, Activity } from 'lucide-react';
 
 import { getLocalTodayStr, getLocalYesterdayStr, formatLocalDate, parseLocalDate } from '../../utils/dateUtils';
 
@@ -11,6 +12,8 @@ interface DailyProgressHeaderProps {
   onOpenAddModal: () => void;
   onOpenReviewModal: () => void;
   onOpenAiReview: () => void;
+  stressTestData?: PlanStressTestResponse | null;
+  isStressTestLoading?: boolean;
 }
 
 export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
@@ -20,6 +23,8 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
   onOpenAddModal,
   onOpenReviewModal,
   onOpenAiReview,
+  stressTestData,
+  isStressTestLoading,
 }) => {
   const dateInputRef = useRef<HTMLInputElement>(null);
   const total = commitments.length;
@@ -62,12 +67,21 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
     onDateChange(formatLocalDate(d));
   };
 
+  const plannedHoursNum = stressTestData?.plannedHours ?? Number((totalFocusMinutes / 60).toFixed(1));
+  const capacityHoursNum = stressTestData?.historicalCapacityHours ?? 2.0;
+  const ratio = capacityHoursNum > 0 ? (plannedHoursNum / capacityHoursNum) : 1;
+  const isCriticalOverload = ratio > 1.25 || stressTestData?.riskLevel === 'CRITICAL' || stressTestData?.riskLevel === 'HIGH';
+  const isModerateStretch = (!isCriticalOverload && ratio > 1.0) || stressTestData?.riskLevel === 'MODERATE';
+  const gaugeColor = isCriticalOverload ? '#F87171' : isModerateStretch ? 'var(--saffron-ember)' : '#4ADE80';
+  const gaugeBg = isCriticalOverload ? 'rgba(248, 113, 113, 0.12)' : isModerateStretch ? 'rgba(226, 149, 59, 0.12)' : 'rgba(74, 222, 128, 0.10)';
+  const gaugeBorder = isCriticalOverload ? 'rgba(248, 113, 113, 0.35)' : isModerateStretch ? 'rgba(226, 149, 59, 0.35)' : 'rgba(74, 222, 128, 0.3)';
+
   return (
     <div className="harud-card" style={{ padding: 'clamp(14px, 3vw, 24px)', marginBottom: '20px' }}>
       {/* Top row: Date Switcher & Main Actions */}
       <div className="daily-progress-top" style={{ marginBottom: total > 0 ? '16px' : '0' }}>
-        {/* Left: Date Switcher Pill */}
-        <div className="daily-date-switcher">
+        {/* Left: Date Switcher Pill & Ambient Capacity Gauge */}
+        <div className="daily-date-switcher" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -148,6 +162,48 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
               Jump to Today
             </button>
           )}
+
+          {/* Ambient Capacity Gauge Pill */}
+          {total > 0 && (
+            <button
+              type="button"
+              onClick={onOpenAiReview}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: gaugeBg,
+                border: `1px solid ${gaugeBorder}`,
+                borderRadius: 'var(--radius-full)',
+                padding: '4px 10px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                color: gaugeColor,
+              }}
+              title="Click to view AI Feasibility Audit & Workload Rebalancing in Side Drawer"
+            >
+              <Zap size={13} color={gaugeColor} />
+              <span style={{ fontSize: '0.78rem', fontWeight: 700 }}>
+                {plannedHoursNum}h / {capacityHoursNum}h
+              </span>
+              <span style={{ fontSize: '0.70rem', opacity: 0.85, fontWeight: 600 }}>
+                ({Math.round(ratio * 100)}%)
+              </span>
+              {isCriticalOverload ? (
+                <span style={{ fontSize: '0.66rem', background: 'rgba(248, 113, 113, 0.25)', color: '#F87171', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
+                  OVERLOAD
+                </span>
+              ) : isModerateStretch ? (
+                <span style={{ fontSize: '0.66rem', background: 'rgba(226, 149, 59, 0.25)', color: 'var(--saffron-ember)', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
+                  STRETCH
+                </span>
+              ) : (
+                <span style={{ fontSize: '0.66rem', background: 'rgba(74, 222, 128, 0.2)', color: '#4ADE80', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
+                  OPTIMAL
+                </span>
+              )}
+            </button>
+          )}
         </div>
 
         {/* Right: Actions */}
@@ -168,10 +224,10 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
                   gap: '5px',
                   borderRadius: '4px',
                 }}
-                title="Check Plan Feasibility & Capacity"
+                title="Open AI Feasibility Audit Drawer"
               >
                 <Sparkles size={13} color="var(--saffron-ember)" />
-                <span>Feasibility</span>
+                <span>Audit Plan</span>
               </button>
 
               <div style={{ width: '1px', height: '16px', background: 'var(--border-walnut-faint)' }} />
