@@ -8,7 +8,7 @@ import { EditCommitmentModal } from '../components/commitment/EditCommitmentModa
 import { PostponeCommitmentModal } from '../components/commitment/PostponeCommitmentModal';
 import { DailyReviewModal } from '../components/review/DailyReviewModal';
 import { CommitmentDiscussionModal } from '../components/partnership/CommitmentDiscussionModal';
-import { PlanStressTestModal } from '../components/ai/PlanStressTestModal';
+import { PlanStressTestDrawer } from '../components/ai/PlanStressTestDrawer';
 import { aiApi, PlanStressTestResponse } from '../api/aiApi';
 import { useToast } from '../context/ToastContext';
 import { 
@@ -187,9 +187,9 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
   const handleRunFeasibilityCheck = async (
     defenseText?: string, 
     overrideSprint?: boolean, 
-    forceOpenModal: boolean = false
+    forceOpenDrawer: boolean = false
   ) => {
-    if (forceOpenModal) {
+    if (forceOpenDrawer) {
       setIsStressTestOpen(true);
     }
     try {
@@ -200,17 +200,8 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
         overrideSprint: overrideSprint,
       });
       setStressTestData(response);
-
-      const isStressed = 
-        response.riskScore >= 45 || 
-        response.plannedHours > response.historicalCapacityHours ||
-        response.proposedOptimizations?.some(p => p.suggestedAction === 'TRIM' || p.suggestedAction === 'SPLIT' || p.suggestedAction === 'SHIFT_TO_TOMORROW');
-
-      if (isStressed) {
-        setIsStressTestOpen(true);
-      }
     } catch (err: any) {
-      if (forceOpenModal) {
+      if (forceOpenDrawer) {
         showToast('Could not run plan feasibility check', 'error');
       }
     } finally {
@@ -403,6 +394,8 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
         onOpenAddModal={() => setIsAddModalOpen(true)}
         onOpenReviewModal={handleOpenStandardReview}
         onOpenAiReview={() => handleRunFeasibilityCheck(undefined, undefined, true)}
+        stressTestData={stressTestData}
+        isStressTestLoading={isStressTestLoading}
       />
 
       {/* Morning Accountability Catch-Up Banner */}
@@ -851,7 +844,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
         onSuccess={refreshCommitments}
       />
 
-      <PlanStressTestModal
+      <PlanStressTestDrawer
         isOpen={isStressTestOpen}
         onClose={() => setIsStressTestOpen(false)}
         stressTestData={stressTestData}
