@@ -11,6 +11,8 @@ import com.aazdoh.commitment.repository.CommitmentRepository;
 import com.aazdoh.common.exception.ResourceNotFoundException;
 import com.aazdoh.user.entity.User;
 import com.aazdoh.user.repository.UserRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +39,7 @@ public class FocusSprintService {
     }
 
     @Transactional
+    @CacheEvict(value = "focusSprintAnalytics", allEntries = true)
     public FocusSprint recordSprint(UUID userId, RecordFocusSprintRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
@@ -67,6 +70,7 @@ public class FocusSprintService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "focusSprintAnalytics", key = "#userId.toString() + '_' + #days")
     public FocusSprintAnalyticsResponse getFocusSprintAnalytics(UUID userId, int days) {
         int targetDays = days > 0 ? days : 30;
         OffsetDateTime endDate = OffsetDateTime.now();

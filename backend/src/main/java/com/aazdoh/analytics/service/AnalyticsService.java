@@ -7,6 +7,7 @@ import com.aazdoh.commitment.entity.CommitmentStatus;
 import com.aazdoh.commitment.repository.CommitmentRepository;
 import com.aazdoh.review.entity.FailureReason;
 import com.aazdoh.review.repository.ReviewRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +29,7 @@ public class AnalyticsService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "analyticsSummary", key = "#userId.toString() + '_' + #days")
     public AccountabilityStatsResponse getAccountabilitySummary(UUID userId, int days) {
         int targetDays = days > 0 ? days : 30;
         LocalDate endDate = LocalDate.now();
@@ -80,6 +82,7 @@ public class AnalyticsService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "comprehensiveAnalytics", key = "#userId.toString() + '_' + #days + '_' + #heatmapDays")
     public ComprehensiveAnalyticsResponse getComprehensiveAnalytics(UUID userId, int days, int heatmapDays) {
         int targetDays = days > 0 ? days : 30;
         int targetHeatmapDays = heatmapDays > 0 ? heatmapDays : 180;

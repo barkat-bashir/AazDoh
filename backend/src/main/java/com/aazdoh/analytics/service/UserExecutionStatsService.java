@@ -10,6 +10,8 @@ import com.aazdoh.user.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,12 +50,14 @@ public class UserExecutionStatsService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "userExecutionStats", key = "#userId")
     public UserExecutionStats getOrComputeStats(UUID userId) {
         return statsRepository.findByUserId(userId)
                 .orElseGet(() -> refreshStats(userId));
     }
 
     @Transactional
+    @CacheEvict(value = {"userExecutionStats", "analyticsSummary", "comprehensiveAnalytics", "ai_insights"}, allEntries = true)
     public UserExecutionStats refreshStats(UUID userId) {
         User user = userService.findUserById(userId);
         LocalDate today = LocalDate.now();
