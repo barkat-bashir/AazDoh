@@ -24,6 +24,7 @@ import com.aazdoh.commitment.dto.CreateCommitmentRequest;
 import com.aazdoh.commitment.dto.PostponeCommitmentRequest;
 import com.aazdoh.commitment.dto.UpdateCommitmentRequest;
 import com.aazdoh.commitment.entity.Commitment;
+import com.aazdoh.commitment.entity.CommitmentCategory;
 import com.aazdoh.commitment.entity.CommitmentPriority;
 import com.aazdoh.commitment.entity.CommitmentVisibility;
 import com.aazdoh.commitment.service.CommitmentService;
@@ -261,6 +262,8 @@ public class AiAccountabilityService {
                         createReq.setTargetPartnerId(orig.getTargetPartnerId());
                         createReq.setCommitmentDate(targetDate);
                         createReq.setExpectedOutcome(orig.getExpectedOutcome());
+                        createReq.setCategory(orig.getCategory() != null ? orig.getCategory() : CommitmentCategory.DEEP_WORK);
+                        createReq.setDayPhase(orig.getDayPhase());
                         commitmentService.createCommitment(userId, createReq);
                     }
                 }

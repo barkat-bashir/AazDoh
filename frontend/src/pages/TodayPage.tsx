@@ -184,7 +184,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
     setIsReviewModalOpen(true);
   }, [selectedDate]);
 
-  const handleRunFeasibilityCheck = async (
+  const handleRunFeasibilityCheck = useCallback(async (
     defenseText?: string, 
     overrideSprint?: boolean, 
     forceOpenDrawer: boolean = false
@@ -207,7 +207,24 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
     } finally {
       setIsStressTestLoading(false);
     }
-  };
+  }, [selectedDate, showToast]);
+
+  const handlePlanApplied = useCallback(async () => {
+    refreshCommitments();
+    try {
+      setIsStressTestLoading(true);
+      const response = await aiApi.stressTestPlan({ date: selectedDate });
+      setStressTestData(response);
+    } catch {
+      // silently handle
+    } finally {
+      setIsStressTestLoading(false);
+    }
+  }, [refreshCommitments, selectedDate]);
+
+  React.useEffect(() => {
+    handleRunFeasibilityCheck(undefined, undefined, false);
+  }, [selectedDate, handleRunFeasibilityCheck]);
 
   const activeReviewCommitments = useMemo(() => {
     return reviewDate === selectedDate 
@@ -849,7 +866,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
         onClose={() => setIsStressTestOpen(false)}
         stressTestData={stressTestData}
         isLoading={isStressTestLoading}
-        onPlanApplied={refreshCommitments}
+        onPlanApplied={handlePlanApplied}
         onReStressTest={(defenseText, override) => handleRunFeasibilityCheck(defenseText, override, true)}
       />
 

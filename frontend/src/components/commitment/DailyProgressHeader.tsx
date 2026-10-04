@@ -67,7 +67,7 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
     onDateChange(formatLocalDate(d));
   };
 
-  const plannedHoursNum = stressTestData?.plannedHours ?? Number((totalFocusMinutes / 60).toFixed(1));
+  const plannedHoursNum = Number((totalFocusMinutes / 60).toFixed(1));
   const capacityHoursNum = stressTestData?.historicalCapacityHours ?? 2.0;
   const ratio = capacityHoursNum > 0 ? (plannedHoursNum / capacityHoursNum) : 1;
   const isCriticalOverload = ratio > 1.25 || stressTestData?.riskLevel === 'CRITICAL' || stressTestData?.riskLevel === 'HIGH';
