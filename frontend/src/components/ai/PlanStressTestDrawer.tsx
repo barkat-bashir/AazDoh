@@ -40,6 +40,7 @@ export const PlanStressTestDrawer: React.FC<PlanStressTestDrawerProps> = ({
   const [showDefenseInput, setShowDefenseInput] = useState(false);
   const [defenseText, setDefenseText] = useState('');
   const [isApplying, setIsApplying] = useState(false);
+  const [applyingSingleId, setApplyingSingleId] = useState<string | null>(null);
   const [proposals, setProposals] = useState<OptimizedTaskProposal[]>([]);
 
   useEffect(() => {
@@ -114,6 +115,36 @@ export const PlanStressTestDrawer: React.FC<PlanStressTestDrawerProps> = ({
     });
   };
 
+  const handleToggleShiftAction = (proposalIdx: number, shouldShift: boolean) => {
+    setProposals(prev => {
+      const copy = [...prev];
+      const target = { ...copy[proposalIdx] };
+      target.suggestedAction = shouldShift ? 'SHIFT_TO_TOMORROW' : 'KEEP';
+      copy[proposalIdx] = target;
+      return copy;
+    });
+  };
+
+  const handleApplySingleProposal = async (proposalIdx: number) => {
+    const target = proposals[proposalIdx] || data?.proposedOptimizations?.[proposalIdx];
+    if (!target || !target.originalCommitmentId) return;
+
+    try {
+      setApplyingSingleId(target.originalCommitmentId);
+      await aiApi.applyOptimizedPlan({
+        acceptedProposals: [target],
+      });
+      setApplyingSingleId(null);
+      const isSplit = target.suggestedAction === 'SPLIT';
+      showToast(isSplit ? `Split "${target.currentTitle}" into ${target.splitBlocks?.length || 2} sprints!` : 'Adjustment applied!', 'success');
+      onPlanApplied();
+    } catch (err) {
+      console.error('Failed to apply proposal', err);
+      setApplyingSingleId(null);
+      showToast('Could not apply adjustment', 'error');
+    }
+  };
+
   const handleApplyOptimizations = async () => {
     const toApply = proposals.length > 0 ? proposals : data?.proposedOptimizations;
     if (!toApply || toApply.length === 0) {
@@ -126,7 +157,7 @@ export const PlanStressTestDrawer: React.FC<PlanStressTestDrawerProps> = ({
         acceptedProposals: toApply,
       });
       setIsApplying(false);
-      showToast('Plan optimized and scheduled!', 'success');
+      showToast('Selected plan adjustments applied!', 'success');
       onPlanApplied();
       onClose();
     } catch (err) {
@@ -168,6 +199,23 @@ export const PlanStressTestDrawer: React.FC<PlanStressTestDrawerProps> = ({
 
   const rebalancedCount = currentProposals.filter(p => p.suggestedAction === 'SHIFT_TO_TOMORROW').length;
   const splitCount = currentProposals.filter(p => p.suggestedAction === 'SPLIT').length;
+
+  const dynamicTotalOptimizedMinutes = currentProposals.reduce((sum, prop) => {
+    if (prop.suggestedAction === 'SHIFT_TO_TOMORROW') {
+      return sum;
+    }
+    if (prop.suggestedAction === 'SPLIT' && prop.splitBlocks && prop.splitBlocks.length > 0) {
+      const todayMinutes = prop.splitBlocks
+        .filter(b => !b.scheduleTomorrow)
+        .reduce((bSum, b) => bSum + b.minutes, 0);
+      return sum + todayMinutes;
+    }
+    if (prop.suggestedAction === 'TRIM') {
+      return sum + (prop.proposedMinutes || prop.currentMinutes);
+    }
+    return sum + prop.currentMinutes;
+  }, 0);
+  const dynamicOptimizedHours = Math.round((dynamicTotalOptimizedMinutes / 60.0) * 10.0) / 10.0;
 
   return (
     <div
@@ -613,28 +661,107 @@ export const PlanStressTestDrawer: React.FC<PlanStressTestDrawerProps> = ({
                                 })}
                               </div>
 
-                              {/* Destination toggle for Part 2+ */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
-                                <span style={{ fontSize: '0.70rem', color: 'var(--text-parchment-muted)', fontWeight: 600 }}>Part 2+:</span>
+                              {/* Destination toggle for Part 2+ and Independent Apply Button */}
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', flexWrap: 'wrap', paddingTop: '4px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                                  <span style={{ fontSize: '0.70rem', color: 'var(--text-parchment-muted)', fontWeight: 600 }}>Part 2+:</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleSplitSchedule(idx, false)}
+                                    className={`btn-pill ${!prop.splitBlocks![1]?.scheduleTomorrow ? 'active' : ''}`}
+                                    style={{ padding: '2px 7px', fontSize: '0.70rem' }}
+                                  >
+                                    <Calendar size={10} />
+                                    <span>Keep Today</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleSplitSchedule(idx, true)}
+                                    className={`btn-pill ${prop.splitBlocks![1]?.scheduleTomorrow ? 'active' : ''}`}
+                                    style={{ padding: '2px 7px', fontSize: '0.70rem' }}
+                                  >
+                                    <Moon size={10} />
+                                    <span>Move Tomorrow</span>
+                                  </button>
+                                </div>
+
                                 <button
                                   type="button"
-                                  onClick={() => handleToggleSplitSchedule(idx, false)}
-                                  className={`btn-pill ${!prop.splitBlocks![1]?.scheduleTomorrow ? 'active' : ''}`}
-                                  style={{ padding: '2px 7px', fontSize: '0.70rem' }}
+                                  onClick={() => handleApplySingleProposal(idx)}
+                                  disabled={applyingSingleId === prop.originalCommitmentId || isApplying}
+                                  className="btn-primary"
+                                  style={{
+                                    padding: '4px 10px',
+                                    fontSize: '0.74rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    background: 'linear-gradient(135deg, var(--chinar-rust), var(--saffron-ember))',
+                                    boxShadow: '0 2px 6px rgba(192, 83, 48, 0.3)',
+                                  }}
+                                  title="Split this task immediately without affecting other tasks"
                                 >
-                                  <Calendar size={10} />
-                                  <span>Keep Today</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleToggleSplitSchedule(idx, true)}
-                                  className={`btn-pill ${prop.splitBlocks![1]?.scheduleTomorrow ? 'active' : ''}`}
-                                  style={{ padding: '2px 7px', fontSize: '0.70rem' }}
-                                >
-                                  <Moon size={10} />
-                                  <span>Move Tomorrow</span>
+                                  <Zap size={11} />
+                                  <span>{applyingSingleId === prop.originalCommitmentId ? 'Splitting...' : `Split This Task Only`}</span>
                                 </button>
                               </div>
+                            </div>
+                          )}
+
+                          {/* Independent Controls for SHIFT_TO_TOMORROW / Rebalance */}
+                          {(isShift || (prop.originalCommitmentId && data?.proposedOptimizations?.some(p => p.originalCommitmentId === prop.originalCommitmentId && p.suggestedAction === 'SHIFT_TO_TOMORROW'))) && (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.06)', flexWrap: 'wrap', gap: '6px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleShiftAction(idx, true)}
+                                  className={`btn-pill ${isShift ? 'active' : ''}`}
+                                  style={{
+                                    padding: '2px 8px',
+                                    fontSize: '0.70rem',
+                                    background: isShift ? 'rgba(248, 113, 113, 0.2)' : 'transparent',
+                                    color: isShift ? '#F87171' : 'var(--text-parchment-muted)',
+                                    borderColor: isShift ? 'rgba(248, 113, 113, 0.4)' : 'var(--border-walnut-faint)',
+                                  }}
+                                >
+                                  <Moon size={10} />
+                                  <span>Shift to Tomorrow</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleShiftAction(idx, false)}
+                                  className={`btn-pill ${!isShift ? 'active' : ''}`}
+                                  style={{
+                                    padding: '2px 8px',
+                                    fontSize: '0.70rem',
+                                    background: !isShift ? 'rgba(74, 222, 128, 0.2)' : 'transparent',
+                                    color: !isShift ? '#4ADE80' : 'var(--text-parchment-muted)',
+                                    borderColor: !isShift ? 'rgba(74, 222, 128, 0.4)' : 'var(--border-walnut-faint)',
+                                  }}
+                                >
+                                  <Check size={10} />
+                                  <span>Keep on Today</span>
+                                </button>
+                              </div>
+
+                              {isShift && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleApplySingleProposal(idx)}
+                                  disabled={applyingSingleId === prop.originalCommitmentId || isApplying}
+                                  className="btn-secondary"
+                                  style={{
+                                    padding: '3px 8px',
+                                    fontSize: '0.70rem',
+                                    color: '#F87171',
+                                    border: '1px solid rgba(248, 113, 113, 0.35)',
+                                    background: 'rgba(248, 113, 113, 0.1)',
+                                  }}
+                                  title="Postpone this task to tomorrow immediately"
+                                >
+                                  <span>{applyingSingleId === prop.originalCommitmentId ? 'Moving...' : 'Shift to Tomorrow Now'}</span>
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
@@ -714,7 +841,7 @@ export const PlanStressTestDrawer: React.FC<PlanStressTestDrawerProps> = ({
                     }}
                   >
                     <Sparkles size={14} />
-                    <span>{isApplying ? 'Applying...' : `Apply Blueprint (${data.optimizedHours}h)`}</span>
+                    <span>{isApplying ? 'Applying...' : `Apply Selected Plan (${dynamicOptimizedHours}h)`}</span>
                   </button>
                 </>
               ) : (
