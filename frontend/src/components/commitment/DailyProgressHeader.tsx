@@ -80,8 +80,8 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
     <div className="harud-card" style={{ padding: 'clamp(14px, 3vw, 24px)', marginBottom: '20px' }}>
       {/* Top row: Date Switcher & Main Actions */}
       <div className="daily-progress-top" style={{ marginBottom: total > 0 ? '16px' : '0' }}>
-        {/* Left: Date Switcher Pill & Ambient Capacity Gauge */}
-        <div className="daily-date-switcher" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        {/* Left: Date Switcher Pill */}
+        <div className="daily-date-switcher">
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -162,8 +162,11 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
               Jump to Today
             </button>
           )}
+        </div>
 
-          {/* Ambient Capacity Gauge Pill */}
+        {/* Right: Unified Ambient Capacity Gauge, Review Day, & Add Commitment */}
+        <div className="daily-header-actions">
+          {/* Ambient Capacity Gauge Pill & Audit Drawer Trigger */}
           {total > 0 && (
             <button
               type="button"
@@ -175,89 +178,64 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
                 background: gaugeBg,
                 border: `1px solid ${gaugeBorder}`,
                 borderRadius: 'var(--radius-full)',
-                padding: '4px 10px',
+                padding: '5px 12px',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease',
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                 color: gaugeColor,
+                boxShadow: isCriticalOverload ? '0 0 12px rgba(248, 113, 113, 0.12)' : isModerateStretch ? '0 0 12px rgba(226, 149, 59, 0.12)' : 'none',
               }}
               title="Click to view AI Feasibility Audit & Workload Rebalancing in Side Drawer"
             >
-              <Zap size={13} color={gaugeColor} />
-              <span style={{ fontSize: '0.78rem', fontWeight: 700 }}>
+              <Zap size={13} color={gaugeColor} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: '0.80rem', fontWeight: 700 }}>
                 {plannedHoursNum}h / {capacityHoursNum}h
               </span>
-              <span style={{ fontSize: '0.70rem', opacity: 0.85, fontWeight: 600 }}>
+              <span style={{ fontSize: '0.72rem', opacity: 0.85, fontWeight: 600 }}>
                 ({Math.round(ratio * 100)}%)
               </span>
               {isCriticalOverload ? (
-                <span style={{ fontSize: '0.66rem', background: 'rgba(248, 113, 113, 0.25)', color: '#F87171', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
+                <span style={{ fontSize: '0.66rem', background: 'rgba(248, 113, 113, 0.25)', color: '#F87171', padding: '1px 6px', borderRadius: '4px', fontWeight: 800, letterSpacing: '0.03em' }}>
                   OVERLOAD
                 </span>
               ) : isModerateStretch ? (
-                <span style={{ fontSize: '0.66rem', background: 'rgba(226, 149, 59, 0.25)', color: 'var(--saffron-ember)', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
+                <span style={{ fontSize: '0.66rem', background: 'rgba(226, 149, 59, 0.25)', color: 'var(--saffron-ember)', padding: '1px 6px', borderRadius: '4px', fontWeight: 800, letterSpacing: '0.03em' }}>
                   STRETCH
                 </span>
               ) : (
-                <span style={{ fontSize: '0.66rem', background: 'rgba(74, 222, 128, 0.2)', color: '#4ADE80', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
+                <span style={{ fontSize: '0.66rem', background: 'rgba(74, 222, 128, 0.2)', color: '#4ADE80', padding: '1px 6px', borderRadius: '4px', fontWeight: 800, letterSpacing: '0.03em' }}>
                   OPTIMAL
                 </span>
               )}
+              <Sparkles size={11} color={gaugeColor} style={{ opacity: 0.8, marginLeft: '1px' }} />
             </button>
           )}
-        </div>
 
-        {/* Right: Actions */}
-        <div className="daily-header-actions">
           {total > 0 && (
-            <div className="daily-ai-review-group">
-              <button
-                onClick={onOpenAiReview}
-                className="btn-secondary"
-                style={{
-                  border: 'none',
-                  background: 'transparent',
-                  color: 'var(--saffron-ember)',
-                  fontSize: '0.8rem',
-                  padding: '6px 10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  borderRadius: '4px',
-                }}
-                title="Open AI Feasibility Audit Drawer"
-              >
-                <Sparkles size={13} color="var(--saffron-ember)" />
-                <span>Audit Plan</span>
-              </button>
-
-              <div style={{ width: '1px', height: '16px', background: 'var(--border-walnut-faint)' }} />
-
-              <button
-                onClick={onOpenReviewModal}
-                className="btn-secondary"
-                style={{
-                  border: 'none',
-                  background: 'transparent',
-                  color: 'var(--text-kehwa-cream)',
-                  fontSize: '0.8rem',
-                  padding: '6px 10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  borderRadius: '4px',
-                }}
-                title="Run daily accountability reflection ceremony"
-              >
-                <CheckSquare size={13} color="var(--saffron-ember)" />
-                <span>Review Day</span>
-              </button>
-            </div>
+            <button
+              onClick={onOpenReviewModal}
+              className="btn-secondary"
+              style={{
+                border: '1px solid var(--border-walnut-faint)',
+                background: 'var(--bg-walnut-surface)',
+                color: 'var(--text-kehwa-cream)',
+                fontSize: '0.80rem',
+                padding: '6px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                borderRadius: 'var(--radius-full)',
+              }}
+              title="Run daily accountability reflection ceremony"
+            >
+              <CheckSquare size={13} color="var(--saffron-ember)" />
+              <span>Review Day</span>
+            </button>
           )}
 
           <button
             onClick={onOpenAddModal}
             className="btn-primary daily-add-btn"
-            style={{ fontSize: '0.84rem', padding: '7px 14px', display: 'flex', alignItems: 'center', gap: '5px' }}
+            style={{ fontSize: '0.84rem', padding: '7px 14px', display: 'flex', alignItems: 'center', gap: '5px', borderRadius: 'var(--radius-full)' }}
           >
             <Plus size={15} />
             <span>Add Commitment</span>
