@@ -229,9 +229,14 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
     });
   }, [refreshCommitments]);
 
+  // Automatically re-evaluate feasibility in background whenever commitments or their statuses change
+  const commitmentsSignature = useMemo(() => {
+    return commitments.map(c => `${c.id}:${c.status}:${c.estimatedMinutes}`).join(';');
+  }, [commitments]);
+
   React.useEffect(() => {
     handleRunFeasibilityCheck(undefined, undefined, false);
-  }, [selectedDate, handleRunFeasibilityCheck]);
+  }, [selectedDate, commitmentsSignature, handleRunFeasibilityCheck]);
 
   const activeReviewCommitments = useMemo(() => {
     return reviewDate === selectedDate 
