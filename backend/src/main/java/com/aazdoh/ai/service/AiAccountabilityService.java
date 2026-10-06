@@ -280,19 +280,48 @@ public class AiAccountabilityService {
         try {
             User user = userService.findUserById(userId);
             String newPlanHash = computePlanHash(updatedList);
+            UserAccountabilityContextDto context = contextBuilder.buildContext(userId);
+
             int totalMinutes = updatedList.stream().mapToInt(CommitmentResponse::getEstimatedMinutes).sum();
             double plannedHours = Math.round((totalMinutes / 60.0) * 10.0) / 10.0;
-            UserAccountabilityContextDto context = contextBuilder.buildContext(userId);
             double capacityHours = Math.round((Math.max(context.getAvgDailyFocusMinutesLast7Days(), 120) / 60.0) * 10.0) / 10.0;
+            double ratio = capacityHours > 0 ? (plannedHours / capacityHours) : 1.0;
+
+            int baseRisk = (int) Math.min(Math.max((ratio - 0.7) * 90.0, 15.0), 95.0);
+            int calculatedRisk = (context.getRepeatedlyPostponedTitles() != null && !context.getRepeatedlyPostponedTitles().isEmpty())
+                    ? Math.min(baseRisk + 15, 95)
+                    : baseRisk;
+
+            String riskLevel;
+            if (calculatedRisk >= 75) {
+                riskLevel = "CRITICAL";
+            } else if (calculatedRisk >= 50) {
+                riskLevel = "HIGH";
+            } else if (calculatedRisk >= 30) {
+                riskLevel = "MODERATE";
+            } else {
+                riskLevel = "LOW";
+            }
 
             PlanStressTestResponse optimizedRes = new PlanStressTestResponse();
             optimizedRes.setPlannedHours(plannedHours);
             optimizedRes.setOptimizedHours(plannedHours);
             optimizedRes.setHistoricalCapacityHours(capacityHours);
-            optimizedRes.setRiskScore(15);
-            optimizedRes.setRiskLevel("LOW");
+            optimizedRes.setRiskScore(calculatedRisk);
+            optimizedRes.setRiskLevel(riskLevel);
             optimizedRes.setPersona(user.getAiPersona() != null ? user.getAiPersona().name() : "BALANCED");
-            optimizedRes.setDiagnosticSummary("Plan adjusted and balanced within your focus capacity. High probability of strong follow-through today.");
+
+            String name = (context.getUserFullName() != null && !context.getUserFullName().isBlank()) ? context.getUserFullName() : null;
+            if (plannedHours <= capacityHours) {
+                if (name != null) {
+                    optimizedRes.setDiagnosticSummary(String.format("%s's planned load of %.1fh sits comfortably within their 7-day average focus capacity (%.1fh). High probability of strong follow-through today.", name, plannedHours, capacityHours));
+                } else {
+                    optimizedRes.setDiagnosticSummary(String.format("Your planned load of %.1fh sits comfortably within your 7-day average focus capacity (%.1fh). High probability of strong follow-through today.", plannedHours, capacityHours));
+                }
+            } else {
+                optimizedRes.setDiagnosticSummary(String.format("Plan adjusted to %.1fh against baseline capacity (%.1fh).", plannedHours, capacityHours));
+            }
+
             optimizedRes.setProposedOptimizations(List.of());
             saveSnapshot(user, today, newPlanHash, optimizedRes);
         } catch (Exception ignored) {
