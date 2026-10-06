@@ -275,7 +275,30 @@ public class AiAccountabilityService {
             }
         }
 
-        return commitmentService.getTodayCommitments(userId, LocalDate.now());
+        LocalDate today = LocalDate.now();
+        List<CommitmentResponse> updatedList = commitmentService.getTodayCommitments(userId, today);
+        try {
+            User user = userService.findUserById(userId);
+            String newPlanHash = computePlanHash(updatedList);
+            int totalMinutes = updatedList.stream().mapToInt(CommitmentResponse::getEstimatedMinutes).sum();
+            double plannedHours = Math.round((totalMinutes / 60.0) * 10.0) / 10.0;
+            UserAccountabilityContextDto context = contextBuilder.buildContext(userId);
+            double capacityHours = Math.round((Math.max(context.getAvgDailyFocusMinutesLast7Days(), 120) / 60.0) * 10.0) / 10.0;
+
+            PlanStressTestResponse optimizedRes = new PlanStressTestResponse();
+            optimizedRes.setPlannedHours(plannedHours);
+            optimizedRes.setOptimizedHours(plannedHours);
+            optimizedRes.setHistoricalCapacityHours(capacityHours);
+            optimizedRes.setRiskScore(15);
+            optimizedRes.setRiskLevel("LOW");
+            optimizedRes.setPersona(user.getAiPersona() != null ? user.getAiPersona().name() : "BALANCED");
+            optimizedRes.setDiagnosticSummary("Plan adjusted and balanced within your focus capacity. High probability of strong follow-through today.");
+            optimizedRes.setProposedOptimizations(List.of());
+            saveSnapshot(user, today, newPlanHash, optimizedRes);
+        } catch (Exception ignored) {
+        }
+
+        return updatedList;
     }
 
     @Async

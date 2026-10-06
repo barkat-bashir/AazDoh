@@ -191,9 +191,9 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
   ) => {
     if (forceOpenDrawer) {
       setIsStressTestOpen(true);
+      setIsStressTestLoading(true);
     }
     try {
-      setIsStressTestLoading(true);
       const response = await aiApi.stressTestPlan({
         date: selectedDate,
         quickDefense: defenseText,
@@ -205,7 +205,9 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
         showToast('Could not run plan feasibility check', 'error');
       }
     } finally {
-      setIsStressTestLoading(false);
+      if (forceOpenDrawer) {
+        setIsStressTestLoading(false);
+      }
     }
   }, [selectedDate, showToast]);
 
