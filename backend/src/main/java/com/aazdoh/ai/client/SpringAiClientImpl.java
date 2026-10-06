@@ -8,6 +8,7 @@ import com.aazdoh.ai.dto.OptimizedTaskProposal;
 import com.aazdoh.ai.dto.PlanStressTestResponse;
 import com.aazdoh.ai.dto.SplitBlockDetail;
 import com.aazdoh.commitment.dto.CommitmentResponse;
+import com.aazdoh.commitment.entity.CommitmentCategory;
 import com.aazdoh.commitment.entity.CommitmentStatus;
 import com.aazdoh.user.entity.AiPersona;
 import org.slf4j.Logger;
@@ -286,12 +287,16 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
         List<OptimizedTaskProposal> proposals = new ArrayList<>();
         int optimizedMinutesAccumulator = 0;
 
-        // Identify the last active (uncompleted) task if shift is needed to balance capacity
+        // Identify the last active (uncompleted, non-missed, non-routine) task if shift is needed to balance capacity
         UUID shiftCandidateId = null;
         if (ratio > 1.25) {
             for (int i = todaysCommitments.size() - 1; i >= 0; i--) {
                 CommitmentResponse t = todaysCommitments.get(i);
-                if (t.getStatus() != CommitmentStatus.COMPLETED && t.getStatus() != CommitmentStatus.POSTPONED) {
+                boolean isTerminal = t.getStatus() == CommitmentStatus.COMPLETED 
+                        || t.getStatus() == CommitmentStatus.POSTPONED 
+                        || t.getStatus() == CommitmentStatus.MISSED;
+                boolean isRoutine = t.getCategory() == CommitmentCategory.ROUTINE;
+                if (!isTerminal && !isRoutine) {
                     shiftCandidateId = t.getId();
                     break;
                 }
@@ -306,6 +311,8 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
 
             boolean isCompleted = task.getStatus() == CommitmentStatus.COMPLETED;
             boolean isPostponed = task.getStatus() == CommitmentStatus.POSTPONED;
+            boolean isMissed = task.getStatus() == CommitmentStatus.MISSED;
+            boolean isRoutine = task.getCategory() == CommitmentCategory.ROUTINE;
 
             if (isCompleted) {
                 proposal.setSuggestedAction("KEEP");
@@ -318,6 +325,17 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
                 proposal.setProposedTitle(task.getTitle());
                 proposal.setProposedMinutes(task.getEstimatedMinutes());
                 proposal.setReasoning("Already postponed.");
+            } else if (isMissed) {
+                proposal.setSuggestedAction("KEEP");
+                proposal.setProposedTitle(task.getTitle());
+                proposal.setProposedMinutes(task.getEstimatedMinutes());
+                proposal.setReasoning("Marked as missed.");
+            } else if (isRoutine) {
+                proposal.setSuggestedAction("KEEP");
+                proposal.setProposedTitle(task.getTitle());
+                proposal.setProposedMinutes(task.getEstimatedMinutes());
+                proposal.setReasoning("Routine habit.");
+                optimizedMinutesAccumulator += task.getEstimatedMinutes();
             } else if (task.getEstimatedMinutes() > 75) {
                 proposal.setSuggestedAction("SPLIT");
                 proposal.setProposedTitle("Part 1: " + task.getTitle());
