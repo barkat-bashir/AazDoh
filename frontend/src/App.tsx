@@ -20,6 +20,7 @@ import { useQuery } from '@tanstack/react-query';
 import { FocusTimerProvider } from './context/FocusTimerContext';
 import { FocusSprintModal } from './components/focus/FocusSprintModal';
 import { FloatingFocusBar } from './components/focus/FloatingFocusBar';
+import { Analytics } from '@vercel/analytics/react';
 
 // Reset Password Handler Route
 const ResetPasswordRoute: React.FC = () => {
@@ -256,6 +257,7 @@ export const App: React.FC = () => {
         <ToastProvider>
           <FocusTimerProvider>
             <AppContent />
+            <Analytics />
           </FocusTimerProvider>
         </ToastProvider>
       </AuthProvider>
