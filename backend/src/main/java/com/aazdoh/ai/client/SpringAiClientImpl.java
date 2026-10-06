@@ -8,6 +8,7 @@ import com.aazdoh.ai.dto.OptimizedTaskProposal;
 import com.aazdoh.ai.dto.PlanStressTestResponse;
 import com.aazdoh.ai.dto.SplitBlockDetail;
 import com.aazdoh.commitment.dto.CommitmentResponse;
+import com.aazdoh.commitment.entity.CommitmentStatus;
 import com.aazdoh.user.entity.AiPersona;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
@@ -284,14 +286,39 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
         List<OptimizedTaskProposal> proposals = new ArrayList<>();
         int optimizedMinutesAccumulator = 0;
 
-        for (int i = 0; i < todaysCommitments.size(); i++) {
-            CommitmentResponse task = todaysCommitments.get(i);
+        // Identify the last active (uncompleted) task if shift is needed to balance capacity
+        UUID shiftCandidateId = null;
+        if (ratio > 1.25) {
+            for (int i = todaysCommitments.size() - 1; i >= 0; i--) {
+                CommitmentResponse t = todaysCommitments.get(i);
+                if (t.getStatus() != CommitmentStatus.COMPLETED && t.getStatus() != CommitmentStatus.POSTPONED) {
+                    shiftCandidateId = t.getId();
+                    break;
+                }
+            }
+        }
+
+        for (CommitmentResponse task : todaysCommitments) {
             OptimizedTaskProposal proposal = new OptimizedTaskProposal();
             proposal.setOriginalCommitmentId(task.getId());
             proposal.setCurrentTitle(task.getTitle());
             proposal.setCurrentMinutes(task.getEstimatedMinutes());
 
-            if (task.getEstimatedMinutes() > 75) {
+            boolean isCompleted = task.getStatus() == CommitmentStatus.COMPLETED;
+            boolean isPostponed = task.getStatus() == CommitmentStatus.POSTPONED;
+
+            if (isCompleted) {
+                proposal.setSuggestedAction("KEEP");
+                proposal.setProposedTitle(task.getTitle());
+                proposal.setProposedMinutes(task.getEstimatedMinutes());
+                proposal.setReasoning("Already completed.");
+                optimizedMinutesAccumulator += task.getEstimatedMinutes();
+            } else if (isPostponed) {
+                proposal.setSuggestedAction("KEEP");
+                proposal.setProposedTitle(task.getTitle());
+                proposal.setProposedMinutes(task.getEstimatedMinutes());
+                proposal.setReasoning("Already postponed.");
+            } else if (task.getEstimatedMinutes() > 75) {
                 proposal.setSuggestedAction("SPLIT");
                 proposal.setProposedTitle("Part 1: " + task.getTitle());
                 proposal.setProposedMinutes(45);
@@ -318,7 +345,7 @@ public class SpringAiClientImpl implements AccountabilityAiClient {
                 proposal.setReasoning(String.format("Deconstructed %dm block into focused sprints: %s.",
                         task.getEstimatedMinutes(), blocksSummary));
                 optimizedMinutesAccumulator += 45;
-            } else if (ratio > 1.25 && i == todaysCommitments.size() - 1 && todaysCommitments.size() > 1) {
+            } else if (task.getId() != null && task.getId().equals(shiftCandidateId)) {
                 proposal.setSuggestedAction("SHIFT_TO_TOMORROW");
                 proposal.setProposedTitle(task.getTitle());
                 proposal.setProposedMinutes(task.getEstimatedMinutes());

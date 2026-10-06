@@ -383,6 +383,8 @@ public class AiAccountabilityService {
                                .append(c.getEstimatedMinutes())
                                .append(":")
                                .append(c.getTitle())
+                               .append(":")
+                               .append(c.getStatus() != null ? c.getStatus().name() : "")
                                .append(";"));
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
