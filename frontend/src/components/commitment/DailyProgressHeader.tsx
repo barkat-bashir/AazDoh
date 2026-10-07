@@ -80,15 +80,17 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
     <div className="harud-card" style={{ padding: 'clamp(14px, 3vw, 24px)', marginBottom: '20px' }}>
       {/* Top row: Date Switcher & Main Actions */}
       <div className="daily-progress-top" style={{ marginBottom: total > 0 ? '16px' : '0' }}>
-        {/* Left: Date Switcher Pill */}
+        {/* Left: Date Switcher Pill & Jump to Today */}
         <div className="daily-date-switcher">
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
+            height: '36px',
             background: 'var(--bg-walnut-surface)',
             border: '1px solid var(--border-walnut-faint)',
             borderRadius: 'var(--radius-full)',
-            padding: '3px 6px',
+            padding: '0 6px',
+            boxSizing: 'border-box',
           }}>
             <button
               onClick={() => shiftDate(-1)}
@@ -100,6 +102,7 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
                 padding: '4px 6px',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 borderRadius: '50%',
               }}
               title="Previous Day"
@@ -113,7 +116,7 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
                 background: 'none',
                 border: 'none',
                 color: isToday ? 'var(--saffron-ember)' : 'var(--text-kehwa-cream)',
-                fontSize: '0.88rem',
+                fontSize: '0.86rem',
                 fontWeight: 700,
                 cursor: 'pointer',
                 padding: '4px 8px',
@@ -145,6 +148,7 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
                 padding: '4px 6px',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 borderRadius: '50%',
               }}
               title="Next Day"
@@ -157,77 +161,48 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
             <button
               onClick={() => onDateChange(todayStr)}
               className="btn-outline"
-              style={{ padding: '4px 10px', fontSize: '0.76rem', borderRadius: 'var(--radius-full)' }}
+              style={{
+                height: '36px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '0 12px',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                borderRadius: 'var(--radius-full)',
+                border: '1px solid var(--border-walnut-faint)',
+                background: 'var(--bg-walnut-surface)',
+                color: 'var(--text-parchment-muted)',
+                boxSizing: 'border-box',
+              }}
             >
               Jump to Today
             </button>
           )}
         </div>
 
-        {/* Right: Unified Ambient Capacity Gauge, Review Day, & Add Commitment */}
+        {/* Right: Primary Actions (Review Day & Add Commitment) */}
         <div className="daily-header-actions">
-          {/* Ambient Capacity Gauge Pill & Audit Drawer Trigger */}
-          {total > 0 && (
-            <button
-              type="button"
-              onClick={onOpenAiReview}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                background: gaugeBg,
-                border: `1px solid ${gaugeBorder}`,
-                borderRadius: 'var(--radius-full)',
-                padding: '5px 12px',
-                cursor: 'pointer',
-                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                color: gaugeColor,
-                boxShadow: isCriticalOverload ? '0 0 12px rgba(248, 113, 113, 0.12)' : isModerateStretch ? '0 0 12px rgba(226, 149, 59, 0.12)' : 'none',
-              }}
-              title="Click to view AI Feasibility Audit & Workload Rebalancing in Side Drawer"
-            >
-              <Zap size={13} color={gaugeColor} style={{ flexShrink: 0 }} />
-              <span style={{ fontSize: '0.80rem', fontWeight: 700 }}>
-                {plannedHoursNum}h / {capacityHoursNum}h
-              </span>
-              <span style={{ fontSize: '0.72rem', opacity: 0.85, fontWeight: 600 }}>
-                ({Math.round(ratio * 100)}%)
-              </span>
-              {isCriticalOverload ? (
-                <span style={{ fontSize: '0.66rem', background: 'rgba(248, 113, 113, 0.25)', color: '#F87171', padding: '1px 6px', borderRadius: '4px', fontWeight: 800, letterSpacing: '0.03em' }}>
-                  OVERLOAD
-                </span>
-              ) : isModerateStretch ? (
-                <span style={{ fontSize: '0.66rem', background: 'rgba(226, 149, 59, 0.25)', color: 'var(--saffron-ember)', padding: '1px 6px', borderRadius: '4px', fontWeight: 800, letterSpacing: '0.03em' }}>
-                  STRETCH
-                </span>
-              ) : (
-                <span style={{ fontSize: '0.66rem', background: 'rgba(74, 222, 128, 0.2)', color: '#4ADE80', padding: '1px 6px', borderRadius: '4px', fontWeight: 800, letterSpacing: '0.03em' }}>
-                  OPTIMAL
-                </span>
-              )}
-              <Sparkles size={11} color={gaugeColor} style={{ opacity: 0.8, marginLeft: '1px' }} />
-            </button>
-          )}
-
           {total > 0 && (
             <button
               onClick={onOpenReviewModal}
               className="btn-secondary"
               style={{
+                height: '36px',
                 border: '1px solid var(--border-walnut-faint)',
                 background: 'var(--bg-walnut-surface)',
                 color: 'var(--text-kehwa-cream)',
-                fontSize: '0.80rem',
-                padding: '6px 12px',
-                display: 'flex',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                padding: '0 14px',
+                display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
                 borderRadius: 'var(--radius-full)',
+                boxSizing: 'border-box',
               }}
               title="Run daily accountability reflection ceremony"
             >
-              <CheckSquare size={13} color="var(--saffron-ember)" />
+              <CheckSquare size={14} color="var(--saffron-ember)" />
               <span>Review Day</span>
             </button>
           )}
@@ -235,7 +210,17 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
           <button
             onClick={onOpenAddModal}
             className="btn-primary daily-add-btn"
-            style={{ fontSize: '0.84rem', padding: '7px 14px', display: 'flex', alignItems: 'center', gap: '5px', borderRadius: 'var(--radius-full)' }}
+            style={{
+              height: '36px',
+              fontSize: '0.84rem',
+              fontWeight: 700,
+              padding: '0 16px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              borderRadius: 'var(--radius-full)',
+              boxSizing: 'border-box',
+            }}
           >
             <Plus size={15} />
             <span>Add Commitment</span>
@@ -243,7 +228,7 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
         </div>
       </div>
 
-      {/* Progress & Stats Bar (Only when tasks exist) */}
+      {/* Progress & Workload Feasibility Bar (Only when tasks exist) */}
       {total > 0 && (
         <div style={{ paddingTop: '12px', borderTop: '1px solid var(--border-walnut-faint)' }}>
           <div style={{
@@ -253,17 +238,64 @@ export const DailyProgressHeader: React.FC<DailyProgressHeaderProps> = ({
             fontSize: '0.78rem',
             fontWeight: 600,
             color: 'var(--text-tweed-dim)',
-            marginBottom: '6px',
+            marginBottom: '8px',
             flexWrap: 'wrap',
-            gap: '6px',
+            gap: '8px',
           }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text-parchment-muted)' }}>
-              <Flame size={13} color="var(--chinar-rust)" />
+            {/* Left: Completion Progress */}
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-parchment-muted)' }}>
+              <Flame size={14} color="var(--chinar-rust)" />
               <span>{completed} of {total} Kept • {completedHours}h of {totalHours}h focused</span>
             </span>
-            <span style={{ color: percentage === 100 ? '#4ADE80' : 'var(--saffron-ember)', fontWeight: 700 }}>
-              {percentage}%
-            </span>
+
+            {/* Right: Feasibility Gauge & Progress Percentage */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={onOpenAiReview}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  background: gaugeBg,
+                  border: `1px solid ${gaugeBorder}`,
+                  borderRadius: 'var(--radius-full)',
+                  padding: '3px 10px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                  color: gaugeColor,
+                  boxShadow: isCriticalOverload ? '0 0 10px rgba(248, 113, 113, 0.12)' : isModerateStretch ? '0 0 10px rgba(226, 149, 59, 0.12)' : 'none',
+                  boxSizing: 'border-box',
+                }}
+                title="Click to view AI Feasibility Audit & Workload Rebalancing in Side Drawer"
+              >
+                <Zap size={12} color={gaugeColor} style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: '0.76rem', fontWeight: 700 }}>
+                  {plannedHoursNum}h / {capacityHoursNum}h
+                </span>
+                <span style={{ fontSize: '0.70rem', opacity: 0.85, fontWeight: 600 }}>
+                  ({Math.round(ratio * 100)}%)
+                </span>
+                {isCriticalOverload ? (
+                  <span style={{ fontSize: '0.64rem', background: 'rgba(248, 113, 113, 0.25)', color: '#F87171', padding: '1px 5px', borderRadius: '4px', fontWeight: 800, letterSpacing: '0.03em' }}>
+                    OVERLOAD
+                  </span>
+                ) : isModerateStretch ? (
+                  <span style={{ fontSize: '0.64rem', background: 'rgba(226, 149, 59, 0.25)', color: 'var(--saffron-ember)', padding: '1px 5px', borderRadius: '4px', fontWeight: 800, letterSpacing: '0.03em' }}>
+                    STRETCH
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '0.64rem', background: 'rgba(74, 222, 128, 0.2)', color: '#4ADE80', padding: '1px 5px', borderRadius: '4px', fontWeight: 800, letterSpacing: '0.03em' }}>
+                    OPTIMAL
+                  </span>
+                )}
+                <Sparkles size={11} color={gaugeColor} style={{ opacity: 0.8, marginLeft: '1px' }} />
+              </button>
+
+              <span style={{ color: percentage === 100 ? '#4ADE80' : 'var(--saffron-ember)', fontWeight: 700, fontSize: '0.82rem' }}>
+                {percentage}%
+              </span>
+            </div>
           </div>
 
           <div style={{
