@@ -66,10 +66,33 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
 
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [templateInitialValues, setTemplateInitialValues] = useState<any>(null);
   const [editingCommitment, setEditingCommitment] = useState<Commitment | null>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [postponingCommitment, setPostponingCommitment] = useState<Commitment | null>(null);
   const [discussionCommitment, setDiscussionCommitment] = useState<Commitment | null>(null);
+
+  // Listen for global open add modal trigger (from keyboard shortcuts or mobile bottom nav FAB)
+  React.useEffect(() => {
+    const handleOpenAdd = () => {
+      setTemplateInitialValues(null);
+      setIsAddModalOpen(true);
+    };
+    window.addEventListener('aazdoh:open-add-modal', handleOpenAdd);
+    return () => window.removeEventListener('aazdoh:open-add-modal', handleOpenAdd);
+  }, []);
+
+  const handleOpenWithTemplate = (template: {
+    title: string;
+    category?: any;
+    priority?: any;
+    estimatedMinutes?: number;
+    dayPhase?: any;
+    expectedOutcome?: string;
+  }) => {
+    setTemplateInitialValues(template);
+    setIsAddModalOpen(true);
+  };
 
   // 60-Second AI Plan Stress-Test Modal
   const [isStressTestOpen, setIsStressTestOpen] = useState(false);
@@ -605,8 +628,8 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
             Loading commitments...
           </p>
         ) : commitments.length === 0 ? (
-          /* Empty State */
-          <div className="harud-card" style={{ padding: 'clamp(36px, 7vw, 52px) 20px', textAlign: 'center', color: 'var(--text-tweed-dim)' }}>
+          /* Empty State with Quick-Start Template Chips */
+          <div className="harud-card" style={{ padding: 'clamp(32px, 6vw, 48px) 20px', textAlign: 'center', color: 'var(--text-tweed-dim)' }}>
             <div style={{
               width: '56px',
               height: '56px',
@@ -623,16 +646,118 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
             <h3 style={{ fontSize: '1.25rem', color: 'var(--text-kehwa-cream)', fontWeight: 700 }}>
               {selectedDate === todayStr ? 'No Commitments Yet Today' : `No Commitments for ${selectedDate}`}
             </h3>
-            <p style={{ maxWidth: '380px', margin: '8px auto 22px', fontSize: '0.88rem', lineHeight: 1.55, color: 'var(--text-parchment-muted)' }}>
-              Accountability begins with clear promises. What are the 2 or 3 essential tasks you commit to completing?
+            <p style={{ maxWidth: '420px', margin: '8px auto 20px', fontSize: '0.88rem', lineHeight: 1.55, color: 'var(--text-parchment-muted)' }}>
+              Accountability begins with clear promises. Pick a quick-start template below or craft your own primary focus.
             </p>
+
+            {/* Quick Starter Templates */}
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '8px',
+              justifyContent: 'center',
+              maxWidth: '600px',
+              margin: '0 auto 24px',
+            }}>
+              <button
+                onClick={() => handleOpenWithTemplate({
+                  title: 'Deep Work: Core Feature Sprint',
+                  category: 'DEEP_WORK',
+                  priority: 'HIGH',
+                  estimatedMinutes: 90,
+                  dayPhase: 'MORNING',
+                  expectedOutcome: 'Complete implementation and initial testing of target module',
+                })}
+                className="btn-outline"
+                style={{
+                  fontSize: '0.8rem',
+                  padding: '7px 12px',
+                  borderRadius: '20px',
+                  background: 'rgba(226, 149, 59, 0.08)',
+                  borderColor: 'rgba(226, 149, 59, 0.3)',
+                  color: 'var(--text-kehwa-cream)',
+                }}
+              >
+                ⚡ Deep Work Sprint (90m)
+              </button>
+
+              <button
+                onClick={() => handleOpenWithTemplate({
+                  title: 'Daily High-Impact Objective',
+                  category: 'DEEP_WORK',
+                  priority: 'URGENT',
+                  estimatedMinutes: 60,
+                  dayPhase: 'DAY',
+                  expectedOutcome: 'Ship milestone deliverable without distractions',
+                })}
+                className="btn-outline"
+                style={{
+                  fontSize: '0.8rem',
+                  padding: '7px 12px',
+                  borderRadius: '20px',
+                  background: 'rgba(192, 83, 48, 0.08)',
+                  borderColor: 'rgba(192, 83, 48, 0.3)',
+                  color: 'var(--text-kehwa-cream)',
+                }}
+              >
+                🎯 High-Impact Objective (60m)
+              </button>
+
+              <button
+                onClick={() => handleOpenWithTemplate({
+                  title: 'Partner Sync & Progress Check-in',
+                  category: 'ROUTINE',
+                  priority: 'MEDIUM',
+                  estimatedMinutes: 30,
+                  dayPhase: 'DAY',
+                  expectedOutcome: 'Review progress, align on blockers, confirm next steps',
+                })}
+                className="btn-outline"
+                style={{
+                  fontSize: '0.8rem',
+                  padding: '7px 12px',
+                  borderRadius: '20px',
+                  background: 'rgba(46, 125, 82, 0.08)',
+                  borderColor: 'rgba(46, 125, 82, 0.3)',
+                  color: 'var(--text-kehwa-cream)',
+                }}
+              >
+                🤝 Partner Sync (30m)
+              </button>
+
+              <button
+                onClick={() => handleOpenWithTemplate({
+                  title: 'Evening Daily Reflection & Review',
+                  category: 'ROUTINE',
+                  priority: 'LOW',
+                  estimatedMinutes: 15,
+                  dayPhase: 'EVENING',
+                  expectedOutcome: 'Audit kept vs missed commitments and reflect on learnings',
+                })}
+                className="btn-outline"
+                style={{
+                  fontSize: '0.8rem',
+                  padding: '7px 12px',
+                  borderRadius: '20px',
+                  background: 'rgba(167, 139, 250, 0.08)',
+                  borderColor: 'rgba(167, 139, 250, 0.3)',
+                  color: 'var(--text-kehwa-cream)',
+                }}
+              >
+                🧘 Evening Reflection (15m)
+              </button>
+            </div>
+
             <button
-              onClick={() => setIsAddModalOpen(true)}
+              onClick={() => {
+                setTemplateInitialValues(null);
+                setIsAddModalOpen(true);
+              }}
               className="btn-primary"
-              style={{ padding: '10px 20px', fontSize: '0.92rem' }}
+              style={{ padding: '10px 22px', fontSize: '0.92rem' }}
             >
               <Plus size={16} />
-              <span>Create First Commitment</span>
+              <span>Create Custom Commitment</span>
             </button>
           </div>
         ) : activeFilter === 'all' ? (
@@ -860,10 +985,14 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
       {/* Modals */}
       <AddCommitmentModal
         isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setTemplateInitialValues(null);
+        }}
         onSuccess={refreshCommitments}
         selectedDate={selectedDate}
         onTriggerAiPlanReview={() => handleRunFeasibilityCheck()}
+        initialValues={templateInitialValues}
       />
 
       <EditCommitmentModal

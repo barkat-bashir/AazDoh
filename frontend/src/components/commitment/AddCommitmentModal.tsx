@@ -13,6 +13,14 @@ interface AddCommitmentModalProps {
   onSuccess: () => void;
   selectedDate?: string;
   onTriggerAiPlanReview?: () => void;
+  initialValues?: {
+    title?: string;
+    category?: CommitmentCategory;
+    priority?: CommitmentPriority;
+    estimatedMinutes?: number;
+    dayPhase?: DayPhase | null;
+    expectedOutcome?: string;
+  };
 }
 
 // Fast regex for detecting intellectual / cognitive deep work (case-insensitive)
@@ -50,18 +58,19 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
   onSuccess,
   selectedDate,
   onTriggerAiPlanReview,
+  initialValues,
 }) => {
   const { user } = useAuth();
   const { showToast } = useToast();
-  const [title, setTitle] = useState('');
-  const [category, setCategory] = useState<CommitmentCategory>('DEEP_WORK');
-  const [isManuallySelected, setIsManuallySelected] = useState(false);
+  const [title, setTitle] = useState(initialValues?.title || '');
+  const [category, setCategory] = useState<CommitmentCategory>(initialValues?.category || 'DEEP_WORK');
+  const [isManuallySelected, setIsManuallySelected] = useState(!!initialValues?.category);
   const [activeMatch, setActiveMatch] = useState<CommitmentCategory | null>(null);
-  const [expectedOutcome, setExpectedOutcome] = useState('');
-  const [showDeliverable, setShowDeliverable] = useState(false);
-  const [estimatedMinutes, setEstimatedMinutes] = useState(60);
-  const [priority, setPriority] = useState<CommitmentPriority>('MEDIUM');
-  const [dayPhase, setDayPhase] = useState<DayPhase | null>(null);
+  const [expectedOutcome, setExpectedOutcome] = useState(initialValues?.expectedOutcome || '');
+  const [showDeliverable, setShowDeliverable] = useState(!!initialValues?.expectedOutcome);
+  const [estimatedMinutes, setEstimatedMinutes] = useState(initialValues?.estimatedMinutes || 60);
+  const [priority, setPriority] = useState<CommitmentPriority>(initialValues?.priority || 'MEDIUM');
+  const [dayPhase, setDayPhase] = useState<DayPhase | null>(initialValues?.dayPhase || null);
   const [visibility, setVisibility] = useState<CommitmentVisibility>('PRIVATE');
   const [targetPartnerId, setTargetPartnerId] = useState<string | null>(null);
   const [activePartners, setActivePartners] = useState<{ id: string; name: string }[]>([]);
@@ -71,21 +80,21 @@ export const AddCommitmentModal: React.FC<AddCommitmentModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      setIsManuallySelected(false);
+      setIsManuallySelected(!!initialValues?.category);
       setActiveMatch(null);
-      setCategory('DEEP_WORK');
-      setEstimatedMinutes(60);
-      setPriority('MEDIUM');
-      setDayPhase(null);
+      setCategory(initialValues?.category || 'DEEP_WORK');
+      setEstimatedMinutes(initialValues?.estimatedMinutes || 60);
+      setPriority(initialValues?.priority || 'MEDIUM');
+      setDayPhase(initialValues?.dayPhase || null);
       setVisibility('PRIVATE');
       setTargetPartnerId(null);
-      setShowDeliverable(false);
-      setExpectedOutcome('');
-      setTitle('');
+      setShowDeliverable(!!initialValues?.expectedOutcome);
+      setExpectedOutcome(initialValues?.expectedOutcome || '');
+      setTitle(initialValues?.title || '');
       setActiveMenu(null);
       setTimeout(() => inputRef.current?.focus(), 60);
     }
-  }, [isOpen]);
+  }, [isOpen, initialValues]);
 
   useEffect(() => {
     if (isOpen && user?.id) {

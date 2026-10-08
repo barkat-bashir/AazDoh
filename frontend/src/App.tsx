@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { Header } from './components/common/Header';
 import { Navigation } from './components/common/Navigation';
+import { MobileBottomNav } from './components/common/MobileBottomNav';
+import { KeyboardShortcutsModal } from './components/common/KeyboardShortcutsModal';
 import { ChinarLeavesCanvas } from './components/common/ChinarLeavesCanvas';
 import { LandingPage } from './pages/LandingPage';
 import { AuthPage } from './pages/AuthPage';
@@ -46,14 +48,24 @@ const ResetPasswordRoute: React.FC = () => {
   );
 };
 
-// Authenticated Layout Container (Header, Nav, Outlet, Modals, Footer)
+// Authenticated Layout Container (Header, Nav, MobileBottomNav, Outlet, Modals, Footer)
 const AuthenticatedLayout: React.FC<{
   unreadSummary: any;
   isSettingsOpen: boolean;
   setIsSettingsOpen: (open: boolean) => void;
   isAgentOpen: boolean;
   setIsAgentOpen: (open: boolean) => void;
-}> = ({ unreadSummary, isSettingsOpen, setIsSettingsOpen, isAgentOpen, setIsAgentOpen }) => {
+  isShortcutsOpen: boolean;
+  setIsShortcutsOpen: (open: boolean) => void;
+}> = ({
+  unreadSummary,
+  isSettingsOpen,
+  setIsSettingsOpen,
+  isAgentOpen,
+  setIsAgentOpen,
+  isShortcutsOpen,
+  setIsShortcutsOpen,
+}) => {
   const unreadTodayCount = unreadSummary?.unreadTodayMessages || 0;
   const unreadPartnerCount = unreadSummary?.unreadPartnerMessages !== undefined
     ? unreadSummary.unreadPartnerMessages
@@ -75,9 +87,22 @@ const AuthenticatedLayout: React.FC<{
         <Outlet />
       </main>
 
+      {/* Mobile-Optimized Fixed Bottom Bar */}
+      <MobileBottomNav
+        unreadTodayCount={unreadTodayCount}
+        unreadPartnerCount={unreadPartnerCount}
+        onOpenAgent={() => setIsAgentOpen(true)}
+        onOpenAddModal={() => window.dispatchEvent(new CustomEvent('aazdoh:open-add-modal'))}
+      />
+
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+      />
+
+      <KeyboardShortcutsModal
+        isOpen={isShortcutsOpen}
+        onClose={() => setIsShortcutsOpen(false)}
       />
 
       {/* Autonomous AI Coach Drawer */}
@@ -105,7 +130,21 @@ const AuthenticatedLayout: React.FC<{
         gap: '10px',
       }}>
         <span>AazDoh • Commit • Do • Report • Reflect</span>
-        <div style={{ display: 'flex', gap: '16px' }}>
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <button
+            onClick={() => setIsShortcutsOpen(true)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-tweed-dim)',
+              fontSize: '0.78rem',
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              padding: 0,
+            }}
+          >
+            Keyboard Shortcuts (?)
+          </button>
           <span>© {new Date().getFullYear()} AazDoh</span>
         </div>
       </footer>
@@ -114,23 +153,61 @@ const AuthenticatedLayout: React.FC<{
 };
 
 const AppContent: React.FC = () => {
+  const navigate = useNavigate();
   const { user, loading } = useAuth();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAgentOpen, setIsAgentOpen] = useState(false);
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
 
-  // Global Cmd+K / Ctrl+K keyboard shortcut to toggle AI Coach
+  // Global Keyboard Shortcuts (1, 2, 3, C, N, ?, Cmd+K, Esc)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if user is typing in an input, textarea, or contentEditable
+      const target = e.target as HTMLElement;
+      const isInput = target && (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable
+      );
+
+      // AI Coach Toggle (Cmd+K / Ctrl+K)
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         if (user) {
           setIsAgentOpen((prev) => !prev);
         }
+        return;
+      }
+
+      // If user is currently typing in a text field, ignore single-key shortcuts
+      if (isInput) {
+        if (e.key === 'Escape') {
+          target.blur();
+        }
+        return;
+      }
+
+      if (!user) return;
+
+      if (e.key === '?') {
+        e.preventDefault();
+        setIsShortcutsOpen((prev) => !prev);
+      } else if (e.key === '1') {
+        navigate('/today');
+      } else if (e.key === '2') {
+        navigate('/partners');
+      } else if (e.key === '3') {
+        navigate('/insights');
+      } else if (e.key.toLowerCase() === 'c' || e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent('aazdoh:open-add-modal'));
       }
     };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [user]);
+  }, [user, navigate]);
 
   // TanStack Query for unread notifications & background sync
   const { data: unreadSummary } = useQuery({

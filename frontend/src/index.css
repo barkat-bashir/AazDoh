@@ -607,18 +607,34 @@ textarea.input-field {
     padding: 10px 16px;
   }
 
-  .app-nav {
-    padding: 8px 12px;
-    gap: 6px;
+  .app-nav-wrapper {
+    display: none !important;
+  }
+
+  .mobile-bottom-nav {
+    display: flex !important;
+  }
+
+  .toast-container {
+    bottom: 80px !important;
+    right: 16px !important;
+    left: 16px !important;
+    max-width: calc(100vw - 32px) !important;
   }
 
   .page-container {
-    padding: 16px 14px;
+    padding: 16px 14px 80px;
   }
 
   /* Prevent auto-zoom on mobile inputs */
   .input-field {
     font-size: 16px;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-bottom-nav {
+    display: none !important;
   }
 }
 

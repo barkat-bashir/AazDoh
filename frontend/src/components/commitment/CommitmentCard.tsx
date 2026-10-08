@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Commitment, commitmentApi } from '../../api/commitmentApi';
 import { useToast } from '../../context/ToastContext';
+import { triggerLeafCelebration } from '../../utils/leafCelebration';
 import { 
   CheckCircle, 
   Circle, 
@@ -18,7 +19,8 @@ import {
   GripVertical,
   Sunrise,
   Sun,
-  Moon
+  Moon,
+  MoreVertical
 } from 'lucide-react';
 import { useFocusTimer } from '../../context/FocusTimerContext';
 
@@ -45,17 +47,35 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
   onDragEnd,
   isDraggable = true,
 }) => {
-  const { showToast } = useToast();
+  const { showToast, showActionToast } = useToast();
   const { startFocusSession } = useFocusTimer();
   const [loading, setLoading] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isOptimisticallyDeleted, setIsOptimisticallyDeleted] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  const handleToggleComplete = async () => {
+  // Close menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMenuOpen]);
+
+  const handleToggleComplete = async (e: React.MouseEvent) => {
     try {
       setLoading(true);
       if (commitment.status === 'COMPLETED' || commitment.status === 'MISSED') {
         await commitmentApi.update(commitment.id, { status: 'PENDING' });
         showToast('Commitment reset to pending', 'info');
       } else {
+        // Trigger celebratory leaf particles at click position
+        triggerLeafCelebration(e.clientX, e.clientY);
         await commitmentApi.complete(commitment.id);
         showToast('Commitment kept! Well done.', 'success');
       }
@@ -77,6 +97,7 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
       showToast(err.message || 'Failed to mark commitment as missed', 'error');
     } finally {
       setLoading(false);
+      setIsMenuOpen(false);
     }
   };
 
@@ -90,22 +111,46 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
       showToast(err.message || 'Failed to reopen commitment', 'error');
     } finally {
       setLoading(false);
+      setIsMenuOpen(false);
     }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm(`Delete commitment "${commitment.title}"?`)) return;
-    try {
-      setLoading(true);
-      await commitmentApi.delete(commitment.id);
-      showToast('Commitment deleted', 'info');
-      onRefresh();
-    } catch (err: any) {
-      showToast(err.message || 'Failed to delete commitment', 'error');
-    } finally {
-      setLoading(false);
-    }
+  const handleDeleteOptimistic = () => {
+    setIsMenuOpen(false);
+    setIsOptimisticallyDeleted(true);
+
+    let isCancelled = false;
+    const deleteTimer = setTimeout(async () => {
+      if (!isCancelled) {
+        try {
+          await commitmentApi.delete(commitment.id);
+          onRefresh();
+        } catch (err: any) {
+          setIsOptimisticallyDeleted(false);
+          showToast(err.message || 'Failed to delete commitment', 'error');
+        }
+      }
+    }, 5000);
+
+    showActionToast(
+      `Deleted "${commitment.title}"`,
+      {
+        label: 'Undo',
+        onClick: () => {
+          isCancelled = true;
+          clearTimeout(deleteTimer);
+          setIsOptimisticallyDeleted(false);
+          showToast('Deletion undone', 'info');
+        },
+      },
+      'info',
+      5000
+    );
   };
+
+  if (isOptimisticallyDeleted) {
+    return null;
+  }
 
   const isCompleted = commitment.status === 'COMPLETED';
   const isMissed = commitment.status === 'MISSED';
@@ -351,7 +396,8 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
             </div>
 
             {/* Action buttons */}
-            <div className="commitment-card-actions">
+            <div className="commitment-card-actions" style={{ position: 'relative' }}>
+              {/* Primary Focus Button (when pending) */}
               {!isCompleted && !isPostponed && !isRoutine && (
                 <button
                   onClick={() => startFocusSession(commitment)}
@@ -373,19 +419,7 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
                 </button>
               )}
 
-              {/* Edit button */}
-              {onEditClick && !isCompleted && (
-                <button
-                  onClick={() => onEditClick(commitment)}
-                  className="btn-outline"
-                  style={{ padding: '5px 10px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px' }}
-                  title="Edit commitment details"
-                >
-                  <Pencil size={13} />
-                  <span>Edit</span>
-                </button>
-              )}
-
+              {/* Discussion Thread Trigger */}
               <button
                 onClick={() => onOpenDiscussion(commitment)}
                 className="btn-outline"
@@ -415,65 +449,8 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
                 </span>
               </button>
 
-              {!isCompleted && !isPostponed && !isMissed && (
-                <button
-                  onClick={() => onPostponeClick(commitment)}
-                  className="btn-outline"
-                  style={{ padding: '5px 10px', fontSize: '0.78rem' }}
-                  title="Postpone to a future date"
-                >
-                  <CalendarClock size={14} />
-                  <span>Postpone</span>
-                </button>
-              )}
-
-              {/* Mark as Missed Button for time-bound tasks */}
-              {!isCompleted && !isPostponed && !isMissed && (
-                <button
-                  onClick={handleMarkMissed}
-                  disabled={loading}
-                  className="btn-outline"
-                  style={{
-                    padding: '5px 10px',
-                    fontSize: '0.78rem',
-                    color: '#F87171',
-                    borderColor: 'rgba(239, 68, 68, 0.35)',
-                    background: 'rgba(239, 68, 68, 0.06)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                  title="Mark as missed (e.g. time-bound window elapsed)"
-                >
-                  <XCircle size={13} color="#F87171" />
-                  <span>Missed</span>
-                </button>
-              )}
-
-              {/* Reopen if Missed */}
-              {isMissed && (
-                <button
-                  onClick={handleReopen}
-                  disabled={loading}
-                  className="btn-outline"
-                  style={{
-                    padding: '5px 10px',
-                    fontSize: '0.78rem',
-                    borderColor: 'rgba(239, 68, 68, 0.4)',
-                    color: '#F87171',
-                    background: 'rgba(239, 68, 68, 0.08)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                  title="Reopen commitment for today"
-                >
-                  <RotateCcw size={13} />
-                  <span>Reopen</span>
-                </button>
-              )}
-
-              {isPostponed && (
+              {/* Reopen Button if Postponed or Missed */}
+              {(isPostponed || isMissed) && (
                 <button
                   onClick={handleReopen}
                   disabled={loading}
@@ -488,7 +465,7 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
                     alignItems: 'center',
                     gap: '5px',
                   }}
-                  title="Reopen and work on this commitment today"
+                  title="Reopen commitment for today"
                 >
                   <RotateCcw size={13} />
                   <span>Reopen for Today</span>
@@ -505,23 +482,133 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
                 </button>
               )}
 
-              <button
-                onClick={handleDelete}
-                className="btn-delete-icon"
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-tweed-dim)',
-                  cursor: 'pointer',
-                  borderRadius: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-                title="Delete commitment"
-              >
-                <Trash2 size={15} />
-              </button>
+              {/* Kebab / More Actions Menu for secondary operations */}
+              <div ref={menuRef} style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setIsMenuOpen((prev) => !prev)}
+                  className="btn-outline"
+                  style={{
+                    padding: '5px 8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  title="More actions"
+                  aria-label="More actions"
+                >
+                  <MoreVertical size={14} />
+                </button>
+
+                {isMenuOpen && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      right: 0,
+                      bottom: 'calc(100% + 6px)',
+                      background: 'var(--bg-walnut-surface)',
+                      border: '1px solid var(--border-copper-subtle)',
+                      borderRadius: 'var(--radius-sm)',
+                      boxShadow: 'var(--shadow-warm-md)',
+                      minWidth: '160px',
+                      zIndex: 100,
+                      padding: '4px 0',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      animation: 'fadeIn 0.12s ease-out',
+                    }}
+                  >
+                    {onEditClick && !isCompleted && (
+                      <button
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          onEditClick(commitment);
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-kehwa-cream)',
+                          padding: '8px 12px',
+                          fontSize: '0.82rem',
+                          textAlign: 'left',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Pencil size={13} />
+                        <span>Edit Details</span>
+                      </button>
+                    )}
+
+                    {!isCompleted && !isPostponed && !isMissed && (
+                      <button
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          onPostponeClick(commitment);
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-kehwa-cream)',
+                          padding: '8px 12px',
+                          fontSize: '0.82rem',
+                          textAlign: 'left',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <CalendarClock size={13} />
+                        <span>Postpone to Future</span>
+                      </button>
+                    )}
+
+                    {!isCompleted && !isPostponed && !isMissed && (
+                      <button
+                        onClick={handleMarkMissed}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#F87171',
+                          padding: '8px 12px',
+                          fontSize: '0.82rem',
+                          textAlign: 'left',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <XCircle size={13} />
+                        <span>Mark as Missed</span>
+                      </button>
+                    )}
+
+                    <div style={{ height: '1px', background: 'var(--border-walnut-faint)', margin: '4px 0' }} />
+
+                    <button
+                      onClick={handleDeleteOptimistic}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#F87171',
+                        padding: '8px 12px',
+                        fontSize: '0.82rem',
+                        textAlign: 'left',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <Trash2 size={13} />
+                      <span>Delete Commitment</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
