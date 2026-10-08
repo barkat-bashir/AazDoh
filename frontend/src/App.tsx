@@ -305,6 +305,8 @@ const AppContent: React.FC = () => {
               setIsSettingsOpen={setIsSettingsOpen}
               isAgentOpen={isAgentOpen}
               setIsAgentOpen={setIsAgentOpen}
+              isShortcutsOpen={isShortcutsOpen}
+              setIsShortcutsOpen={setIsShortcutsOpen}
             />
           ) : (
             <Navigate to="/login" replace />
