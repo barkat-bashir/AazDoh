@@ -101,6 +101,25 @@ Standard to-do apps reward dopamine checkmarks, artificial streaks, and passive 
 - **Multi-Day Cognitive Capacity Defense**: Evaluates planned cognitive loads across all touched dates to proactively alert users when any single day exceeds **6 hours (> 360m)**.
 - **Undo State Fidelity**: 1-tap mutation rollbacks restore exact historical dates and states, with safety boundaries preserving closed past records.
 
+### 8. 📱 Mobile Ergonomics & Thumb-Zone Bottom Navigation
+- **Fixed Glassmorphic Bottom Navigation**: Dedicated mobile navigation bar ($\le 768\text{px}$) with safe-area insets (`env(safe-area-inset-bottom)`).
+- **Glowing Quick-Add Center FAB**: Instant 1-tap commitment creation reachable comfortably within the natural mobile thumb zone.
+- **Responsive Viewport Transitions**: Top navigation for desktop screens gracefully morphs into an app-like bottom bar on handheld devices.
+
+### 9. ⌨️ Power-User Keyboard Shortcuts & Zero-State Templates
+- **Keyboard-First Workflow**: Linear/Superhuman-style single-key navigation:
+  - `1`, `2`, `3`: Instantly jump between **Today**, **Partners**, and **Insights**.
+  - `C` or `N`: Open Create Commitment modal from anywhere.
+  - `?`: Toggle the **Keyboard Shortcuts Cheat Sheet Modal**.
+  - `Cmd+K` / `Ctrl+K`: Toggle autonomous AI Coach Drawer.
+  - `Esc`: Dismiss active modals and drawers.
+- **1-Click Starter Template Chips**: Empty state on the Today view features curated templates (*Deep Work Sprint 90m*, *High-Impact Objective 60m*, *Partner Sync 30m*, *Evening Reflection 15m*) to prevent blank-canvas activation friction.
+
+### 10. 🍁 Kashmiri Chinar Leaf Celebration & Optimistic Undo Engine
+- **Chinar Leaf Particle Burst**: Interactive HTML5 Canvas celebratory animation releasing golden Chinar leaves and glowing embers upon task completion (fully compliant with `prefers-reduced-motion`).
+- **Non-Blocking Optimistic Deletion**: Replaced jarring browser alerts with instantaneous visual card removal and an interactive 5-second **Undo SnackBar**.
+- **Progressive Disclosure Card Architecture**: Promotes the primary **⚡ Focus** and **💬 Discussion** actions while housing secondary operations (`Edit`, `Postpone`, `Mark Missed`, `Delete`) in a clean kebab (`...`) dropdown menu.
+
 ---
 
 ## 🏗️ Monorepo Architecture
@@ -123,14 +142,16 @@ AazDoh/
 │   ├── src/
 │   │   ├── api/             # Typed API client services
 │   │   ├── components/
+│   │   │   ├── agent/       # Autonomous AI Coach Drawer
 │   │   │   ├── analytics/   # Heatmap, Duration Curve, Friction Matrix
-│   │   │   ├── commitments/ # Commitment cards, Modals, Drag & Drop Day Phases, Stress-test UI
-│   │   │   ├── common/      # Chinar leaf canvas, BrandLogo, Header, Nav
+│   │   │   ├── commitment/  # Commitment cards, Modals, Drag & Drop Day Phases, Stress-test UI
+│   │   │   ├── common/      # Chinar leaf canvas, BrandLogo, Header, Nav, MobileBottomNav, KeyboardShortcutsModal
 │   │   │   ├── focus/       # FocusSprintModal, FloatingFocusBar, Web Audio Telemetry
-│   │   │   ├── partners/    # 1:1 partner dashboard & discussion drawers
+│   │   │   ├── partnership/ # 1:1 partner dashboard & discussion drawers
 │   │   │   └── review/      # Reflection & cognitive excuse mirror modals
-│   │   ├── context/         # AuthContext, ToastContext, FocusTimerContext
-│   │   └── pages/           # LandingPage, TodayPage, PartnersPage, AnalyticsPage
+│   │   ├── context/         # AuthContext, ToastContext (Undo support), FocusTimerContext
+│   │   ├── pages/           # LandingPage, TodayPage, PartnersPage, AnalyticsPage
+│   │   └── utils/           # dateUtils, leafCelebration particle engine
 │   └── public/              # Static assets & Brand favicons
 │
 ├── cli/                      # Autonomous TypeScript Terminal CLI Agent (`aazdoh-cli`)
@@ -633,16 +654,23 @@ npm run build
 
 ## 🎨 Design System (Kashmir Harud Aesthetic)
 
-AazDoh features a bespoke, artisanal design system inspired by the autumn season (*Harud*) of the Kashmir valley:
+AazDoh features a bespoke, artisanal design system inspired by the autumn season (*Harud*) of the Kashmir valley, tuned for low eye-strain deep work and tactile responsiveness:
 
-| Token | Hex | Role |
+| Token | Hex / Value | Role |
 | :--- | :--- | :--- |
-| `--bg-walnut-deep` | `#120E0B` | Deep walnut background foundation |
-| `--bg-walnut-card` | `#1C1510` | Elevated card & surface background |
-| `--chinar-rust` | `#C05330` | Warm primary action accents |
-| `--saffron-ember` | `#E2953B` | Active focus, badges & highlights |
-| `--pine-emerald` | `#2E7D52` | Kept promises, success & velocity |
+| `--bg-walnut-deep` | `#140E0A` | Deep walnut background foundation |
+| `--bg-walnut-card` | `#2E231B` | Elevated card & surface glassmorphic background |
+| `--chinar-rust` | `#C05330` | Warm primary action accents & button gradients |
+| `--saffron-ember` | `#E2953B` | Active focus, badges, highlights & focus rings |
+| `--pine-emerald` | `#2E7D52` | Kept promises, success states & velocity metrics |
 | `--text-kehwa-cream` | `#F5EFEB` | Crisp, high-legibility typography |
+| `--text-parchment-muted` | `#D1C5BC` | Supporting metadata & secondary descriptions |
+
+### Micro-Interactions & Usability Ergonomics
+- 🍁 **Canvas Leaf Particle Engine**: Real-time celebratory particle simulation rendering spinning Chinar leaves and golden embers upon task completion.
+- 📱 **Mobile Thumb Zone**: Fixed bottom navigation on viewports $\le 768\text{px}$ with center quick-add FAB and safe-area inset padding.
+- ⌨️ **Vim/Linear-Style Navigation**: `1-3` route jumping, `C`/`N` quick add, `?` shortcuts sheet, `Cmd+K` AI coach.
+- ⚡ **Optimistic Deletion with Undo**: Immediate UI responsiveness backed by a 5-second reversible SnackBar window.
 
 ---
 
