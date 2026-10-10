@@ -31,7 +31,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   };
 
   return (
-    <nav 
+    <nav
       className="mobile-bottom-nav"
       aria-label="Mobile Bottom Navigation"
       style={{
