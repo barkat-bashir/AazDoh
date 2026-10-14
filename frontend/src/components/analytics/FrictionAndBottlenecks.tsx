@@ -13,7 +13,7 @@ export const FrictionAndBottlenecks: React.FC<FrictionAndBottlenecksProps> = ({
 }) => {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
-      {/* Repeat Offender Tasks (Procrastination Bottlenecks) */}
+      {/* Inertia Bottlenecks */}
       <div className="harud-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
@@ -29,10 +29,10 @@ export const FrictionAndBottlenecks: React.FC<FrictionAndBottlenecksProps> = ({
           </div>
           <div>
             <h4 style={{ fontSize: '1.05rem', color: 'var(--text-kehwa-cream)', margin: 0, fontWeight: 700 }}>
-              Procrastination Bottlenecks
+              Inertia Bottlenecks
             </h4>
             <span style={{ fontSize: '0.72rem', color: 'var(--text-tweed-dim)' }}>
-              Tasks repeatedly postponed or rolled over
+              Tasks with repeated initiation resistance or rescheduling
             </span>
           </div>
         </div>
@@ -40,7 +40,7 @@ export const FrictionAndBottlenecks: React.FC<FrictionAndBottlenecksProps> = ({
         {/* Bottleneck Task List */}
         {bottlenecks.length === 0 ? (
           <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-tweed-dim)', fontSize: '0.84rem' }}>
-            🎉 No repeat procrastination bottlenecks found! Your follow-through is solid.
+            🎉 No inertia bottlenecks detected! Your initiation and follow-through are solid.
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -81,7 +81,7 @@ export const FrictionAndBottlenecks: React.FC<FrictionAndBottlenecksProps> = ({
                   whiteSpace: 'nowrap',
                   flexShrink: 0,
                 }}>
-                  Pushed {item.postponementCount}x
+                  Rescheduled {item.postponementCount}x • Needs Splitting
                 </span>
               </div>
             ))}

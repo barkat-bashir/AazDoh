@@ -199,7 +199,7 @@ export const PostponeCommitmentModal: React.FC<PostponeCommitmentModalProps> = (
           }}>
             <AlertTriangle size={15} style={{ flexShrink: 0 }} />
             <span>
-              This task has been rescheduled <strong>{commitment.postponementCount}x</strong>. Consider shrinking the scope or breaking it into 2 smaller milestones.
+              High initiation friction detected (rescheduled <strong>{commitment.postponementCount}x</strong>). Recommend splitting into a 15m starter milestone.
             </span>
           </div>
         )}
