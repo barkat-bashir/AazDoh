@@ -232,7 +232,7 @@ const CommitmentCardComponent: React.FC<CommitmentCardProps> = ({
             marginTop: '2px',
             transition: 'var(--transition-smooth)',
           }}
-          title={isCompleted ? 'Mark as pending' : isMissed ? 'Missed commitment. Click to reset to pending.' : isPostponed ? 'Complete today (cancel postpone)' : 'Mark as completed'}
+          title={isCompleted ? 'Reset to pending' : isMissed ? 'Missed commitment. Click to reset to pending.' : isPostponed ? 'Keep today (cancel postpone)' : 'Mark as kept'}
         >
           {isCompleted ? (
             <CheckCircle size={24} color="#4ADE80" />

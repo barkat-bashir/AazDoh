@@ -135,7 +135,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           lineHeight: 1.6,
           marginBottom: '32px',
         }}>
-          Standard to-do apps reward dopamine checkmarks. <strong>AazDoh</strong> replaces wishful thinking with operational integrity: <strong>Plan Feasibility Checks</strong>, a <strong>Cognitive Excuse Classifier</strong> with historical receipts, and true 1-on-1 peer accountability.
+          Standard to-do apps reward dopamine checkmarks. <strong>AazDoh</strong> replaces wishful thinking with operational integrity: <strong>Plan Feasibility Audits</strong>, a <strong>Cognitive Excuse Classifier</strong> with historical receipts, and true 1-on-1 peer accountability.
         </p>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -164,7 +164,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <div>
               <div style={{ fontSize: '0.74rem', color: 'var(--saffron-ember)', fontWeight: 700, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Activity size={13} />
-                <span>Plan Feasibility Check</span>
+                <span>Plan Feasibility Audit</span>
               </div>
               <h3 style={{ fontSize: '1.2rem', color: 'var(--text-kehwa-cream)', marginTop: '2px' }}>
                 Today's Workload: 3.5h Planned • 15% Failure Risk
@@ -223,7 +223,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           }}>
             <Sparkles size={18} color="var(--saffron-ember)" style={{ marginTop: '2px', flexShrink: 0 }} />
             <div>
-              <span style={{ color: 'var(--saffron-ember)', fontWeight: 700 }}>Plan Feasibility Assessment: </span>
+              <span style={{ color: 'var(--saffron-ember)', fontWeight: 700 }}>Plan Feasibility Audit: </span>
               "Your 3.5h load sits comfortably below your 4.2h baseline velocity. No friction bottleneck detected today. Protect your primary 90-minute block for high-momentum execution."
             </div>
           </div>
@@ -242,7 +242,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </div>
 
         <div className="landing-features-grid">
-          {/* Feature 1: Plan Feasibility Check */}
+          {/* Feature 1: Plan Feasibility Audit */}
           <div className="harud-card landing-feature-card">
             <div style={{
               width: '44px',
@@ -257,7 +257,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <Activity size={22} color="#F5EFEB" />
             </div>
             <h3 style={{ fontSize: '1.3rem', marginBottom: '10px', color: 'var(--text-kehwa-cream)' }}>
-              Plan Feasibility Check
+              Plan Feasibility Audit
             </h3>
             <p style={{ color: 'var(--text-parchment-muted)', fontSize: '0.92rem', lineHeight: 1.6, marginBottom: '18px' }}>
               Before starting your day, AazDoh checks your proposed commitments against your 7-day historical focus velocity. If you are overloaded, it generates <strong>1-Click Rebalanced Proposals</strong> to trim, split, or reschedule lower-priority items.
@@ -733,9 +733,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     <>
                       <div style={{ color: '#E2953B', fontWeight: 700 }}>$ az today</div>
                       <div style={{ color: '#8C827A', marginTop: '4px' }}>Plan for: 2026-09-13 | User: Barkat [Persona: BALANCED]</div>
-                      <div style={{ color: '#4ADE80', marginTop: '6px' }}>✔ [DONE] 60m Deep Focus — Architecture PR Review</div>
-                      <div style={{ color: '#4ADE80' }}>✔ [DONE] 60m Deep Focus — PostgreSQL Query Optimization</div>
-                      <div style={{ color: '#F59E0B' }}>⭕ [PEND] 45m Deep Focus — Redis Distributed Lock</div>
+                      <div style={{ color: '#4ADE80', marginTop: '6px' }}>✔ [DONE] 60m Deep Work — Architecture PR Review</div>
+                      <div style={{ color: '#4ADE80' }}>✔ [DONE] 60m Deep Work — PostgreSQL Query Optimization</div>
+                      <div style={{ color: '#F59E0B' }}>⭕ [PEND] 45m Deep Work — Redis Distributed Lock</div>
                       <div style={{ color: '#8C827A', marginTop: '8px', borderTop: '1px dashed #3A2A22', paddingTop: '6px' }}>
                         Summary: 2 Done | 1 Pending | 2.75h Scheduled • <span style={{ color: '#4ADE80', fontWeight: 700 }}>OPTIMAL</span>
                       </div>
@@ -981,7 +981,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--chinar-rust)' }}>01</span>
               <h4 style={{ fontSize: '1.1rem', margin: '8px 0 6px' }}>Commit</h4>
               <p style={{ fontSize: '0.86rem', color: 'var(--text-parchment-muted)', lineHeight: 1.5 }}>
-                Define 2–4 high-leverage deliverables. Run a quick feasibility check to ensure sustainable capacity before you begin.
+                Define 2–4 high-leverage deliverables. Run a quick feasibility audit to ensure sustainable capacity before you begin.
               </p>
             </div>
 
@@ -1058,7 +1058,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             margin: '0 auto 28px',
             lineHeight: 1.6,
           }}>
-            Build sustainable daily momentum with plan feasibility checks, excuse analysis, and genuine accountability.
+            Build sustainable daily momentum with plan feasibility audits, excuse analysis, and genuine accountability.
           </p>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>

@@ -108,7 +108,7 @@ export const CommitmentDiscussionModal: React.FC<CommitmentDiscussionModalProps>
             </span>
           </div>
           <span className={`badge ${commitment.status === 'COMPLETED' ? 'badge-completed' : 'badge-pending'}`} style={{ flexShrink: 0 }}>
-            {commitment.status}
+            {commitment.status === 'COMPLETED' ? 'KEPT' : commitment.status}
           </span>
         </div>
 

@@ -186,7 +186,7 @@ export const AiAccountabilityPanel: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
           <Flame size={18} color="var(--chinar-rust)" />
           <h4 style={{ fontSize: '1.1rem', color: 'var(--text-kehwa-cream)' }}>
-            Today's Plan Feasibility Check
+            Today's Plan Feasibility Audit
           </h4>
         </div>
 

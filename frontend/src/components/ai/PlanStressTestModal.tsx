@@ -198,7 +198,7 @@ export const PlanStressTestModal: React.FC<PlanStressTestModalProps> = ({
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: '700', margin: 0, color: 'var(--text-kehwa-cream)' }}>
-                  Plan Feasibility Check
+                  Plan Feasibility Audit
                 </h3>
                 <span style={{ fontSize: '0.72rem', background: 'rgba(226, 149, 59, 0.15)', color: 'var(--saffron-ember)', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontWeight: 700, border: '1px solid rgba(226, 149, 59, 0.3)' }}>
                   AI Verification

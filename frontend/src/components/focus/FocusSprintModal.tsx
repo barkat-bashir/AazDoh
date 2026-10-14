@@ -285,7 +285,7 @@ export const FocusSprintModal: React.FC<FocusSprintModalProps> = ({ onCommitment
               alignItems: 'center',
               gap: '4px'
             }}>
-              {isCompleted ? '✓ SPRINT COMPLETE' : isRunning ? (isBreak ? '☕ RECHARGING' : '⚡ DEEP FOCUS') : 'PAUSED'}
+              {isCompleted ? '✓ SPRINT COMPLETE' : isRunning ? (isBreak ? '☕ RECHARGING' : '⚡ DEEP WORK') : 'PAUSED'}
             </span>
           </div>
 

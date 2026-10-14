@@ -195,10 +195,10 @@ export const EditCommitmentModal: React.FC<EditCommitmentModalProps> = ({
                   color: category === 'DEEP_WORK' ? 'var(--chinar-rust)' : 'var(--saffron-ember)',
                   transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                 }}
-                title="Click to toggle Deep Focus vs Routine"
+                title="Click to toggle Deep Work vs Routine"
               >
                 {category === 'DEEP_WORK' ? <Target size={13} /> : <Zap size={13} />}
-                <span>{category === 'DEEP_WORK' ? 'Deep Focus' : 'Routine Task'}</span>
+                <span>{category === 'DEEP_WORK' ? 'Deep Work' : 'Routine Task'}</span>
               </button>
 
               <span style={{ fontSize: '0.74rem', color: 'var(--text-tweed-dim)', fontWeight: 500 }}>

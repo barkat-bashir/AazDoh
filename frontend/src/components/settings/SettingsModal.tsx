@@ -380,7 +380,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <span>Accountability Coaching Rigor</span>
               </label>
               <p style={{ fontSize: '0.76rem', color: 'var(--text-parchment-muted)', marginBottom: '10px', marginTop: 0 }}>
-                Adjust the tone and directness of behavioral feedback and feasibility checks.
+                Adjust the tone and directness of behavioral feedback and feasibility audits.
               </p>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>

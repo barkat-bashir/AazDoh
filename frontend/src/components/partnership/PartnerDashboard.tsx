@@ -568,7 +568,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
                   {partnerOverview.sharedCommitments.length > 0 && (
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-tweed-dim)', marginBottom: '5px' }}>
-                        {partnerOverview.sharedCommitments.filter(c => c.status === 'COMPLETED').length} of {partnerOverview.sharedCommitments.length} Finished
+                        {partnerOverview.sharedCommitments.filter(c => c.status === 'COMPLETED').length} of {partnerOverview.sharedCommitments.length} Kept
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{
@@ -727,7 +727,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
                                     border: `1px solid ${isDone ? 'rgba(74, 222, 128, 0.25)' : isMissed ? 'rgba(248, 113, 113, 0.25)' : 'rgba(255, 255, 255, 0.1)'}`,
                                     textTransform: 'uppercase',
                                   }}>
-                                    {c.status}
+                                    {isDone ? 'KEPT' : c.status}
                                   </span>
                                 </>
                               )}

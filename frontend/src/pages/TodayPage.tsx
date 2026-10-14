@@ -225,7 +225,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
       setStressTestData(response);
     } catch (err: any) {
       if (forceOpenDrawer) {
-        showToast('Could not run plan feasibility check', 'error');
+        showToast('Could not run plan feasibility audit', 'error');
       }
     } finally {
       if (forceOpenDrawer) {

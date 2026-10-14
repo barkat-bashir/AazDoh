@@ -68,7 +68,7 @@ export const FocusSprintTelemetryCard: React.FC<FocusSprintTelemetryCardProps> =
             {telemetry.totalSprintsCompleted}
           </div>
           <div style={{ fontSize: '0.72rem', color: 'var(--text-tweed-dim)', marginTop: '3px' }}>
-            {telemetry.totalFocusMinutesLogged}m ({ (telemetry.totalFocusMinutesLogged / 60).toFixed(1) }h) deep focus
+            {telemetry.totalFocusMinutesLogged}m ({ (telemetry.totalFocusMinutesLogged / 60).toFixed(1) }h) deep work
           </div>
         </div>
 
