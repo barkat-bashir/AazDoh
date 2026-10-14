@@ -483,7 +483,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({ onOpenAi }) => {
               style={{ padding: '8px 14px', fontSize: '0.84rem', display: 'flex', alignItems: 'center', gap: '6px' }}
             >
               <Zap size={14} />
-              <span>Quick 30s Catch-Up</span>
+              <span>Review Yesterday (30s)</span>
             </button>
             <button
               onClick={dismissCatchUp}

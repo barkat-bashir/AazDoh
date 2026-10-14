@@ -479,7 +479,7 @@ export const FocusSprintModal: React.FC<FocusSprintModalProps> = ({ onCommitment
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', color: 'var(--text-parchment-muted)', fontWeight: 600 }}>
             <StickyNote size={13} color="var(--saffron-ember)" />
-            <span>Park Distraction (Capture stray thoughts without breaking flow):</span>
+            <span>Parking Lot • Capture stray thoughts to process later:</span>
           </div>
 
           <form onSubmit={handleAddScratch} style={{ display: 'flex', gap: '6px' }}>

@@ -469,7 +469,7 @@ export const PlanStressTestDrawer: React.FC<PlanStressTestDrawerProps> = ({
                     }}
                   >
                     <MessageSquarePlus size={14} color="var(--saffron-ember)" />
-                    <span>Spar with Chief of Staff / Add Context</span>
+                    <span>Add Context</span>
                   </button>
                 ) : (
                   <form

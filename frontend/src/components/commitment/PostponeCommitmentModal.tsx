@@ -401,7 +401,7 @@ export const PostponeCommitmentModal: React.FC<PostponeCommitmentModalProps> = (
               style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
             >
               <CalendarClock size={15} />
-              <span>{loading ? 'Rescheduling...' : 'Confirm Postpone'}</span>
+              <span>{loading ? 'Rescheduling...' : 'Reschedule Commitment'}</span>
             </button>
           </div>
         </form>

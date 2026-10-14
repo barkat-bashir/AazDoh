@@ -137,7 +137,7 @@ export const AuthPage: React.FC = () => {
             AazDoh
           </h2>
           <p style={{ fontSize: '0.84rem', color: 'var(--saffron-ember)', fontWeight: 600, marginTop: '2px' }}>
-            Commit • Do • Report • Reflect
+            Win This Day • Commit • Do • Report • Reflect
           </p>
           <p style={{ fontSize: '0.82rem', color: 'var(--text-parchment-muted)', marginTop: '8px' }}>
             {authMode === 'forgot'
