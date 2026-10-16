@@ -829,12 +829,48 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
                   </p>
                 </div>
               ) : partnerOverview.sharedCommitments.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-tweed-dim)' }}>
-                  <Users size={36} color="var(--border-copper-subtle)" style={{ marginBottom: '8px' }} />
-                  <p style={{ fontSize: '0.95rem' }}>No shared commitments for today yet.</p>
-                  <p style={{ fontSize: '0.82rem', marginTop: '4px' }}>
-                    Your partner hasn't posted shared commitments for today.
+                <div style={{
+                  textAlign: 'center',
+                  padding: '48px 24px',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px dashed var(--border-copper-subtle)',
+                }}>
+                  <div style={{
+                    width: '52px',
+                    height: '52px',
+                    borderRadius: '50%',
+                    background: 'rgba(226, 149, 59, 0.1)',
+                    border: '1px solid rgba(226, 149, 59, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 14px',
+                    color: 'var(--saffron-ember)',
+                  }}>
+                    <Users size={24} />
+                  </div>
+                  <h4 style={{ fontSize: '1.05rem', color: 'var(--text-kehwa-cream)', fontWeight: 700, margin: '0 0 6px 0' }}>
+                    Day Not Started Yet
+                  </h4>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-parchment-muted)', maxWidth: '420px', margin: '0 auto 18px', lineHeight: 1.55 }}>
+                    {toProperCase(partnerOverview.partnerName)} hasn't locked in their daily commitments yet. A quick morning nudge helps spark focus and mutual accountability.
                   </p>
+                  <button
+                    onClick={() => showToast(`Sent a morning nudge to ${toProperCase(partnerOverview.partnerName)}! 🔔`, 'info')}
+                    className="btn-primary"
+                    style={{
+                      padding: '8px 18px',
+                      fontSize: '0.82rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: '0 4px 14px rgba(226, 149, 59, 0.25)',
+                    }}
+                  >
+                    <Bell size={14} />
+                    <span>Nudge {toProperCase(partnerOverview.partnerName)} to Plan Day</span>
+                  </button>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
