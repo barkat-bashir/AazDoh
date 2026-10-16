@@ -22,7 +22,8 @@ import {
   ThumbsUp,
   History,
   ShieldCheck,
-  Settings
+  Settings,
+  Bell
 } from 'lucide-react';
 
 interface PartnerDashboardProps {
@@ -460,26 +461,33 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span 
-                      style={{ 
-                        fontSize: '11px', 
-                        padding: '4px 10px', 
-                        borderRadius: '6px', 
-                        background: 'rgba(255,255,255,0.06)', 
-                        color: getRiskColor(partnerOverview.aiRiskLevel),
-                        border: `1px solid ${getRiskColor(partnerOverview.aiRiskLevel)}40`,
-                        fontWeight: '700' 
-                      }}
-                    >
-                      {partnerOverview.aiRiskScore !== undefined ? `${partnerOverview.aiRiskScore}% Risk (${partnerOverview.aiRiskLevel})` : 'Feasible'}
-                    </span>
-                    {partnerOverview.plannedHours !== undefined && (
-                      <span style={{ fontSize: '11.5px', color: 'var(--text-tweed-dim)' }}>
-                        Planned: {partnerOverview.plannedHours}h / Capacity: {partnerOverview.capacityHours}h
-                      </span>
-                    )}
-                  </div>
+                  {(() => {
+                    const hasNoCommitments = !partnerOverview.sharedCommitments || partnerOverview.sharedCommitments.length === 0;
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span 
+                          style={{ 
+                            fontSize: '11px', 
+                            padding: '4px 10px', 
+                            borderRadius: '6px', 
+                            background: hasNoCommitments ? 'rgba(226, 149, 59, 0.12)' : 'rgba(255,255,255,0.06)', 
+                            color: hasNoCommitments ? 'var(--saffron-ember)' : getRiskColor(partnerOverview.aiRiskLevel),
+                            border: `1px solid ${hasNoCommitments ? 'rgba(226, 149, 59, 0.35)' : `${getRiskColor(partnerOverview.aiRiskLevel)}40`}`,
+                            fontWeight: '700' 
+                          }}
+                        >
+                          {hasNoCommitments 
+                            ? 'Awaiting Plan' 
+                            : (partnerOverview.aiRiskScore !== undefined ? `${partnerOverview.aiRiskScore}% Risk (${partnerOverview.aiRiskLevel})` : 'Feasible')}
+                        </span>
+                        <span style={{ fontSize: '11.5px', color: 'var(--text-tweed-dim)' }}>
+                          {hasNoCommitments 
+                            ? `Capacity: ${partnerOverview.capacityHours ?? 2}h` 
+                            : `Planned: ${partnerOverview.plannedHours}h / Capacity: ${partnerOverview.capacityHours}h`}
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <p style={{ fontSize: '0.88rem', color: 'var(--warm-cream)', lineHeight: '1.6', margin: '0 0 16px 0' }}>
@@ -487,67 +495,135 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
                 </p>
 
                 {/* Quick Mentor Nudges */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', paddingTop: '12px', borderTop: '1px solid var(--border-walnut-faint)' }}>
-                  <span style={{ fontSize: '11px', color: 'var(--text-tweed-dim)', textTransform: 'uppercase', letterSpacing: '0.05em', marginRight: '2px', fontWeight: 600 }}>
-                    Quick Mentor Actions:
-                  </span>
-                  <button
-                    onClick={() => showToast(`Sent kudos to ${toProperCase(partnerOverview.partnerName)}! 👏`, 'success')}
-                    style={{
-                      padding: '6px 14px',
-                      fontSize: '11.5px',
-                      borderRadius: '20px',
-                      background: 'rgba(74, 222, 128, 0.1)',
-                      border: '1px solid rgba(74, 222, 128, 0.35)',
-                      color: '#4ADE80',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      cursor: 'pointer',
-                      fontWeight: 600,
-                      transition: 'all 0.2s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(74, 222, 128, 0.2)';
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(74, 222, 128, 0.1)';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                    }}
-                  >
-                    <ThumbsUp size={13} />
-                    <span>👏 Looking Solid</span>
-                  </button>
-                  <button
-                    onClick={() => showToast(`Invited ${toProperCase(partnerOverview.partnerName)} to a 10-min pair unblock! ☕`, 'info')}
-                    style={{
-                      padding: '6px 14px',
-                      fontSize: '11.5px',
-                      borderRadius: '20px',
-                      background: 'rgba(226, 149, 59, 0.1)',
-                      border: '1px solid rgba(226, 149, 59, 0.35)',
-                      color: 'var(--saffron-ember)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      cursor: 'pointer',
-                      fontWeight: 600,
-                      transition: 'all 0.2s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(226, 149, 59, 0.2)';
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(226, 149, 59, 0.1)';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                    }}
-                  >
-                    <Coffee size={13} />
-                    <span>☕ Offer 10-Min Unblock</span>
-                  </button>
-                </div>
+                {(() => {
+                  const hasNoCommitments = !partnerOverview.sharedCommitments || partnerOverview.sharedCommitments.length === 0;
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', paddingTop: '12px', borderTop: '1px solid var(--border-walnut-faint)' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--text-tweed-dim)', textTransform: 'uppercase', letterSpacing: '0.05em', marginRight: '2px', fontWeight: 600 }}>
+                        Quick Mentor Actions:
+                      </span>
+                      {hasNoCommitments ? (
+                        <>
+                          <button
+                            onClick={() => showToast(`Sent morning check-in nudge to ${toProperCase(partnerOverview.partnerName)}! 🔔`, 'info')}
+                            style={{
+                              padding: '6px 14px',
+                              fontSize: '11.5px',
+                              borderRadius: '20px',
+                              background: 'rgba(226, 149, 59, 0.12)',
+                              border: '1px solid rgba(226, 149, 59, 0.4)',
+                              color: 'var(--saffron-ember)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                              transition: 'all 0.2s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'rgba(226, 149, 59, 0.22)';
+                              e.currentTarget.style.transform = 'translateY(-1px)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'rgba(226, 149, 59, 0.12)';
+                              e.currentTarget.style.transform = 'translateY(0)';
+                            }}
+                          >
+                            <Bell size={13} />
+                            <span>Send Morning Nudge</span>
+                          </button>
+                          <button
+                            onClick={() => showToast(`Invited ${toProperCase(partnerOverview.partnerName)} to a morning sync! ☕`, 'info')}
+                            style={{
+                              padding: '6px 14px',
+                              fontSize: '11.5px',
+                              borderRadius: '20px',
+                              background: 'rgba(255, 255, 255, 0.05)',
+                              border: '1px solid var(--border-copper-subtle)',
+                              color: 'var(--text-kehwa-cream)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                              transition: 'all 0.2s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                              e.currentTarget.style.transform = 'translateY(-1px)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                              e.currentTarget.style.transform = 'translateY(0)';
+                            }}
+                          >
+                            <Coffee size={13} />
+                            <span>Offer Morning Sync</span>
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => showToast(`Sent kudos to ${toProperCase(partnerOverview.partnerName)}! 👏`, 'success')}
+                            style={{
+                              padding: '6px 14px',
+                              fontSize: '11.5px',
+                              borderRadius: '20px',
+                              background: 'rgba(74, 222, 128, 0.1)',
+                              border: '1px solid rgba(74, 222, 128, 0.35)',
+                              color: '#4ADE80',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                              transition: 'all 0.2s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'rgba(74, 222, 128, 0.2)';
+                              e.currentTarget.style.transform = 'translateY(-1px)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'rgba(74, 222, 128, 0.1)';
+                              e.currentTarget.style.transform = 'translateY(0)';
+                            }}
+                          >
+                            <ThumbsUp size={13} />
+                            <span>Looking Solid</span>
+                          </button>
+                          <button
+                            onClick={() => showToast(`Invited ${toProperCase(partnerOverview.partnerName)} to a 10-min pair unblock! ☕`, 'info')}
+                            style={{
+                              padding: '6px 14px',
+                              fontSize: '11.5px',
+                              borderRadius: '20px',
+                              background: 'rgba(226, 149, 59, 0.1)',
+                              border: '1px solid rgba(226, 149, 59, 0.35)',
+                              color: 'var(--saffron-ember)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                              transition: 'all 0.2s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'rgba(226, 149, 59, 0.2)';
+                              e.currentTarget.style.transform = 'translateY(-1px)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'rgba(226, 149, 59, 0.1)';
+                              e.currentTarget.style.transform = 'translateY(0)';
+                            }}
+                          >
+                            <Coffee size={13} />
+                            <span>Offer 10-Min Unblock</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
