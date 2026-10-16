@@ -162,6 +162,53 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
     }
   };
 
+  const getRelationshipInfo = (p: Partnership, currentUserId?: string) => {
+    const isRequester = p.requesterId === currentUserId;
+    const partnerSharesWithMe = isRequester ? p.sharePartnerCommitments !== false : p.shareRequesterCommitments !== false;
+    const iShareWithPartner = isRequester ? p.shareRequesterCommitments !== false : p.sharePartnerCommitments !== false;
+
+    if (p.partnershipType === 'ONE_WAY_SPONSOR' || !partnerSharesWithMe || !iShareWithPartner) {
+      if (partnerSharesWithMe && !iShareWithPartner) {
+        return {
+          type: 'MENTEE' as const,
+          label: 'Mentee',
+          badgeText: 'Mentee',
+          badgeColor: 'var(--saffron-ember)',
+          badgeBg: 'rgba(226, 149, 59, 0.15)',
+          headerTag: '🛡️ Sponsoring',
+          headerDesc: 'You inspect their daily tasks while your own day remains private',
+          isSponsoringMe: false,
+          amISponsoring: true,
+        };
+      }
+      if (!partnerSharesWithMe && iShareWithPartner) {
+        return {
+          type: 'SPONSOR' as const,
+          label: 'Sponsor',
+          badgeText: 'Sponsor',
+          badgeColor: '#93C5FD',
+          badgeBg: 'rgba(147, 197, 253, 0.15)',
+          headerTag: '👀 Sponsor',
+          headerDesc: 'Partner inspects your daily commitments while their schedule remains private',
+          isSponsoringMe: true,
+          amISponsoring: false,
+        };
+      }
+    }
+
+    return {
+      type: 'MUTUAL' as const,
+      label: 'Mutual',
+      badgeText: 'Mutual',
+      badgeColor: '#4ADE80',
+      badgeBg: 'rgba(74, 222, 128, 0.15)',
+      headerTag: '🤝 Mutual Sparring',
+      headerDesc: 'Both partners share daily commitments and review progress',
+      isSponsoringMe: false,
+      amISponsoring: false,
+    };
+  };
+
   return (
     <div className="partner-layout">
       {/* Sidebar: Partners & Invitations */}
@@ -293,15 +340,22 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
                         <span style={{ fontSize: '0.72rem', color: 'var(--text-tweed-dim)' }}>
                           Connected
                         </span>
-                        {p.partnershipType === 'ONE_WAY_SPONSOR' || p.sharePartnerCommitments === false ? (
-                          <span style={{ fontSize: '9.5px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(226, 149, 59, 0.15)', color: 'var(--saffron-ember)', fontWeight: 600 }}>
-                            Sponsor
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: '9.5px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(74, 222, 128, 0.15)', color: '#4ADE80', fontWeight: 600 }}>
-                            Mutual
-                          </span>
-                        )}
+                        {(() => {
+                          const rel = getRelationshipInfo(p, user?.id);
+                          return (
+                            <span style={{
+                              fontSize: '9.5px',
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              background: rel.badgeBg,
+                              color: rel.badgeColor,
+                              fontWeight: 700,
+                              border: `1px solid ${rel.badgeColor}30`,
+                            }}>
+                              {rel.badgeText}
+                            </span>
+                          );
+                        })()}
                       </div>
                     </div>
                   </button>
@@ -425,6 +479,89 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
       <div>
         {selectedPartner && partnerOverview ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            {/* 👤 Partner Profile Header */}
+            {(() => {
+              const selectedRel = getRelationshipInfo(selectedPartner, user?.id);
+              return (
+                <div
+                  className="harud-card"
+                  style={{
+                    padding: '16px 20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '14px',
+                    background: 'rgba(30, 23, 18, 0.85)',
+                    border: '1px solid var(--border-copper-subtle)',
+                    borderRadius: 'var(--radius-md)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, var(--saffron-ember), var(--chinar-rust))',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 800,
+                      fontSize: '1.05rem',
+                      color: '#FFF',
+                      boxShadow: '0 0 12px rgba(226, 149, 59, 0.35)',
+                    }}>
+                      {toProperCase(partnerOverview.partnerName).charAt(0)}
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-kehwa-cream)', margin: 0 }}>
+                          {toProperCase(partnerOverview.partnerName)}
+                        </h3>
+                        <span style={{
+                          fontSize: '11px',
+                          padding: '2px 8px',
+                          borderRadius: '5px',
+                          background: selectedRel.badgeBg,
+                          color: selectedRel.badgeColor,
+                          fontWeight: 700,
+                          border: `1px solid ${selectedRel.badgeColor}35`,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}>
+                          {selectedRel.headerTag}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '0.78rem', color: 'var(--text-tweed-dim)', margin: '3px 0 0 0' }}>
+                        {selectedRel.headerDesc}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setIsManageModalOpen(true)}
+                    className="btn-secondary"
+                    style={{
+                      padding: '7px 14px',
+                      fontSize: '0.8rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      border: '1px solid var(--border-copper-subtle)',
+                      borderRadius: 'var(--radius-sm)',
+                      cursor: 'pointer',
+                    }}
+                    title="Manage partnership settings & visibility"
+                  >
+                    <Settings size={14} color="var(--saffron-ember)" />
+                    <span>Manage Partnership</span>
+                  </button>
+                </div>
+              );
+            })()}
+
             {/* 🤖 Partner AI Accountability Brief Card */}
             {partnerOverview.aiDiagnosticSummary && (
               <div 
@@ -675,25 +812,6 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
                     </div>
                   )}
 
-                  <button
-                    onClick={() => setIsManageModalOpen(true)}
-                    className="btn-secondary"
-                    style={{
-                      padding: '6px 12px',
-                      fontSize: '0.78rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      background: 'rgba(255, 255, 255, 0.04)',
-                      border: '1px solid var(--border-walnut-faint)',
-                      borderRadius: 'var(--radius-sm)',
-                      cursor: 'pointer',
-                    }}
-                    title="Manage partnership settings & visibility"
-                  >
-                    <Settings size={14} color="var(--saffron-ember)" />
-                    <span>Manage</span>
-                  </button>
                 </div>
               </div>
 
