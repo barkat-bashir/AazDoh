@@ -365,26 +365,88 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
           )}
         </div>
 
-        {/* Accountability Cadence Info Card */}
-        <div style={{
-          padding: '14px 16px',
-          background: 'rgba(226, 149, 59, 0.04)',
-          border: '1px solid rgba(226, 149, 59, 0.12)',
-          borderRadius: 'var(--radius-md)',
-          display: 'flex',
-          gap: '10px',
-          alignItems: 'flex-start',
-        }}>
-          <Zap size={16} color="var(--saffron-ember)" style={{ flexShrink: 0, marginTop: '2px' }} />
-          <div>
-            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--saffron-ember)', marginBottom: '3px' }}>
-              Accountability Cadence
+        {/* Dynamic Accountability Cadence Pulse */}
+        {(() => {
+          const now = new Date();
+          const currentHour = now.getHours();
+          const isMorning = currentHour < 12;
+          const isAfternoon = currentHour >= 12 && currentHour < 18;
+          
+          const stageTitle = isMorning
+            ? 'Morning Cadence'
+            : isAfternoon
+              ? 'Midday Sprint'
+              : 'Evening Wrap-Up';
+
+          const stageDesc = isMorning
+            ? "Inspect your partner's plan before midday to maximize daily momentum."
+            : isAfternoon
+              ? "Midday check-in: offer a 10-minute unblock if your partner encounters friction."
+              : "Review today's completed commitments and leave closing reflections.";
+
+          const badgeLabel = isMorning ? 'Before 12:00 PM' : isAfternoon ? 'Midday Execution' : 'Daily Debrief';
+
+          return (
+            <div style={{
+              padding: '16px',
+              background: 'linear-gradient(145deg, rgba(226, 149, 59, 0.07), rgba(30, 23, 18, 0.6))',
+              border: '1px solid rgba(226, 149, 59, 0.2)',
+              borderRadius: 'var(--radius-md)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                  <Zap size={15} color="var(--saffron-ember)" />
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--saffron-ember)' }}>
+                    {stageTitle}
+                  </span>
+                </div>
+                <span style={{
+                  fontSize: '9.5px',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  background: 'rgba(226, 149, 59, 0.15)',
+                  color: 'var(--saffron-ember)',
+                  fontWeight: 600,
+                  border: '1px solid rgba(226, 149, 59, 0.3)',
+                }}>
+                  {badgeLabel}
+                </span>
+              </div>
+
+              <p style={{ fontSize: '0.74rem', color: 'var(--text-parchment-muted)', lineHeight: 1.45, margin: 0 }}>
+                {stageDesc}
+              </p>
+
+              {/* Progress bar towards next milestone */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                <div style={{
+                  flex: 1,
+                  height: '4px',
+                  borderRadius: '2px',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  overflow: 'hidden',
+                }}>
+                  <div style={{
+                    width: isMorning 
+                      ? `${Math.max(8, Math.min(100, Math.round((currentHour / 12) * 100)))}%` 
+                      : isAfternoon 
+                        ? `${Math.max(8, Math.min(100, Math.round(((currentHour - 12) / 6) * 100)))}%` 
+                        : `${Math.max(8, Math.min(100, Math.round(((currentHour - 18) / 6) * 100)))}%`,
+                    height: '100%',
+                    background: 'linear-gradient(90deg, var(--chinar-rust), var(--saffron-ember))',
+                    borderRadius: '2px',
+                  }} />
+                </div>
+                <span style={{ fontSize: '10px', color: 'var(--text-tweed-dim)', fontWeight: 600 }}>
+                  {isMorning ? `${Math.max(1, 12 - currentHour)}h to Midday` : isAfternoon ? `${Math.max(1, 18 - currentHour)}h to Wrap-up` : 'End of Day'}
+                </span>
+              </div>
             </div>
-            <p style={{ fontSize: '0.74rem', color: 'var(--text-tweed-dim)', lineHeight: 1.45, margin: 0 }}>
-              Leave quick mentor feedback on your partner's tasks before midday to keep daily execution momentum sharp.
-            </p>
-          </div>
-        </div>
+          );
+        })()}
 
         {/* Incoming Invitations */}
         {incomingInvites.length > 0 && (
