@@ -18,7 +18,7 @@ WORKDIR /app
 
 # Create a non-privileged user to run the app
 RUN addgroup -S spring && adduser -S spring -G spring
-USER spring:spring
+USER spring:spring 
 
 # Copy jar from build stage
 COPY --from=build /app/target/*.jar app.jar
